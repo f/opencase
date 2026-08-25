@@ -78,6 +78,7 @@ import App, {
   OUTGOING_CALL_DIAL_MS,
   OUTGOING_CALL_END_MS,
   OUTGOING_CALL_SPEAK_MS,
+  readCasePreference,
 } from './App'
 
 const manifest: ShellPublicCaseManifest = {
@@ -153,7 +154,7 @@ beforeEach(() => {
       locale: manifest.case.locale ?? 'tr',
       defaultLocale: manifest.case.locale ?? 'tr',
       locales: [manifest.case.locale ?? 'tr'],
-      source: { kind: 'built-in', label: 'Dedektif' },
+      source: { kind: 'built-in', label: 'opencase' },
       verification: { level: 'built-in', authoredTests: 0 },
       manifest,
     }],
@@ -175,6 +176,17 @@ function memoryStorage(): Storage {
     setItem: (key, value) => { values.set(key, String(value)) },
   }
 }
+
+describe('opencase preference migration', () => {
+  it('keeps a readable legacy selection when its best-effort rewrite is blocked', () => {
+    const storage = {
+      getItem: (key: string) => key === 'karanlik-oda:selected-case' ? 'case-from-legacy' : null,
+      setItem: () => { throw new Error('blocked') },
+    }
+
+    expect(readCasePreference(storage)).toBe('case-from-legacy')
+  })
+})
 
 describe('App wall-clock session recovery', () => {
   let host: HTMLDivElement

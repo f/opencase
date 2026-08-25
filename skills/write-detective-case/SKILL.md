@@ -1,6 +1,6 @@
 ---
 name: write-detective-case
-description: Create, extend, review, repair, or validate dedektif case packages written as case.yml plus assets/, i18n/, and tests/. Use when an AI must turn a mystery brief into a playable YAML case, add evidence or media, localize presentation copy, design progressive affordances, deductions, or deadlines, write external detective-perspective scenarios, diagnose compiler/test failures, or migrate case-specific code into the generic package format.
+description: Create, extend, review, repair, or validate opencase case packages written as case.yml plus assets/, i18n/, and tests/. Use when an AI must turn a mystery brief into a playable YAML case, add evidence or media, localize presentation copy, design progressive affordances, deductions, or deadlines, write external detective-perspective scenarios, diagnose compiler/test failures, or migrate case-specific code into the generic package format.
 ---
 
 # Write Detective Case

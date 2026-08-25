@@ -1,5 +1,7 @@
-export const PLAYER_PROFILES_SCHEMA = 'dedektif-player-profiles/v1' as const
-export const PLAYER_PROFILES_STORAGE_KEY = 'dedektif:player-profiles:v1' as const
+export const PLAYER_PROFILES_SCHEMA = 'opencase-player-profiles/v1' as const
+export const PLAYER_PROFILES_STORAGE_KEY = 'opencase:player-profiles:v1' as const
+export const LEGACY_PLAYER_PROFILES_SCHEMA = 'dedektif-player-profiles/v1' as const
+export const LEGACY_PLAYER_PROFILES_STORAGE_KEY = 'dedektif:player-profiles:v1' as const
 export const LEGACY_PLAYER_PROFILE_ID = 'primary' as const
 
 export type PlayerPreferredLocale = 'tr' | 'en'
@@ -274,7 +276,10 @@ export function parsePlayerProfilesState(value: unknown): PlayerProfilesState {
     'player profile state',
     ['schema', 'revision', 'activeProfileId', 'profiles'],
   )
-  if (candidate.schema !== PLAYER_PROFILES_SCHEMA) {
+  if (
+    candidate.schema !== PLAYER_PROFILES_SCHEMA
+    && candidate.schema !== LEGACY_PLAYER_PROFILES_SCHEMA
+  ) {
     throw storeError('invalid-state', `Unsupported player profile schema '${String(candidate.schema)}'.`)
   }
   if (
@@ -328,6 +333,9 @@ export function createPlayerProfileStore(
 ): PlayerProfileStore {
   const storage = options.storage ?? browserStorage()
   const storageKey = options.storageKey ?? PLAYER_PROFILES_STORAGE_KEY
+  const legacyStorageKey = options.storageKey === undefined
+    ? LEGACY_PLAYER_PROFILES_STORAGE_KEY
+    : undefined
   if (storageKey.trim().length === 0) {
     throw new TypeError('Player profile storage key must not be empty.')
   }
@@ -357,12 +365,24 @@ export function createPlayerProfileStore(
   let current = fallback
   if (storage) {
     try {
-      const serialized = storage.getItem(storageKey)
+      let serialized = storage.getItem(storageKey)
+      let readFromLegacyKey = false
+      if (serialized === null && legacyStorageKey) {
+        serialized = storage.getItem(legacyStorageKey)
+        readFromLegacyKey = serialized !== null
+      }
       if (serialized === null) {
         persist(fallback)
       } else {
         try {
-          current = parsePlayerProfilesState(JSON.parse(serialized) as unknown)
+          const decoded = JSON.parse(serialized) as unknown
+          const authoredSchema = decoded && typeof decoded === 'object' && !Array.isArray(decoded)
+            ? (decoded as UnknownRecord).schema
+            : undefined
+          current = parsePlayerProfilesState(decoded)
+          if (readFromLegacyKey || authoredSchema === LEGACY_PLAYER_PROFILES_SCHEMA) {
+            persist(current)
+          }
         } catch (cause) {
           const error = cause instanceof PlayerProfileStoreError
             ? cause

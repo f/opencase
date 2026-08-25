@@ -350,7 +350,7 @@ async function catalogEntry(
     locale: selectedLocale,
     defaultLocale: trustedCase.compiled.localization.defaultLocale,
     locales: trustedCase.compiled.localization.locales,
-    source: installed?.source ?? { kind: 'built-in', label: 'Dedektif' },
+    source: installed?.source ?? { kind: 'built-in', label: 'opencase' },
     verification: installed?.verification ?? {
       level: 'built-in',
       authoredTests: 0,

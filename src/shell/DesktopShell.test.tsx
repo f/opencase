@@ -137,13 +137,13 @@ describe('DesktopShell fixed docks', () => {
     const html = renderToStaticMarkup(
       <DesktopShell
         apps={[{ ...dockedApp, placement: 'floating', defaultOpen: true }]}
-        brand="dedektif"
+        brand="opencase"
       />,
     )
 
     expect(html).toContain('detective-menubar')
     expect(html).toContain('detective-menubar__launcher')
-    expect(html).toContain('<strong>dedektif</strong>')
+    expect(html).toContain('<strong>opencase</strong>')
     expect(html).toContain('detective-dock')
     expect(html).toContain('detective-window__titlebar')
     expect(html).toContain('detective-window__controls')
@@ -163,7 +163,7 @@ describe('DesktopShell fixed docks', () => {
       root.render(
         <DesktopShell
           apps={[{ ...dockedApp, placement: 'floating', defaultOpen: true }]}
-          brand="dedektif"
+          brand="opencase"
           settingsSlot={(
             <div>
               <label>

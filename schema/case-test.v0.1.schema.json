@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://karanlik-oda.local/schema/case-test.v0.1.schema.json",
-  "title": "dedektif detective-perspective case test",
+  "title": "opencase detective-perspective case test",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "case", "scenario"],

@@ -1,6 +1,15 @@
-# dedektif — detective case engine and desktop shell
+<p align="center">
+  <img src="docs/brand/opencase-logo.png" alt="opencase logo for the detective case engine and desktop game" width="760">
+</p>
 
-dedektif is an engine for writing deterministic investigation cases as
+# opencase — detective case engine and desktop shell
+
+<p align="center">
+  <a href="https://opencase.computer">Play opencase</a> ·
+  <a href="https://github.com/f/opencase">GitHub repository</a>
+</p>
+
+opencase is an engine for writing deterministic investigation cases as
 portable YAML packages. A case author describes the world, what each character
 knows or says, the evidence routes, deductions, timed pressure, reactions,
 actor conversation states, explicit player-visible affordances, objectives,
@@ -742,9 +751,10 @@ npm run check
 The Vite build uses a relative base, and generated case manifests, runtime
 bundles, and asset URLs are relative to the files that reference them. The
 resulting `dist/` directory can therefore be served from `/`, a repository
-subpath such as `/dedektif/`, or another static mount point. No rewrite to
-`/api/*`, Node process, database service, or secret environment variable is
-needed for gameplay.
+subpath such as `/opencase/`, or another static mount point. The live target is
+[opencase.computer](https://opencase.computer). No rewrite to `/api/*`, Node
+process, database service, or secret environment variable is needed for
+gameplay.
 
 `.github/workflows/deploy-pages.yml` checks and builds the project on pushes to
 `main`, uploads `dist/`, and deploys it with GitHub Pages' Actions workflow. The

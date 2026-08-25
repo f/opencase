@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import type { CaseSaveStorageKey } from '../case-runtime/controller'
 import {
+  BROWSER_CASE_SAVE_PREFIX,
   BrowserCaseSaveStorageError,
+  LEGACY_BROWSER_CASE_SAVE_PREFIX,
   browserCaseSaveKey,
   createBrowserCaseSaveStorage,
   type BrowserCaseSaveKeyValueStorage,
@@ -26,6 +28,73 @@ function memoryStorage(): BrowserCaseSaveKeyValueStorage & { readonly values: Ma
 }
 
 describe('browser case save storage', () => {
+  it('writes new saves only under the opencase namespace', async () => {
+    const storage = memoryStorage()
+    const saves = createBrowserCaseSaveStorage({ storage })
+
+    await saves.write(SAVE_KEY, 'current-save')
+
+    expect(storage.values.get(browserCaseSaveKey(SAVE_KEY, BROWSER_CASE_SAVE_PREFIX)))
+      .toBe('current-save')
+    expect(storage.values.has(browserCaseSaveKey(SAVE_KEY, LEGACY_BROWSER_CASE_SAVE_PREFIX)))
+      .toBe(false)
+  })
+
+  it('reads and safely copies an exact legacy save without deleting the fallback', async () => {
+    const storage = memoryStorage()
+    const legacyKey = browserCaseSaveKey(SAVE_KEY, LEGACY_BROWSER_CASE_SAVE_PREFIX)
+    const currentKey = browserCaseSaveKey(SAVE_KEY, BROWSER_CASE_SAVE_PREFIX)
+    const serialized = '{"schemaVersion":"kernel-save@1","private":"opaque"}'
+    storage.values.set(legacyKey, serialized)
+    const saves = createBrowserCaseSaveStorage({ storage })
+
+    await expect(saves.read(SAVE_KEY)).resolves.toBe(serialized)
+    expect(storage.values.get(currentKey)).toBe(serialized)
+    expect(storage.values.get(legacyKey)).toBe(serialized)
+  })
+
+  it('keeps the current opencase save authoritative over a stale legacy value', async () => {
+    const storage = memoryStorage()
+    storage.values.set(
+      browserCaseSaveKey(SAVE_KEY, BROWSER_CASE_SAVE_PREFIX),
+      'current-save',
+    )
+    storage.values.set(
+      browserCaseSaveKey(SAVE_KEY, LEGACY_BROWSER_CASE_SAVE_PREFIX),
+      'stale-legacy-save',
+    )
+
+    await expect(createBrowserCaseSaveStorage({ storage }).read(SAVE_KEY))
+      .resolves.toBe('current-save')
+  })
+
+  it('returns a readable legacy save even when its best-effort copy is blocked', async () => {
+    const legacyKey = browserCaseSaveKey(SAVE_KEY, LEGACY_BROWSER_CASE_SAVE_PREFIX)
+    const storage: BrowserCaseSaveKeyValueStorage = {
+      getItem: (key) => key === legacyKey ? 'legacy-save' : null,
+      setItem: () => { throw new DOMException('quota', 'QuotaExceededError') },
+      removeItem: () => undefined,
+    }
+
+    await expect(createBrowserCaseSaveStorage({ storage }).read(SAVE_KEY))
+      .resolves.toBe('legacy-save')
+  })
+
+  it('deletes both namespaces so a legacy save cannot reappear', async () => {
+    const storage = memoryStorage()
+    const legacyKey = browserCaseSaveKey(SAVE_KEY, LEGACY_BROWSER_CASE_SAVE_PREFIX)
+    const currentKey = browserCaseSaveKey(SAVE_KEY, BROWSER_CASE_SAVE_PREFIX)
+    storage.values.set(legacyKey, 'legacy-save')
+    storage.values.set(currentKey, 'current-save')
+    const saves = createBrowserCaseSaveStorage({ storage })
+
+    await saves.delete(SAVE_KEY)
+
+    expect(storage.values.has(legacyKey)).toBe(false)
+    expect(storage.values.has(currentKey)).toBe(false)
+    await expect(saves.read(SAVE_KEY)).resolves.toBeUndefined()
+  })
+
   it('keeps the serialized save opaque and namespaces the exact build slot', async () => {
     const storage = memoryStorage()
     const saves = createBrowserCaseSaveStorage({ storage, prefix: 'test' })

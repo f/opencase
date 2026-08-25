@@ -6,15 +6,15 @@ describe('appUrl', () => {
   it('keeps root-style application paths below a GitHub Pages project base', () => {
     expect(appUrl('/generated/cases.json', {
       basePath: './',
-      locationHref: 'https://f.github.io/detektif/',
-    })).toBe('https://f.github.io/detektif/generated/cases.json')
+      locationHref: 'https://f.github.io/opencase/',
+    })).toBe('https://f.github.io/opencase/generated/cases.json')
   })
 
   it('resolves from an index document without duplicating its filename', () => {
     expect(appUrl('generated/example-case.runtime.json', {
       basePath: './',
-      locationHref: 'https://f.github.io/detektif/index.html',
-    })).toBe('https://f.github.io/detektif/generated/example-case.runtime.json')
+      locationHref: 'https://f.github.io/opencase/index.html',
+    })).toBe('https://f.github.io/opencase/generated/example-case.runtime.json')
   })
 
   it('also supports origin-root local development', () => {
@@ -27,7 +27,7 @@ describe('appUrl', () => {
   it('rejects external and network-path URLs', () => {
     const context = {
       basePath: './',
-      locationHref: 'https://f.github.io/detektif/',
+      locationHref: 'https://f.github.io/opencase/',
     } as const
     expect(() => appUrl('https://example.com/case.json', context)).toThrow(TypeError)
     expect(() => appUrl('//example.com/case.json', context)).toThrow(TypeError)

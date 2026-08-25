@@ -40,6 +40,8 @@ export interface CaseBoardPersistence {
 
 export interface CaseBoardPersistenceOptions {
   readonly storage?: CaseBoardStorage
+  /** Previous brand-scoped key read once and copied forward when the new key is empty. */
+  readonly legacyKey?: string
   readonly onError?: (error: unknown) => void
 }
 
@@ -132,8 +134,21 @@ export function createCaseBoardPersistence(
   return {
     load: () => {
       try {
-        const serialized = storage()?.getItem(key)
-        return serialized ? sanitizeCaseBoardState(JSON.parse(serialized)) : emptyCaseBoardState()
+        const activeStorage = storage()
+        const currentSerialized = activeStorage?.getItem(key) ?? null
+        if (currentSerialized !== null) {
+          return sanitizeCaseBoardState(JSON.parse(currentSerialized))
+        }
+        if (!options.legacyKey || options.legacyKey === key) return emptyCaseBoardState()
+        const legacySerialized = activeStorage?.getItem(options.legacyKey)
+        if (!legacySerialized) return emptyCaseBoardState()
+        const legacy = sanitizeCaseBoardState(JSON.parse(legacySerialized))
+        try {
+          activeStorage?.setItem(key, JSON.stringify(legacy))
+        } catch (error) {
+          report(error)
+        }
+        return legacy
       } catch (error) {
         report(error)
         return emptyCaseBoardState()
@@ -148,7 +163,11 @@ export function createCaseBoardPersistence(
     },
     clear: () => {
       try {
-        storage()?.removeItem(key)
+        const activeStorage = storage()
+        if (options.legacyKey && options.legacyKey !== key) {
+          activeStorage?.removeItem(options.legacyKey)
+        }
+        activeStorage?.removeItem(key)
       } catch (error) {
         report(error)
       }

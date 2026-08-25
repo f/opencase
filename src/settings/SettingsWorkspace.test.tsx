@@ -189,7 +189,7 @@ describe('SettingsWorkspace', () => {
     await act(async () => root.render(<SettingsWorkspace {...value} />))
     await act(async () => buttonWithText(host, 'Case Library').click())
 
-    expect(host.textContent).toContain('Included with Dedektif')
+    expect(host.textContent).toContain('Included with opencase')
     expect(host.textContent).toContain('GitHub')
     expect(host.textContent).toContain('Verified')
     expect(host.textContent).toContain('Compatible')

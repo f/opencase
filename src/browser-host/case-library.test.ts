@@ -11,7 +11,7 @@ import {
 import { createBrowserCaseLibrary } from './case-library'
 import type { StaticCaseRuntimeBundle, StaticCaseRuntimeBundleUnsigned } from './static-bundle'
 
-const indexUrl = 'https://game.example/dedektif/generated/cases.json'
+const indexUrl = 'https://game.example/opencase/generated/cases.json'
 const caseId = 'test.browser-static'
 const caseVersion = '1.0.0'
 const kernelDigest = 'kernel-browser-static'
@@ -127,10 +127,10 @@ describe('browser case library', () => {
     const fetchMock = vi.fn<typeof fetch>(async (request) => {
       const url = String(request)
       if (url === indexUrl) return remoteJson(url, staticIndex(bundle))
-      if (url === 'https://game.example/dedektif/generated/browser-static.en.json') {
+      if (url === 'https://game.example/opencase/generated/browser-static.en.json') {
         return remoteJson(url, manifest())
       }
-      if (url === 'https://game.example/dedektif/generated/browser-static.runtime.json') {
+      if (url === 'https://game.example/opencase/generated/browser-static.runtime.json') {
         return remoteJson(url, bundle)
       }
       throw new Error(`Unexpected fetch: ${url}`)
@@ -151,7 +151,7 @@ describe('browser case library', () => {
     const loaded = await library.loadRuntime(caseId, caseVersion)
     expect(loaded.bundle).toEqual(bundle)
     expect(loaded.assetUrls).toEqual({
-      photo: 'https://game.example/dedektif/generated/assets/photo.png',
+      photo: 'https://game.example/opencase/generated/assets/photo.png',
     })
   })
 

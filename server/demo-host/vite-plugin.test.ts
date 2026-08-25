@@ -71,7 +71,7 @@ describe('case library HTTP endpoints', () => {
         id: 'official.son-prova',
         title: 'Final Rehearsal',
         locale: 'en',
-        source: { kind: 'built-in', label: 'Dedektif' },
+        source: { kind: 'built-in', label: 'opencase' },
         verification: { level: 'built-in', authoredTests: 0 },
         manifest: expect.objectContaining({
           case: expect.objectContaining({ title: 'Final Rehearsal' }),

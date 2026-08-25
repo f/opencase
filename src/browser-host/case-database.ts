@@ -3,7 +3,8 @@ import type { ShellPublicCaseManifest } from '../shell/manifest-workspace'
 import type { BrowserPackageProvenance } from './import-types'
 import type { StaticCaseRuntimeBundle } from './static-bundle'
 
-export const BROWSER_CASE_DATABASE = 'dedektif-case-library-v1' as const
+export const BROWSER_CASE_DATABASE = 'opencase-case-library-v1' as const
+export const LEGACY_BROWSER_CASE_DATABASE = 'dedektif-case-library-v1' as const
 
 export interface StoredBrowserCasePackage {
   readonly schema: 'detective-browser-case/v1'
@@ -86,11 +87,173 @@ export interface OpenBrowserCaseDatabaseOptions {
   readonly name?: string
 }
 
+async function openExistingDatabase(
+  factory: IDBFactory,
+  name: string,
+): Promise<IDBDatabase | undefined> {
+  try {
+    const databases = await factory.databases()
+    if (!databases.some((database) => database.name === name)) return undefined
+  } catch {
+    // Older browsers may not implement database enumeration. The guarded open
+    // below aborts creation if the legacy database does not exist.
+  }
+
+  return new Promise<IDBDatabase | undefined>((resolve, reject) => {
+    const open = factory.open(name)
+    let missing = false
+
+    open.addEventListener('upgradeneeded', () => {
+      missing = true
+      open.transaction?.abort()
+    }, { once: true })
+    open.addEventListener('success', () => resolve(open.result), { once: true })
+    open.addEventListener('error', () => {
+      if (missing) {
+        resolve(undefined)
+        return
+      }
+      reject(open.error ?? new Error(`Could not open legacy case database ${name}.`))
+    }, { once: true })
+  })
+}
+
+async function readLegacyInstallationRecords(
+  database: IDBDatabase,
+): Promise<{
+  readonly packages: readonly StoredBrowserCasePackage[]
+  readonly assets: readonly StoredBrowserCaseAsset[]
+}> {
+  if (
+    !database.objectStoreNames.contains('packages') ||
+    !database.objectStoreNames.contains('assets')
+  ) return { packages: [], assets: [] }
+
+  const transaction = database.transaction(['packages', 'assets'], 'readonly')
+  const packagesRequest = transaction.objectStore('packages').getAll() as IDBRequest<StoredBrowserCasePackage[]>
+  const assetsRequest = transaction.objectStore('assets').getAll() as IDBRequest<StoredBrowserCaseAsset[]>
+  const [packages, assets] = await Promise.all([
+    requestValue(packagesRequest),
+    requestValue(assetsRequest),
+  ])
+  await transactionDone(transaction)
+  return { packages, assets }
+}
+
+async function copyLegacyPackage(
+  database: IDBDatabase,
+  casePackage: StoredBrowserCasePackage,
+  assets: readonly StoredBrowserCaseAsset[],
+): Promise<void> {
+  const transaction = database.transaction(['packages', 'assets'], 'readwrite')
+  const completed = transactionDone(transaction)
+  const packagesStore = transaction.objectStore('packages')
+  const assetsStore = transaction.objectStore('assets')
+  try {
+    const existingPackage = await requestValue(
+      packagesStore.get(casePackage.identity) as IDBRequest<StoredBrowserCasePackage | undefined>,
+    )
+
+    if (!existingPackage) {
+      for (const asset of assets) {
+        const existingAsset = await requestValue(
+          assetsStore.get(asset.key) as IDBRequest<StoredBrowserCaseAsset | undefined>,
+        )
+        if (!existingAsset) assetsStore.add(asset)
+      }
+      packagesStore.add(casePackage)
+    }
+
+    await completed
+  } catch (error) {
+    try {
+      transaction.abort()
+    } catch {
+      // The transaction may already have aborted because of a failed request.
+    }
+    try {
+      await completed
+    } catch {
+      // Preserve the original request or structured-clone error below.
+    }
+    throw error
+  }
+}
+
+async function migrateLegacyDatabase(
+  factory: IDBFactory,
+  database: IDBDatabase,
+): Promise<void> {
+  const legacy = await openExistingDatabase(factory, LEGACY_BROWSER_CASE_DATABASE)
+  if (!legacy) return
+
+  try {
+    const records = await readLegacyInstallationRecords(legacy)
+    for (const casePackage of records.packages) {
+      const assets = records.assets.filter((asset) => (
+        asset.identity === casePackage.identity &&
+        asset.caseDigest === casePackage.caseDigest
+      ))
+      try {
+        await copyLegacyPackage(database, casePackage, assets)
+      } catch {
+        // A corrupt or conflicting legacy record must not block other records.
+      }
+    }
+  } finally {
+    legacy.close()
+  }
+}
+
+async function deletePackageRecords(
+  database: IDBDatabase,
+  caseId: string,
+  caseVersion: string,
+): Promise<void> {
+  if (!database.objectStoreNames.contains('packages')) return
+
+  const identity = browserCaseIdentity(caseId, caseVersion)
+  const read = database.transaction('packages', 'readonly')
+  const existing = await requestValue(
+    read.objectStore('packages').get(identity) as IDBRequest<StoredBrowserCasePackage | undefined>,
+  )
+  await transactionDone(read)
+
+  const stores = database.objectStoreNames.contains('assets')
+    ? ['packages', 'assets']
+    : ['packages']
+  const transaction = database.transaction(stores, 'readwrite')
+  transaction.objectStore('packages').delete(identity)
+  if (existing && stores.includes('assets')) {
+    const index = transaction.objectStore('assets').index('by-case')
+    const keys = await requestValue(
+      index.getAllKeys(IDBKeyRange.only([identity, existing.caseDigest])),
+    )
+    for (const key of keys) transaction.objectStore('assets').delete(key)
+  }
+  await transactionDone(transaction)
+}
+
+async function deleteLegacyPackage(
+  factory: IDBFactory,
+  caseId: string,
+  caseVersion: string,
+): Promise<void> {
+  const legacy = await openExistingDatabase(factory, LEGACY_BROWSER_CASE_DATABASE)
+  if (!legacy) return
+  try {
+    await deletePackageRecords(legacy, caseId, caseVersion)
+  } finally {
+    legacy.close()
+  }
+}
+
 export async function openBrowserCaseDatabase(
   options: OpenBrowserCaseDatabaseOptions = {},
 ): Promise<BrowserCaseDatabase> {
   const factory = options.indexedDB ?? globalThis.indexedDB
   if (!factory) throw new Error('This browser does not provide IndexedDB case storage.')
+  const usesDefaultDatabase = options.name === undefined
   const open = factory.open(options.name ?? BROWSER_CASE_DATABASE, 1)
   open.addEventListener('upgradeneeded', () => {
     const database = open.result
@@ -104,6 +267,14 @@ export async function openBrowserCaseDatabase(
   })
   const database = await requestValue(open)
   database.addEventListener('versionchange', () => database.close())
+  if (usesDefaultDatabase) {
+    try {
+      await migrateLegacyDatabase(factory, database)
+    } catch {
+      // Legacy migration is best-effort. The new database remains usable even
+      // when the old database cannot be opened or read.
+    }
+  }
 
   return Object.freeze({
     async listPackages(): Promise<readonly StoredBrowserCasePackage[]> {
@@ -162,18 +333,12 @@ export async function openBrowserCaseDatabase(
     },
 
     async delete(caseId: string, caseVersion: string): Promise<void> {
-      const identity = browserCaseIdentity(caseId, caseVersion)
-      const existing = await this.getPackage(caseId, caseVersion)
-      const transaction = database.transaction(['packages', 'assets'], 'readwrite')
-      transaction.objectStore('packages').delete(identity)
-      if (existing) {
-        const index = transaction.objectStore('assets').index('by-case')
-        const keys = await requestValue(
-          index.getAllKeys(IDBKeyRange.only([identity, existing.caseDigest])),
-        )
-        for (const key of keys) transaction.objectStore('assets').delete(key)
+      // Remove the fallback first. If that fails, leave the current record in
+      // place and reject so a later launch cannot silently restore the case.
+      if (usesDefaultDatabase) {
+        await deleteLegacyPackage(factory, caseId, caseVersion)
       }
-      await transactionDone(transaction)
+      await deletePackageRecords(database, caseId, caseVersion)
     },
 
     close(): void {

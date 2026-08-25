@@ -282,7 +282,9 @@ npm run check
 The production `dist/` directory is self-contained. Vite uses a relative base,
 and generated index, manifest, runtime, and asset links remain relative. The
 same output works below a repository path such as
-`https://owner.github.io/dedektif/` without hard-coded root URLs.
+`https://owner.github.io/opencase/` without hard-coded root URLs. The live
+deployment is [opencase.computer](https://opencase.computer), and the repository
+is [f/opencase](https://github.com/f/opencase).
 
 The repository's `.github/workflows/deploy-pages.yml` workflow runs the complete
 check, uploads `dist/`, and deploys it with GitHub Pages on a push to `main` or a

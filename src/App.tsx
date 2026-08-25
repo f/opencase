@@ -18,7 +18,7 @@ import phoneIcon from 'lucide-static/icons/phone.svg'
 import rotateCcwIcon from 'lucide-static/icons/rotate-ccw.svg'
 import triangleAlertIcon from 'lucide-static/icons/triangle-alert.svg'
 import webIcon from 'lucide-static/icons/compass.svg'
-import dedektifWallpaper from './assets/shell/dedektif-wallpaper.png'
+import opencaseWallpaper from './assets/shell/opencase-wallpaper.png'
 import { AccessibleModal, ModalBackground } from './AccessibleModal'
 import { CaseOutcomeReport } from './CaseOutcomeReport'
 import {
@@ -96,7 +96,10 @@ import {
   type DemoCommandResponse,
 } from './demo-host-client'
 
-const CASE_PREFERENCE_KEY = 'karanlik-oda:selected-case'
+const CASE_PREFERENCE_KEY = 'opencase:selected-case'
+const LEGACY_CASE_PREFERENCE_KEY = 'karanlik-oda:selected-case'
+const BRAND_STORAGE_PREFIX = 'opencase:v1'
+const LEGACY_BRAND_STORAGE_PREFIX = 'dedektif:v1'
 
 type OpeningPhase = 'checking' | 'ringing' | 'missed' | 'connected' | 'active' | 'restarting' | 'error'
 
@@ -250,7 +253,7 @@ const APP_COPY: Readonly<Record<AppLocale, AppCopy>> = {
     contactAdded: (name) => `${name} Kişiler’e eklendi.`,
     openContact: (name) => `${name} kişisini iPhone’da aç`,
     openContactAccessible: (name) => `${name} kişi kartını iPhone’da aç`,
-    bureau: 'Dedektif Bürosu',
+    bureau: 'opencase Bürosu',
     forensicsLeadRole: 'İç ekip · Adli inceleme lideri',
     askLead: 'Ece’ye sor',
     caseDeskTopic: 'Aktif vaka, saha notları ve görev bildirimleri',
@@ -363,7 +366,7 @@ const APP_COPY: Readonly<Record<AppLocale, AppCopy>> = {
     contactAdded: (name) => `${name} was added to Contacts.`,
     openContact: (name) => `Open ${name} on iPhone`,
     openContactAccessible: (name) => `Open ${name}'s contact card on iPhone`,
-    bureau: 'Dedektif Bureau',
+    bureau: 'opencase Bureau',
     forensicsLeadRole: 'Internal team · Forensics lead',
     askLead: 'Ask Ece',
     caseDeskTopic: 'Active case, field notes, and task updates',
@@ -431,24 +434,30 @@ const APP_COPY: Readonly<Record<AppLocale, AppCopy>> = {
   },
 }
 
-function desktopLayoutKey(manifest: ShellPublicCaseManifest, saveId: string): string {
-  return `dedektif:v1:profile:${saveId}:case:${manifest.case.id}:${manifest.case.version}:desktop-layout`
+function desktopLayoutKey(
+  manifest: ShellPublicCaseManifest,
+  saveId: string,
+  prefix: string = BRAND_STORAGE_PREFIX,
+): string {
+  return `${prefix}:profile:${saveId}:case:${manifest.case.id}:${manifest.case.version}:desktop-layout`
 }
 
 function forensicsWorkflowKey(
   manifest: ShellPublicCaseManifest,
   assetSessionId: string,
   saveId: string,
+  prefix: string = BRAND_STORAGE_PREFIX,
 ): string {
-  return `dedektif:v1:profile:${saveId}:case:${manifest.case.id}:${manifest.case.version}:${assetSessionId}:forensics-workflow`
+  return `${prefix}:profile:${saveId}:case:${manifest.case.id}:${manifest.case.version}:${assetSessionId}:forensics-workflow`
 }
 
 function caseBoardStateKey(
   manifest: ShellPublicCaseManifest,
   caseDigest: string,
   saveId: string,
+  prefix: string = BRAND_STORAGE_PREFIX,
 ): string {
-  return `dedektif:v1:profile:${saveId}:case:${manifest.case.id}:${manifest.case.version}:${caseDigest}:case-board`
+  return `${prefix}:profile:${saveId}:case:${manifest.case.id}:${manifest.case.version}:${caseDigest}:case-board`
 }
 
 function browserLocalStorage(): Storage | undefined {
@@ -681,8 +690,8 @@ function importFailureCopy(locale: PlayerPreferredLocale, error: unknown): {
       'One or more authored case tests failed.',
     ],
     'case-validation-failed': [
-      'Vaka dosyaları Dedektif formatına uymuyor.',
-      'The case files do not match the Dedektif format.',
+      'Vaka dosyaları opencase formatına uymuyor.',
+      'The case files do not match the opencase format.',
     ],
     'direct-yaml-assets-unsupported': [
       'Tek YAML bağlantıları varlık içeremez. Görsel veya ses için GitHub klasörü kullan.',
@@ -717,19 +726,36 @@ function importFailureCopy(locale: PlayerPreferredLocale, error: unknown): {
 
 function clearProfileSidecars(profileId: string): void {
   try {
-    const prefix = `dedektif:v1:profile:${profileId}:`
+    const prefixes = [
+      `${BRAND_STORAGE_PREFIX}:profile:${profileId}:`,
+      `${LEGACY_BRAND_STORAGE_PREFIX}:profile:${profileId}:`,
+    ]
     const keys = Array.from({ length: window.localStorage.length }, (_, index) => (
       window.localStorage.key(index)
-    )).filter((key): key is string => Boolean(key?.startsWith(prefix)))
+    )).filter((key): key is string => Boolean(
+      key && prefixes.some((prefix) => key.startsWith(prefix)),
+    ))
     for (const key of keys) window.localStorage.removeItem(key)
   } catch {
     // Profile metadata remains authoritative when browser storage is restricted.
   }
 }
 
-function readCasePreference(): string | undefined {
+export function readCasePreference(
+  storage: Pick<Storage, 'getItem' | 'setItem'> = window.localStorage,
+): string | undefined {
   try {
-    return window.localStorage.getItem(CASE_PREFERENCE_KEY) ?? undefined
+    const current = storage.getItem(CASE_PREFERENCE_KEY)
+    if (current !== null) return current
+    const legacy = storage.getItem(LEGACY_CASE_PREFERENCE_KEY)
+    if (legacy !== null) {
+      try {
+        storage.setItem(CASE_PREFERENCE_KEY, legacy)
+      } catch {
+        // A readable legacy preference remains valid if its best-effort rewrite is blocked.
+      }
+    }
+    return legacy ?? undefined
   } catch {
     return undefined
   }
@@ -785,12 +811,16 @@ function CaseDesktop({
     () => forensicsWorkflowKey(manifest, assetSessionId, saveId),
     [assetSessionId, manifest, saveId],
   )
+  const legacyWorkflowKey = useMemo(
+    () => forensicsWorkflowKey(manifest, assetSessionId, saveId, LEGACY_BRAND_STORAGE_PREFIX),
+    [assetSessionId, manifest, saveId],
+  )
   const [selection, setSelection] = useState<ManifestWorkspaceSelection>({
     query: '',
     replyDraft: '',
   })
   const [forensicsWorkflow, setForensicsWorkflow] = useState<ForensicsWorkflowState>(() => (
-    readForensicsWorkflow(browserLocalStorage(), workflowKey)
+    readForensicsWorkflow(browserLocalStorage(), workflowKey, legacyWorkflowKey)
   ))
   const [streamingForensicsReply, setStreamingForensicsReply] = useState<{
     readonly requestId: string
@@ -1036,16 +1066,27 @@ function CaseDesktop({
     () => caseBoardStateKey(manifest, snapshot.case.digest, saveId),
     [manifest, saveId, snapshot.case.digest],
   )
+  const legacyCaseBoardKey = useMemo(
+    () => caseBoardStateKey(
+      manifest,
+      snapshot.case.digest,
+      saveId,
+      LEGACY_BRAND_STORAGE_PREFIX,
+    ),
+    [manifest, saveId, snapshot.case.digest],
+  )
   const caseBoardPersistence = useMemo(
-    () => createCaseBoardPersistence(caseBoardKey),
-    [caseBoardKey],
+    () => createCaseBoardPersistence(caseBoardKey, { legacyKey: legacyCaseBoardKey }),
+    [caseBoardKey, legacyCaseBoardKey],
   )
   const caseBoardModel = useMemo(
     () => createCaseBoardViewModel(manifest.case.title, models.phone, models.files),
     [manifest.case.title, models.files, models.phone],
   )
   const layoutPersistence = useMemo(
-    () => createLocalStorageLayoutPersistence(desktopLayoutKey(manifest, saveId)),
+    () => createLocalStorageLayoutPersistence(desktopLayoutKey(manifest, saveId), {
+      legacyKey: desktopLayoutKey(manifest, saveId, LEGACY_BRAND_STORAGE_PREFIX),
+    }),
     [manifest.case.id, manifest.case.version, saveId],
   )
   const select = <Key extends keyof ManifestWorkspaceSelection>(
@@ -1890,12 +1931,12 @@ function CaseDesktop({
         <DesktopShell
           key={`${manifest.case.id}:${runEpoch}`}
           apps={apps}
-          brand="dedektif"
+          brand="opencase"
           subtitle={manifest.case.title}
           ariaLabel={copy.desktopAria(manifest.case.title)}
-          backgroundImage={dedektifWallpaper}
+          backgroundImage={opencaseWallpaper}
           brandIcon={{ type: 'image', src: casebookIcon }}
-          startLabel="dedektif"
+          startLabel="opencase"
           locale={uiLocale}
           layoutPersistence={layoutPersistence}
           focusRequest={focusRequest}
@@ -2116,12 +2157,12 @@ function OpeningDesktop({
   return (
     <DesktopShell
       apps={apps}
-      brand="dedektif"
+      brand="opencase"
       subtitle={copy.newCaseCall}
       ariaLabel={copy.incomingCallAria(manifest.case.title)}
-      backgroundImage={dedektifWallpaper}
+      backgroundImage={opencaseWallpaper}
       brandIcon={{ type: 'image', src: phoneIcon }}
-      startLabel="dedektif"
+      startLabel="opencase"
       locale={uiLocale}
       settingsSlot={(
         renderSettings({
@@ -2146,7 +2187,7 @@ function BootScreen({ error }: { readonly error?: boolean }) {
         <img src={casebookIcon} alt="" />
         <span aria-hidden="true" />
       </div>
-      <p>dedektif</p>
+      <p>opencase</p>
       <h1>{error ? copy.bootFailed : copy.bootPreparing}</h1>
       {error ? (
         <p className="case-boot__detail">
@@ -2254,6 +2295,14 @@ function CaseExperience({ manifest, saveId, renderSettings }: CaseExperienceProp
       if (!started.assetSessionId) throw new Error('Missing asset session.')
       createCaseBoardPersistence(
         caseBoardStateKey(manifest, started.snapshot.case.digest, saveId),
+        {
+          legacyKey: caseBoardStateKey(
+            manifest,
+            started.snapshot.case.digest,
+            saveId,
+            LEGACY_BRAND_STORAGE_PREFIX,
+          ),
+        },
       ).clear()
       setSnapshot(started.snapshot)
       setAssetSessionId(started.assetSessionId)
@@ -2282,16 +2331,32 @@ function CaseExperience({ manifest, saveId, renderSettings }: CaseExperienceProp
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
     try {
       await browserGameSessionClient.restart(sessionRef)
-      createLocalStorageLayoutPersistence(desktopLayoutKey(manifest, saveId)).clear?.()
+      createLocalStorageLayoutPersistence(desktopLayoutKey(manifest, saveId), {
+        legacyKey: desktopLayoutKey(manifest, saveId, LEGACY_BRAND_STORAGE_PREFIX),
+      }).clear?.()
       if (snapshot) {
         createCaseBoardPersistence(
           caseBoardStateKey(manifest, snapshot.case.digest, saveId),
+          {
+            legacyKey: caseBoardStateKey(
+              manifest,
+              snapshot.case.digest,
+              saveId,
+              LEGACY_BRAND_STORAGE_PREFIX,
+            ),
+          },
         ).clear()
       }
       if (assetSessionId) {
         clearForensicsWorkflow(
           browserLocalStorage(),
           forensicsWorkflowKey(manifest, assetSessionId, saveId),
+          forensicsWorkflowKey(
+            manifest,
+            assetSessionId,
+            saveId,
+            LEGACY_BRAND_STORAGE_PREFIX,
+          ),
         )
       }
       setSnapshot(undefined)

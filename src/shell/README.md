@@ -6,7 +6,7 @@ windows. It does not import the compiler, kernel, runtime, or a case package.
 
 ## Visual direction
 
-The implementation uses a generated `dedektif` wallpaper and a restrained
+The implementation uses a generated `opencase` wallpaper and a restrained
 macOS-inspired detective workspace with deep teal glass, warm paper surfaces,
 oxidized brass, and small vermilion signals. Generated raster artwork is kept
 in [`src/assets/shell/`](../assets/shell/); application controls use packaged

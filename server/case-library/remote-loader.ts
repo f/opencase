@@ -191,7 +191,7 @@ async function loadOnce(
     }
     const requestHeaders = {
       accept: '*/*',
-      'user-agent': 'dedektif-case-importer/1',
+      'user-agent': 'opencase-case-importer/1',
       ...options.headers,
       host: url.host,
     }

@@ -42,7 +42,7 @@ Restart or refresh the client after installing a skill. Keep the complete
 folder together; `SKILL.md` alone works as instructions, but the UI metadata
 will be missing. This skill is repository-specific because it deliberately
 loads the canonical schema, documentation, examples, and validation commands
-from dedektif. If you move it to an unrelated project, bundle equivalent
+from opencase. If you move it to an unrelated project, bundle equivalent
 references or update those paths first.
 
 After installation, invoke it explicitly:

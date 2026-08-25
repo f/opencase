@@ -1,4 +1,5 @@
-export const FORENSICS_WORKFLOW_SCHEMA = 'dedektif-forensics-workflow/v1' as const
+export const FORENSICS_WORKFLOW_SCHEMA = 'opencase-forensics-workflow/v1' as const
+export const LEGACY_FORENSICS_WORKFLOW_SCHEMA = 'dedektif-forensics-workflow/v1' as const
 export const FORENSICS_THREAD_ID = 'forensics' as const
 export const FORENSICS_LEAD_NAME = 'Ece Aydın' as const
 export const FORENSICS_LEAD_ROLE = 'İç ekip · Adli inceleme lideri' as const
@@ -141,7 +142,11 @@ function parseRequest(value: unknown): ForensicsRequestRecord | undefined {
 export function parseForensicsWorkflow(value: unknown): ForensicsWorkflowState {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return EMPTY_FORENSICS_WORKFLOW
   const candidate = value as Record<string, unknown>
-  if (candidate.schema !== FORENSICS_WORKFLOW_SCHEMA || !Array.isArray(candidate.requests)) {
+  if (
+    (candidate.schema !== FORENSICS_WORKFLOW_SCHEMA
+      && candidate.schema !== LEGACY_FORENSICS_WORKFLOW_SCHEMA)
+    || !Array.isArray(candidate.requests)
+  ) {
     return EMPTY_FORENSICS_WORKFLOW
   }
 
@@ -154,13 +159,36 @@ export function parseForensicsWorkflow(value: unknown): ForensicsWorkflowState {
 }
 
 export function readForensicsWorkflow(
-  storage: Pick<Storage, 'getItem'> | undefined,
+  storage: (Pick<Storage, 'getItem'> & Partial<Pick<Storage, 'setItem'>>) | undefined,
   key: string,
+  legacyKey?: string,
 ): ForensicsWorkflowState {
   if (!storage) return EMPTY_FORENSICS_WORKFLOW
   try {
-    const serialized = storage.getItem(key)
-    return serialized ? parseForensicsWorkflow(JSON.parse(serialized) as unknown) : EMPTY_FORENSICS_WORKFLOW
+    let serialized = storage.getItem(key)
+    let readFromLegacyKey = false
+    if (!serialized && legacyKey && legacyKey !== key) {
+      serialized = storage.getItem(legacyKey)
+      readFromLegacyKey = Boolean(serialized)
+    }
+    if (!serialized) return EMPTY_FORENSICS_WORKFLOW
+    const decoded = JSON.parse(serialized) as unknown
+    const state = parseForensicsWorkflow(decoded)
+    if (
+      (readFromLegacyKey || (
+        decoded && typeof decoded === 'object' && !Array.isArray(decoded)
+        && (decoded as Record<string, unknown>).schema === LEGACY_FORENSICS_WORKFLOW_SCHEMA
+        && Array.isArray((decoded as Record<string, unknown>).requests)
+      ))
+      && typeof storage.setItem === 'function'
+    ) {
+      try {
+        storage.setItem(key, JSON.stringify(state))
+      } catch {
+        // A legacy workflow remains usable even when its best-effort rewrite is blocked.
+      }
+    }
+    return state
   } catch {
     return EMPTY_FORENSICS_WORKFLOW
   }
@@ -182,8 +210,10 @@ export function writeForensicsWorkflow(
 export function clearForensicsWorkflow(
   storage: Pick<Storage, 'removeItem'> | undefined,
   key: string,
+  legacyKey?: string,
 ): void {
   try {
+    if (legacyKey && legacyKey !== key) storage?.removeItem(legacyKey)
     storage?.removeItem(key)
   } catch {
     // A blocked storage backend must not prevent a case restart.

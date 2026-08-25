@@ -1,6 +1,6 @@
 # Detective case tests
 
-dedektif case tests are ordered, executable scripts written from the
+opencase case tests are ordered, executable scripts written from the
 detective's perspective. Observe, act, deduce, and conclude use the same public
 intent surface available to a player. Advance and resume are deterministic
 host controls for testing time. Every authored expectation asserts only the

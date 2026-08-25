@@ -228,7 +228,7 @@ export function createBrowserCaseLibrary(
         locale: manifest.case.locale ?? entry.defaultLocale,
         defaultLocale: entry.defaultLocale,
         locales: entry.locales.map(({ locale: candidate }) => candidate),
-        source: { kind: 'built-in' as const, label: 'Dedektif' },
+        source: { kind: 'built-in' as const, label: 'opencase' },
         verification: { level: 'built-in' as const, authoredTests: 0 },
         manifest,
       }

@@ -1,9 +1,11 @@
 import 'fake-indexeddb/auto'
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import type { StaticCaseRuntimeBundle } from './static-bundle'
 import {
+  BROWSER_CASE_DATABASE,
+  LEGACY_BROWSER_CASE_DATABASE,
   browserCaseAssetKey,
   browserCaseIdentity,
   openBrowserCaseDatabase,
@@ -14,6 +16,15 @@ import {
 
 const openDatabases: BrowserCaseDatabase[] = []
 let databaseSequence = 0
+
+function deleteDatabase(name: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const request = globalThis.indexedDB.deleteDatabase(name)
+    request.addEventListener('success', () => resolve(), { once: true })
+    request.addEventListener('error', () => reject(request.error), { once: true })
+    request.addEventListener('blocked', () => reject(new Error(`Database ${name} is still open.`)), { once: true })
+  })
+}
 
 function packageFixture(
   overrides: Partial<StoredBrowserCasePackage> = {},
@@ -78,14 +89,34 @@ async function openDatabase(): Promise<BrowserCaseDatabase> {
   databaseSequence += 1
   const database = await openBrowserCaseDatabase({
     indexedDB: globalThis.indexedDB,
-    name: `dedektif-case-database-test-${databaseSequence}`,
+    name: `opencase-case-database-test-${databaseSequence}`,
   })
   openDatabases.push(database)
   return database
 }
 
-afterEach(() => {
+async function openNamedDatabase(name: string): Promise<BrowserCaseDatabase> {
+  const database = await openBrowserCaseDatabase({
+    indexedDB: globalThis.indexedDB,
+    name,
+  })
+  openDatabases.push(database)
+  return database
+}
+
+beforeEach(async () => {
+  await Promise.all([
+    deleteDatabase(BROWSER_CASE_DATABASE),
+    deleteDatabase(LEGACY_BROWSER_CASE_DATABASE),
+  ])
+})
+
+afterEach(async () => {
   for (const database of openDatabases.splice(0)) database.close()
+  await Promise.all([
+    deleteDatabase(BROWSER_CASE_DATABASE),
+    deleteDatabase(LEGACY_BROWSER_CASE_DATABASE),
+  ])
 })
 
 describe('browser case database', () => {
@@ -154,5 +185,129 @@ describe('browser case database', () => {
       installation.package.identity,
       installation.package.caseDigest,
     )).resolves.toEqual([])
+  })
+
+  it('copies legacy packages and Blob-backed assets into the new default database', async () => {
+    const legacy = await openNamedDatabase(LEGACY_BROWSER_CASE_DATABASE)
+    const installation = installationFixture()
+    await legacy.install(installation)
+    legacy.close()
+
+    const database = await openBrowserCaseDatabase({ indexedDB: globalThis.indexedDB })
+    openDatabases.push(database)
+
+    await expect(database.getPackage('tiny-case', '1.0.0')).resolves.toEqual(
+      installation.package,
+    )
+    const assets = await database.getAssets(
+      installation.package.identity,
+      installation.package.caseDigest,
+    )
+    expect(assets).toHaveLength(1)
+    expect(assets[0]?.blob).toBeInstanceOf(Blob)
+    await expect(assets[0]?.blob.arrayBuffer()).resolves.toEqual(
+      new Uint8Array([0x89, 0x50, 0x4e, 0x47]).buffer,
+    )
+  })
+
+  it('is idempotent and gives records already in the new database precedence', async () => {
+    const legacy = await openNamedDatabase(LEGACY_BROWSER_CASE_DATABASE)
+    const conflictingLegacy = installationFixture({
+      caseDigest: 'legacy-case-digest',
+      packageDigest: 'legacy-package-digest',
+      bundleDigest: 'legacy-bundle-digest',
+      title: 'Legacy title',
+    })
+    const legacyOnly = installationFixture({
+      caseId: 'legacy-only',
+      caseDigest: 'legacy-only-case-digest',
+      packageDigest: 'legacy-only-package-digest',
+      bundleDigest: 'legacy-only-bundle-digest',
+    })
+    await legacy.install(conflictingLegacy)
+    await legacy.install(legacyOnly)
+    legacy.close()
+
+    const seededNewDatabase = await openNamedDatabase(BROWSER_CASE_DATABASE)
+    const current = installationFixture({ title: 'Current title' })
+    await seededNewDatabase.install(current)
+    seededNewDatabase.close()
+
+    const firstOpen = await openBrowserCaseDatabase({ indexedDB: globalThis.indexedDB })
+    openDatabases.push(firstOpen)
+    await expect(firstOpen.getPackage('tiny-case', '1.0.0')).resolves.toEqual(current.package)
+    await expect(firstOpen.getPackage('legacy-only', '1.0.0')).resolves.toEqual(legacyOnly.package)
+    firstOpen.close()
+
+    const secondOpen = await openBrowserCaseDatabase({ indexedDB: globalThis.indexedDB })
+    openDatabases.push(secondOpen)
+    await expect(secondOpen.listPackages()).resolves.toHaveLength(2)
+    await expect(secondOpen.getPackage('tiny-case', '1.0.0')).resolves.toEqual(current.package)
+    await expect(secondOpen.getAssets(
+      legacyOnly.package.identity,
+      legacyOnly.package.caseDigest,
+    )).resolves.toHaveLength(1)
+  })
+
+  it('deletes migrated package and asset records from both database names', async () => {
+    const legacy = await openNamedDatabase(LEGACY_BROWSER_CASE_DATABASE)
+    const installation = installationFixture()
+    await legacy.install(installation)
+    legacy.close()
+
+    const database = await openBrowserCaseDatabase({ indexedDB: globalThis.indexedDB })
+    openDatabases.push(database)
+    await expect(database.getPackage('tiny-case', '1.0.0')).resolves.toBeDefined()
+
+    await database.delete('tiny-case', '1.0.0')
+    database.close()
+
+    const legacyAfterDelete = await openNamedDatabase(LEGACY_BROWSER_CASE_DATABASE)
+    await expect(legacyAfterDelete.getPackage('tiny-case', '1.0.0')).resolves.toBeUndefined()
+    await expect(legacyAfterDelete.getAssets(
+      installation.package.identity,
+      installation.package.caseDigest,
+    )).resolves.toEqual([])
+
+    const reopened = await openBrowserCaseDatabase({ indexedDB: globalThis.indexedDB })
+    openDatabases.push(reopened)
+    await expect(reopened.getPackage('tiny-case', '1.0.0')).resolves.toBeUndefined()
+  })
+
+  it('does not import the global legacy database when a custom name is supplied', async () => {
+    const legacy = await openNamedDatabase(LEGACY_BROWSER_CASE_DATABASE)
+    await legacy.install(installationFixture())
+    legacy.close()
+
+    const custom = await openNamedDatabase(`opencase-custom-test-${databaseSequence += 1}`)
+    await expect(custom.listPackages()).resolves.toEqual([])
+  })
+
+  it('keeps the new default database usable when opening the legacy database fails', async () => {
+    const legacy = await openNamedDatabase(LEGACY_BROWSER_CASE_DATABASE)
+    await legacy.install(installationFixture())
+    legacy.close()
+
+    const failingFactory = new Proxy(globalThis.indexedDB, {
+      get(target, property) {
+        if (property === 'open') {
+          return (name: string, version?: number): IDBOpenDBRequest => {
+            if (name === LEGACY_BROWSER_CASE_DATABASE) {
+              throw new Error('Simulated legacy database failure.')
+            }
+            return version === undefined
+              ? target.open(name)
+              : target.open(name, version)
+          }
+        }
+        const value = Reflect.get(target, property, target) as unknown
+        return typeof value === 'function' ? value.bind(target) : value
+      },
+    }) as IDBFactory
+
+    const database = await openBrowserCaseDatabase({ indexedDB: failingFactory })
+    openDatabases.push(database)
+    await expect(database.listPackages()).resolves.toEqual([])
+    await expect(database.install(installationFixture({ caseId: 'fresh-case' }))).resolves.toBe('installed')
   })
 })

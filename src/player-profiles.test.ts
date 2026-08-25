@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
   LEGACY_PLAYER_PROFILE_ID,
+  LEGACY_PLAYER_PROFILES_SCHEMA,
+  LEGACY_PLAYER_PROFILES_STORAGE_KEY,
   PLAYER_PROFILES_SCHEMA,
   PLAYER_PROFILES_STORAGE_KEY,
   PlayerProfileStoreError,
@@ -10,19 +12,23 @@ import {
   type PlayerProfileStorage,
 } from './player-profiles'
 
-function memoryStorage(initial?: string): PlayerProfileStorage & {
+function memoryStorage(initial?: string, initialKey: string = PLAYER_PROFILES_STORAGE_KEY): PlayerProfileStorage & {
   readonly values: Map<string, string>
   readonly writes: string[]
+  readonly writeKeys: string[]
 } {
   const values = new Map<string, string>()
-  if (initial !== undefined) values.set(PLAYER_PROFILES_STORAGE_KEY, initial)
+  if (initial !== undefined) values.set(initialKey, initial)
   const writes: string[] = []
+  const writeKeys: string[] = []
   return {
     values,
     writes,
+    writeKeys,
     getItem: (key) => values.get(key) ?? null,
     setItem: (key, value) => {
       writes.push(value)
+      writeKeys.push(key)
       values.set(key, value)
     },
   }
@@ -38,7 +44,7 @@ function errorCode(operation: () => unknown): string | undefined {
 }
 
 describe('local player profiles', () => {
-  it('creates and persists the schema-tagged legacy profile by default', () => {
+  it('creates and persists the schema-tagged primary profile under the opencase key', () => {
     const storage = memoryStorage()
     const store = createPlayerProfileStore({ storage })
 
@@ -58,6 +64,86 @@ describe('local player profiles', () => {
     expect(JSON.parse(storage.values.get(PLAYER_PROFILES_STORAGE_KEY)!)).toEqual(
       store.getSnapshot(),
     )
+  })
+
+  it('loads the legacy key and schema, then copies normalized state to opencase', () => {
+    const legacy = JSON.stringify({
+      schema: LEGACY_PLAYER_PROFILES_SCHEMA,
+      revision: 7,
+      activeProfileId: 'investigator-two',
+      profiles: [{
+        id: 'investigator-two',
+        displayName: 'Investigator Two',
+        preferredLocale: 'en',
+        selectedCaseId: 'fixture.case-alpha@1.0.0',
+      }],
+    })
+    const storage = memoryStorage(legacy, LEGACY_PLAYER_PROFILES_STORAGE_KEY)
+    const store = createPlayerProfileStore({ storage })
+
+    expect(store.getSnapshot()).toMatchObject({
+      schema: PLAYER_PROFILES_SCHEMA,
+      revision: 7,
+      activeProfileId: 'investigator-two',
+      profiles: [{
+        id: 'investigator-two',
+        preferredLocale: 'en',
+        selectedCaseId: 'fixture.case-alpha@1.0.0',
+      }],
+    })
+    expect(storage.values.get(LEGACY_PLAYER_PROFILES_STORAGE_KEY)).toBe(legacy)
+    expect(JSON.parse(storage.values.get(PLAYER_PROFILES_STORAGE_KEY)!)).toEqual(store.getSnapshot())
+    expect(storage.writeKeys).toEqual([PLAYER_PROFILES_STORAGE_KEY])
+  })
+
+  it('normalizes a legacy schema already stored under the current key', () => {
+    const storage = memoryStorage(JSON.stringify({
+      schema: LEGACY_PLAYER_PROFILES_SCHEMA,
+      revision: 2,
+      activeProfileId: LEGACY_PLAYER_PROFILE_ID,
+      profiles: [{
+        id: LEGACY_PLAYER_PROFILE_ID,
+        displayName: 'Detective',
+        preferredLocale: 'tr',
+      }],
+    }))
+
+    const store = createPlayerProfileStore({ storage })
+
+    expect(store.getSnapshot().schema).toBe(PLAYER_PROFILES_SCHEMA)
+    expect(JSON.parse(storage.values.get(PLAYER_PROFILES_STORAGE_KEY)!).schema)
+      .toBe(PLAYER_PROFILES_SCHEMA)
+    expect(storage.writes).toHaveLength(1)
+  })
+
+  it('keeps the current opencase record authoritative when a legacy key also exists', () => {
+    const current = JSON.stringify({
+      schema: PLAYER_PROFILES_SCHEMA,
+      revision: 4,
+      activeProfileId: LEGACY_PLAYER_PROFILE_ID,
+      profiles: [{
+        id: LEGACY_PLAYER_PROFILE_ID,
+        displayName: 'Current Profile',
+        preferredLocale: 'en',
+      }],
+    })
+    const storage = memoryStorage(current)
+    storage.values.set(LEGACY_PLAYER_PROFILES_STORAGE_KEY, JSON.stringify({
+      schema: LEGACY_PLAYER_PROFILES_SCHEMA,
+      revision: 99,
+      activeProfileId: LEGACY_PLAYER_PROFILE_ID,
+      profiles: [{
+        id: LEGACY_PLAYER_PROFILE_ID,
+        displayName: 'Stale Legacy Profile',
+        preferredLocale: 'tr',
+      }],
+    }))
+
+    const store = createPlayerProfileStore({ storage })
+
+    expect(store.getSnapshot().revision).toBe(4)
+    expect(store.getSnapshot().profiles[0]?.displayName).toBe('Current Profile')
+    expect(storage.writes).toEqual([])
   })
 
   it('supports profile CRUD, active selection, locale, and selected case', () => {
@@ -264,5 +350,10 @@ describe('local player profiles', () => {
     expect(state.profiles[0]?.caseLocales).toEqual({ 'fixture.case-gamma@3.0.0': 'tr' })
     expect(Object.isFrozen(state.profiles[0]?.caseLocales)).toBe(true)
     expect(Object.isFrozen(state)).toBe(true)
+
+    expect(parsePlayerProfilesState({
+      ...state,
+      schema: LEGACY_PLAYER_PROFILES_SCHEMA,
+    }).schema).toBe(PLAYER_PROFILES_SCHEMA)
   })
 })

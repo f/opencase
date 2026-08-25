@@ -92,6 +92,67 @@ describe('case board shell state', () => {
     expect(onError).toHaveBeenCalledTimes(3)
   })
 
+  it('copies a legacy brand key forward and clears both namespaces', () => {
+    const storage = memoryStorage()
+    const legacyState = {
+      schema: CASE_BOARD_STATE_SCHEMA,
+      positions: { pin: { x: 0.3, y: 0.4 } },
+      connections: [],
+    }
+    storage.values.set('dedektif:board', JSON.stringify(legacyState))
+    const persistence = createCaseBoardPersistence('opencase:board', {
+      storage,
+      legacyKey: 'dedektif:board',
+    })
+
+    expect(persistence.load()).toEqual(legacyState)
+    expect(storage.values.get('opencase:board')).toBe(JSON.stringify(legacyState))
+    persistence.clear()
+    expect(storage.values.has('opencase:board')).toBe(false)
+    expect(storage.values.has('dedektif:board')).toBe(false)
+  })
+
+  it('keeps readable legacy board data when its rewrite is blocked', () => {
+    const onError = vi.fn()
+    const legacyState = {
+      schema: CASE_BOARD_STATE_SCHEMA,
+      positions: { pin: { x: 0.3, y: 0.4 } },
+      connections: [],
+    }
+    const storage = {
+      getItem: (key: string) => key === 'dedektif:board' ? JSON.stringify(legacyState) : null,
+      setItem: () => { throw new Error('blocked') },
+      removeItem: vi.fn(),
+    }
+    const persistence = createCaseBoardPersistence('opencase:board', {
+      storage,
+      legacyKey: 'dedektif:board',
+      onError,
+    })
+
+    expect(persistence.load()).toEqual(legacyState)
+    expect(onError).toHaveBeenCalledOnce()
+  })
+
+  it('does not delete the current board when deleting its legacy fallback fails', () => {
+    const removed: string[] = []
+    const storage = {
+      getItem: () => null,
+      setItem: vi.fn(),
+      removeItem: (key: string) => {
+        if (key === 'dedektif:board') throw new Error('blocked')
+        removed.push(key)
+      },
+    }
+    const persistence = createCaseBoardPersistence('opencase:board', {
+      storage,
+      legacyKey: 'dedektif:board',
+    })
+
+    persistence.clear()
+    expect(removed).toEqual([])
+  })
+
   it('toggles unordered pairs without allowing a self-link', () => {
     const connected = toggleCaseBoardConnection([], 'person:one', 'evidence:two')
     expect(connected).toEqual([{ from: 'evidence:two', to: 'person:one' }])

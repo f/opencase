@@ -3,7 +3,8 @@ import type {
   CaseSaveStorageKey,
 } from '../case-runtime/controller'
 
-export const BROWSER_CASE_SAVE_PREFIX = 'dedektif:case-save:v1' as const
+export const BROWSER_CASE_SAVE_PREFIX = 'opencase:case-save:v1' as const
+export const LEGACY_BROWSER_CASE_SAVE_PREFIX = 'dedektif:case-save:v1' as const
 
 export interface BrowserCaseSaveKeyValueStorage {
   getItem(key: string): string | null
@@ -73,11 +74,24 @@ export function createBrowserCaseSaveStorage(
 ): CaseSaveStorage {
   const storage = options.storage
   const prefix = options.prefix ?? BROWSER_CASE_SAVE_PREFIX
+  const legacyPrefix = options.prefix === undefined
+    ? LEGACY_BROWSER_CASE_SAVE_PREFIX
+    : undefined
   return Object.freeze({
     async read(key: CaseSaveStorageKey): Promise<string | undefined> {
       try {
-        return (storage ?? defaultStorage('read'))
-          .getItem(browserCaseSaveKey(key, prefix)) ?? undefined
+        const selectedStorage = storage ?? defaultStorage('read')
+        const current = selectedStorage.getItem(browserCaseSaveKey(key, prefix))
+        if (current !== null) return current
+        if (!legacyPrefix) return undefined
+        const legacy = selectedStorage.getItem(browserCaseSaveKey(key, legacyPrefix))
+        if (legacy === null) return undefined
+        try {
+          selectedStorage.setItem(browserCaseSaveKey(key, prefix), legacy)
+        } catch {
+          // A failed best-effort copy must not make a readable legacy save unplayable.
+        }
+        return legacy
       } catch (cause) {
         throw new BrowserCaseSaveStorageError(
           'read',
@@ -102,8 +116,13 @@ export function createBrowserCaseSaveStorage(
 
     async delete(key: CaseSaveStorageKey): Promise<void> {
       try {
-        ;(storage ?? defaultStorage('delete'))
-          .removeItem(browserCaseSaveKey(key, prefix))
+        const selectedStorage = storage ?? defaultStorage('delete')
+        // Remove the fallback first so a partial failure cannot resurrect a
+        // legacy save after the current key was successfully removed.
+        if (legacyPrefix) {
+          selectedStorage.removeItem(browserCaseSaveKey(key, legacyPrefix))
+        }
+        selectedStorage.removeItem(browserCaseSaveKey(key, prefix))
       } catch (cause) {
         throw new BrowserCaseSaveStorageError(
           'delete',

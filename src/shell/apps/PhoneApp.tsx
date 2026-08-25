@@ -25,7 +25,7 @@ import volumeIcon from 'lucide-static/icons/volume-2.svg'
 import wifiIcon from 'lucide-static/icons/wifi.svg'
 import SiriWave from 'siriwave'
 
-import dedektifPhoneWallpaper from '../../assets/shell/dedektif-phone-wallpaper.png'
+import opencasePhoneWallpaper from '../../assets/shell/opencase-phone-wallpaper.png'
 import { localeTag, useUiCopy, useUiLocale, type AppLocale } from '../../ui-locale'
 import './phone-realistic.css'
 import type {
@@ -319,10 +319,10 @@ function HomeScreen({ actions, contact, labels, busy, onAction, onNavigate, onOp
   const firstAction = actions[0]
 
   return (
-    <main className="iphone-home" style={{ '--iphone-wallpaper': `url(${dedektifPhoneWallpaper})` } as CSSProperties}>
+    <main className="iphone-home" style={{ '--iphone-wallpaper': `url(${opencasePhoneWallpaper})` } as CSSProperties}>
       <header className="iphone-home__date">
         <span>{labels.homeDate}</span>
-        <strong>dedektif</strong>
+        <strong>opencase</strong>
       </header>
 
       <div className="iphone-home-widgets">

@@ -17,7 +17,7 @@ function currentLocationHref(): string {
  *
  * Leading slashes are intentionally treated as application-root paths rather
  * than origin-root paths, so `/generated/cases.json` still works when the app
- * is hosted below `/dedektif/` on GitHub Pages.
+ * is hosted below `/opencase/` on GitHub Pages.
  */
 export function appUrl(path: string, context: AppUrlContext = {}): string {
   const value = path.trim()

@@ -130,7 +130,7 @@ describe('browser case package compiler', () => {
       },
     })
 
-    const root = await mkdtemp(join(tmpdir(), 'dedektif-browser-import-'))
+    const root = await mkdtemp(join(tmpdir(), 'opencase-browser-import-'))
     temporaryRoots.push(root)
     const packageRoot = join(root, 'browser-package')
     await Promise.all(['assets', 'i18n', 'tests'].map((directory) =>
