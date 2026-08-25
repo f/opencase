@@ -440,16 +440,16 @@
   place-items: center;
   text-align: center;
   text-shadow: 0 2px 5px rgba(0, 0, 0, 0.74);
-  transition: border-color 130ms ease, background 130ms ease, transform 130ms ease;
+  transition: filter 130ms ease, transform 130ms ease;
 }
 
 .detective-desktop__shortcut:hover,
 .detective-desktop__shortcut.is-selected {
-  border-color: rgba(238, 220, 174, 0.25);
-  background: rgba(19, 36, 38, 0.5);
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  filter: brightness(1.08);
+  transform: translateY(-1px);
 }
 
 .detective-desktop__shortcut:active {
