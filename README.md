@@ -6,8 +6,6 @@
   </picture>
 </p>
 
-<h1 align="center">opencase</h1>
-
 <p align="center">
   A deterministic detective game engine and a browser desktop.
 </p>
