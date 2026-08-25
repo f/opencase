@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import settingsIcon from 'lucide-static/icons/settings-2.svg'
 import xIcon from 'lucide-static/icons/x.svg'
 import { clampBounds, moveBounds, resizeBounds } from './geometry'
 import type { ResizeDirection } from './geometry'
@@ -187,15 +188,6 @@ function useCompactDesktop(): boolean {
   return compact
 }
 
-function useClock(): Date {
-  const [now, setNow] = useState(() => new Date())
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 30_000)
-    return () => window.clearInterval(timer)
-  }, [])
-  return now
-}
-
 export function DesktopShell({
   apps,
   focusRequest,
@@ -204,7 +196,8 @@ export function DesktopShell({
   ariaLabel = 'Detective desktop',
   backgroundImage,
   brandIcon,
-  statusSlot,
+  settingsSlot,
+  notificationSlot,
   startLabel = 'Desk',
   layoutPersistence,
   onLayoutChange,
@@ -228,10 +221,13 @@ export function DesktopShell({
   ))
   const [selectedShortcut, setSelectedShortcut] = useState<string | null>(null)
   const [startOpen, setStartOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [activeInteraction, setActiveInteraction] = useState<string | null>(null)
   const [workAreaSize, setWorkAreaSize] = useState(DEFAULT_AREA)
   const workAreaRef = useRef<HTMLDivElement>(null)
   const startMenuRef = useRef<HTMLDivElement>(null)
+  const settingsPanelRef = useRef<HTMLDivElement>(null)
+  const settingsButtonRef = useRef<HTMLButtonElement>(null)
   const dockButtonRefs = useRef(new Map<string, HTMLButtonElement>())
   const pointerAction = useRef<PointerAction | null>(null)
   const persistenceRef = useRef(layoutPersistence)
@@ -239,7 +235,6 @@ export function DesktopShell({
   const persistenceErrorRef = useRef(onLayoutPersistenceError)
   const handledFocusRequestRef = useRef<{ appId: string; nonce: number } | null>(null)
   const compact = useCompactDesktop()
-  const now = useClock()
 
   persistenceRef.current = layoutPersistence
   layoutChangeRef.current = onLayoutChange
@@ -303,11 +298,25 @@ export function DesktopShell({
   }, [startOpen])
 
   useEffect(() => {
+    if (!settingsOpen) return
+    settingsPanelRef.current
+      ?.querySelector<HTMLElement>([
+        '.detective-settings-panel__body select',
+        '.detective-settings-panel__body button',
+        '.detective-settings-panel__body input',
+        '.detective-settings-panel__body textarea',
+        '.detective-settings-panel__body [tabindex]:not([tabindex="-1"])',
+      ].join(', '))
+      ?.focus()
+  }, [settingsOpen])
+
+  useEffect(() => {
     if (!focusRequest || !appById.has(focusRequest.appId)) return
     if (handledFocusRequestRef.current?.nonce === focusRequest.nonce) return
 
     handledFocusRequestRef.current = focusRequest
     setStartOpen(false)
+    setSettingsOpen(false)
     setLayout((current) => {
       const target = current.windows[focusRequest.appId]
       if (!target) return current
@@ -347,6 +356,7 @@ export function DesktopShell({
 
   const openApp = (appId: string) => {
     setStartOpen(false)
+    setSettingsOpen(false)
     setLayout((current) => {
       const target = current.windows[appId]
       if (!target) return current
@@ -552,15 +562,16 @@ export function DesktopShell({
   const menuApps = apps.filter((app) => app.startMenu !== false)
   const dockApps = apps.filter((app) => app.taskbarPinned !== false || layout.windows[app.id]?.open)
   const activeApp = layout.activeWindowId ? appById.get(layout.activeWindowId) : undefined
-  const time = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(now)
-  const date = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(now)
 
   return (
     <main
       className={`detective-desktop ${hasRightDock ? 'has-right-dock' : ''} ${className}`.trim()}
       aria-label={ariaLabel}
       style={wallpaperStyle}
-      onPointerDown={() => startOpen && setStartOpen(false)}
+      onPointerDown={() => {
+        if (startOpen) setStartOpen(false)
+        if (settingsOpen) setSettingsOpen(false)
+      }}
     >
       <header className="detective-menubar" aria-label={`${brand} menü çubuğu`}>
         <div className="detective-menubar__identity">
@@ -571,7 +582,10 @@ export function DesktopShell({
             aria-expanded={startOpen}
             aria-controls="detective-app-menu"
             onPointerDown={(event) => event.stopPropagation()}
-            onClick={() => setStartOpen((open) => !open)}
+            onClick={() => {
+              setSettingsOpen(false)
+              setStartOpen((open) => !open)
+            }}
           >
             <span>{brandIcon ? <ShellAppIcon icon={brandIcon} /> : <i aria-hidden="true">d</i>}</span>
             <strong>{brand}</strong>
@@ -584,13 +598,27 @@ export function DesktopShell({
           </div>
         </div>
         <div className="detective-menubar__status">
-          {statusSlot ? <div className="detective-menubar__status-slot">{statusSlot}</div> : null}
-          <time dateTime={now.toISOString()} title={date}>
-            <strong>{time}</strong>
-            <span>{date}</span>
-          </time>
+          {settingsSlot ? (
+            <button
+              className={`detective-menubar__settings ${settingsOpen ? 'is-open' : ''}`}
+              ref={settingsButtonRef}
+              type="button"
+              aria-label="Ayarlar"
+              aria-haspopup="dialog"
+              aria-expanded={settingsOpen}
+              aria-controls="detective-settings-panel"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={() => {
+                setStartOpen(false)
+                setSettingsOpen((open) => !open)
+              }}
+            >
+              <img src={settingsIcon} alt="" />
+            </button>
+          ) : null}
         </div>
       </header>
+      {notificationSlot}
       <div className="detective-desktop__workarea" ref={workAreaRef}>
         <div className="detective-desktop__atmosphere" aria-hidden="true" />
         <nav className="detective-desktop__shortcuts" aria-label="Masaüstü kısayolları">
@@ -758,6 +786,45 @@ export function DesktopShell({
           <footer><span className="detective-app-menu__lamp" /> Masa hazır</footer>
         </div>
       )}
+
+      {settingsOpen && settingsSlot ? (
+        <div
+          id="detective-settings-panel"
+          className="detective-settings-panel"
+          ref={settingsPanelRef}
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby="detective-settings-title"
+          onPointerDown={(event) => event.stopPropagation()}
+          onKeyDown={(event) => {
+            if (event.key !== 'Escape') return
+            event.preventDefault()
+            setSettingsOpen(false)
+            settingsButtonRef.current?.focus()
+          }}
+        >
+          <header className="detective-settings-panel__header">
+            <span className="detective-settings-panel__icon" aria-hidden="true">
+              <img src={settingsIcon} alt="" />
+            </span>
+            <div>
+              <small>{brand}</small>
+              <strong id="detective-settings-title">Ayarlar</strong>
+            </div>
+            <button
+              type="button"
+              aria-label="Ayarları kapat"
+              onClick={() => {
+                setSettingsOpen(false)
+                settingsButtonRef.current?.focus()
+              }}
+            >
+              <img src={xIcon} alt="" />
+            </button>
+          </header>
+          <div className="detective-settings-panel__body">{settingsSlot}</div>
+        </div>
+      ) : null}
 
       <nav className="detective-dock" aria-label="Uygulama Dock'u" onPointerDown={(event) => event.stopPropagation()}>
         <div className="detective-dock__apps" role="toolbar" aria-label="Uygulamalar">

@@ -54,6 +54,7 @@ import {
   writeForensicsWorkflow,
 } from './shell/forensics-workflow'
 import {
+  caseClockLabel,
   createManifestWorkspaceModels,
   type ManifestWorkspaceSelection,
   type ShellPublicCaseManifest,
@@ -128,18 +129,6 @@ function castValue(manifest: ShellPublicCaseManifest, actorId: string, field: st
 
 function playerFacingLabel(value: string): string {
   return value.replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim()
-}
-
-function caseClockLabel(manifest: ShellPublicCaseManifest, milliseconds: number): string {
-  const authored = manifest.case.time?.startsAt
-  const match = authored?.match(/^(\d{2}):(\d{2})/)
-  if (!match) {
-    const totalMinutes = Math.floor(milliseconds / 60_000)
-    return `${String(Math.floor(totalMinutes / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`
-  }
-  const startMinutes = Number(match[1]) * 60 + Number(match[2])
-  const currentMinutes = (startMinutes + Math.floor(milliseconds / 60_000)) % (24 * 60)
-  return `${String(Math.floor(currentMinutes / 60)).padStart(2, '0')}:${String(currentMinutes % 60).padStart(2, '0')}`
 }
 
 function remainingLabel(milliseconds: number): string {
@@ -348,6 +337,95 @@ function writeCasePreference(caseId: string): void {
   } catch {
     // The selected case is a convenience preference; blocked storage is safe.
   }
+}
+
+interface WorkspaceSettingsProps {
+  readonly cases: readonly ShellPublicCaseManifest[]
+  readonly activeCaseId: string
+  readonly casePickerLabel: string
+  readonly statusLabel: string
+  readonly busy?: boolean
+  readonly deadline?: {
+    readonly title?: string
+    readonly remainingMs: number
+  }
+  readonly onSelectCase: (caseId: string) => void
+  readonly onRestart?: () => void
+}
+
+function WorkspaceSettings({
+  cases,
+  activeCaseId,
+  casePickerLabel,
+  statusLabel,
+  busy = false,
+  deadline,
+  onSelectCase,
+  onRestart,
+}: WorkspaceSettingsProps) {
+  const activeCase = cases.find(({ case: candidate }) => candidate.id === activeCaseId)
+  const urgent = deadline !== undefined && deadline.remainingMs <= 5 * 60_000
+
+  return (
+    <div className="workspace-settings">
+      <section className="workspace-settings__case" aria-label="Seçili vaka">
+        <span className={`workspace-settings__state ${busy ? 'is-busy' : urgent ? 'is-urgent' : ''}`} aria-hidden="true" />
+        <div>
+          <small>{casePickerLabel}</small>
+          <strong>{activeCase?.case.title ?? 'Vaka'}</strong>
+          <span>{statusLabel}</span>
+        </div>
+      </section>
+
+      <label className="workspace-settings__picker">
+        <span>{casePickerLabel}</span>
+        <select
+          value={activeCaseId}
+          aria-label={casePickerLabel}
+          disabled={busy}
+          onChange={(event) => onSelectCase(event.currentTarget.value)}
+        >
+          {cases.map((candidate) => (
+            <option key={candidate.case.id} value={candidate.case.id}>
+              {candidate.case.title}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <div className="workspace-settings__details">
+        {deadline ? (
+          <section className={`workspace-settings__detail is-deadline ${urgent ? 'is-urgent' : ''}`}>
+            <small>Yaklaşan süre</small>
+            <strong>{deadline.title ?? 'Zaman sınırı'}</strong>
+            <span>{remainingLabel(deadline.remainingMs)}</span>
+          </section>
+        ) : null}
+        <section className="workspace-settings__detail">
+          <small>{onRestart ? 'Otomatik kayıt' : 'Masa durumu'}</small>
+          <strong aria-live="polite">{
+            onRestart ? busy ? 'Kaydediliyor' : 'Kaydedildi' : statusLabel
+          }</strong>
+          <span>{onRestart ? 'İlerleme otomatik olarak kaydedilir.' : 'Vaka seçimini buradan değiştirebilirsin.'}</span>
+        </section>
+      </div>
+
+      {onRestart ? (
+        <button
+          className="workspace-settings__restart"
+          type="button"
+          disabled={busy}
+          onClick={onRestart}
+        >
+          <img src={rotateCcwIcon} alt="" />
+          <span>
+            <strong>Vakayı baştan başlat</strong>
+            <small>Gözlemleri, çıkarımları ve masa düzenini sıfırlar.</small>
+          </span>
+        </button>
+      ) : null}
+    </div>
+  )
 }
 
 interface CaseDesktopProps {
@@ -905,14 +983,14 @@ function CaseDesktop({
             setCommandNotice(
               request.kind === 'evidence-review'
                 ? `${request.evidenceTitle} incelemesi tamamlandı. ${FORENSICS_LEAD_NAME} bulguları paylaştı.`
-                : `${request.subjectLabel} tamamlandı. ${FORENSICS_LEAD_NAME} doğrulanmış kaydı paylaştı.`,
+                : `${request.subjectLabel} tamamlandı. ${FORENSICS_LEAD_NAME} yanıtını paylaştı.`,
             )
             return
           }
 
           const failureBody = request.kind === 'evidence-review'
             ? 'İncelemeyi tamamlayamadım. Kaydı yeniden gönderebilir misin?'
-            : 'İletişim kaydını doğrulayamadım. İsteği yeniden gönderebilir misin?'
+            : 'İsteği tamamlayamadım. Soruyu yeniden gönderebilir misin?'
           setForensicsWorkflow((current) => updateForensicsRequest(current, request.id, (item) => ({
             ...item,
             status: 'failed',
@@ -1001,7 +1079,7 @@ function CaseDesktop({
     }
 
     const requestedAtWallMs = Date.now()
-    const subjectLabel = affordance.label?.trim() || 'İletişim kaydını bul'
+    const subjectLabel = affordance.label?.trim() || 'Soruşturma isteği'
     const request = createAsyncForensicsRequest({
       affordanceId,
       subjectLabel,
@@ -1043,7 +1121,7 @@ function CaseDesktop({
     const forensicsSelected = selectedThreadId === FORENSICS_THREAD_ID
     const latestRequest = forensicsWorkflow.requests.at(-1)
     const preview = latestRequest?.replyBody
-      ?? (latestRequest ? forensicsRequestBody(latestRequest) : 'Henüz inceleme isteği yok.')
+      ?? (latestRequest ? forensicsRequestBody(latestRequest) : 'Henüz istek yok.')
     const forensicsThread = {
       id: FORENSICS_THREAD_ID,
       channelId: 'forensics',
@@ -1115,6 +1193,7 @@ function CaseDesktop({
         name: FORENSICS_LEAD_NAME,
         roleLabel: 'Adli İnceleme Lideri',
         avatarLabel: 'EA',
+        promptLabel: 'Ece’ye sor',
       },
       selectedThreadId,
       selectedChannelId: forensicsSelected ? 'forensics' : 'case-desk',
@@ -1129,7 +1208,7 @@ function CaseDesktop({
           id: 'forensics',
           label: 'forensics',
           threadId: FORENSICS_THREAD_ID,
-          topic: 'Kanıt incelemeleri ve doğrulanmış iletişim kayıtları',
+          topic: 'Kanıt incelemeleri ve soruşturma talepleri',
           ...(!forensicsSelected && latestRequest?.status === 'complete' ? { unreadCount: 1 } : {}),
         },
         {
@@ -1160,6 +1239,7 @@ function CaseDesktop({
       threads: [...baseThreads, forensicsThread],
       messages: forensicsSelected ? forensicsMessages : models.inbox.messages,
       typingAuthor: forensicsSelected && pendingForensicsRequest ? FORENSICS_LEAD_NAME : undefined,
+      sending: forensicsSelected && forensicsBusy,
     }
   }, [caseChannelName, forensicsWorkflow.requests, models.files.records, models.inbox, pendingForensicsRequest, selection.selectedThreadId, streamingForensicsReply])
 
@@ -1276,6 +1356,7 @@ function CaseDesktop({
           onReplyDraftChange={(value) => select('replyDraft', value)}
           onOpenAttachment={setOpenAssetId}
           onMessageCta={openDiscoveredContact}
+          onQuickPrompt={requestAsyncForensicsAction}
         />
       ),
       badge: pendingForensicsRequest ? 1 : undefined,
@@ -1475,52 +1556,24 @@ function CaseDesktop({
           startLabel="dedektif"
           layoutPersistence={layoutPersistence}
           focusRequest={focusRequest}
-          statusSlot={(
-            <div className="workspace-status">
-              <span className="workspace-status__timer" title="Vaka saati">
-                <i aria-hidden="true" /> {caseClockLabel(manifest, snapshot.clocks.caseTimeMs)}
-              </span>
-              {nextDeadline ? (
-                <span
-                  className={`workspace-status__deadline ${nextDeadline.remainingMs <= 5 * 60_000 ? 'is-urgent' : ''}`.trim()}
-                  title={nextDeadline.title ?? 'Yaklaşan zaman sınırı'}
-                >
-                  {nextDeadline.title ?? 'Zaman sınırı'} · {remainingLabel(nextDeadline.remainingMs)}
-                </span>
-              ) : null}
-              <label className="workspace-case-picker">
-                <span className="detective-sr-only">Aktif vaka</span>
-                <select
-                  value={manifest.case.id}
-                  onChange={(event) => onSelectCase(event.currentTarget.value)}
-                  title="Vaka seç"
-                >
-                  {cases.map((candidate) => (
-                    <option key={candidate.case.id} value={candidate.case.id}>
-                      {candidate.case.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {commandNotice ? (
-                <span className="workspace-status__notice" role="status">{commandNotice}</span>
-              ) : null}
-              <button
-                type="button"
-                className="workspace-status__restart"
-                disabled={commandBusy || restartBusy}
-                onClick={() => {
-                  setRestartFromOutcome(false)
-                  setConfirmRestart(true)
-                }}
-              >
-                Baştan başlat
-              </button>
-              <span className="workspace-status__safe" title="İlerleme otomatik kaydedilir">
-                {commandBusy ? 'KAYDEDİLİYOR' : 'KAYDEDİLDİ'}
-              </span>
-            </div>
+          settingsSlot={(
+            <WorkspaceSettings
+              cases={cases}
+              activeCaseId={manifest.case.id}
+              casePickerLabel="Aktif vaka"
+              statusLabel={snapshot.status === 'ended' ? 'Vaka sonuçlandı' : 'Soruşturma devam ediyor'}
+              busy={commandBusy || restartBusy}
+              deadline={nextDeadline}
+              onSelectCase={onSelectCase}
+              onRestart={() => {
+                setRestartFromOutcome(false)
+                setConfirmRestart(true)
+              }}
+            />
           )}
+          notificationSlot={commandNotice ? (
+            <span className="workspace-status__notice" role="status">{commandNotice}</span>
+          ) : null}
         />
       </ModalBackground>
       {openAsset && !appDialogOpen ? (
@@ -1675,6 +1728,7 @@ function OpeningDesktop({
     castValue(manifest, callerId, 'role') ?? 'Vaka bağlantısı',
   )
   const model = useMemo(() => ({
+    clockLabel: caseClockLabel(manifest, 0),
     contacts: [],
     recentCalls: [],
     incomingCall: {
@@ -1686,6 +1740,17 @@ function OpeningDesktop({
       timestampLabel: manifest.case.time?.startsAt,
     },
   }), [callerId, callerName, manifest, phase, roleLabel])
+  const settingsStatus = busy
+    ? 'Vaka hazırlanıyor'
+    : phase === 'ringing'
+      ? 'Arama yanıt bekliyor'
+      : phase === 'connected'
+        ? 'Vaka özeti hazır'
+        : phase === 'missed'
+          ? 'Arama kaçırıldı'
+          : phase === 'error'
+            ? 'Bağlantı kurulamadı'
+            : 'Yeni vaka hazır'
   const apps = useMemo<readonly ShellAppDefinition[]>(() => [{
     id: 'incoming-phone',
     title: phase === 'connected' ? 'Güvenli Vaka Hattı' : 'Gelen Çağrı',
@@ -1717,28 +1782,17 @@ function OpeningDesktop({
       backgroundImage={dedektifWallpaper}
       brandIcon={{ type: 'image', src: phoneIcon }}
       startLabel="dedektif"
-      statusSlot={(
-        <div className="workspace-status workspace-status--opening">
-          <label className="workspace-case-picker">
-            <span className="detective-sr-only">Gelen vaka</span>
-            <select
-              value={manifest.case.id}
-              onChange={(event) => onSelectCase(event.currentTarget.value)}
-              disabled={busy}
-            >
-              {cases.map((candidate) => (
-                <option key={candidate.case.id} value={candidate.case.id}>
-                  {candidate.case.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          {error ? <span className="workspace-status__notice">{error}</span> : null}
-          <span className="workspace-status__safe">
-            {busy ? 'BAŞLATILIYOR' : 'VAKA SAATİ DURUYOR'}
-          </span>
-        </div>
+      settingsSlot={(
+        <WorkspaceSettings
+          cases={cases}
+          activeCaseId={manifest.case.id}
+          casePickerLabel="Gelen vaka"
+          statusLabel={settingsStatus}
+          busy={busy}
+          onSelectCase={onSelectCase}
+        />
       )}
+      notificationSlot={error ? <span className="workspace-status__notice" role="status">{error}</span> : null}
     />
   )
 }

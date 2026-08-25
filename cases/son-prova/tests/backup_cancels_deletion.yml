@@ -2,7 +2,7 @@ schema: case-test/v0.1
 
 case:
   id: official.son-prova
-  version: 0.4.1
+  version: 0.4.2
 
 scenario:
   id: backup_cancels_deletion

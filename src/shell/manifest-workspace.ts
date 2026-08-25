@@ -117,6 +117,18 @@ function startLabel(manifest: ShellPublicCaseManifest): string {
   return manifest.case.time?.startsAt ?? 'Şimdi'
 }
 
+export function caseClockLabel(manifest: ShellPublicCaseManifest, milliseconds: number): string {
+  const authored = manifest.case.time?.startsAt
+  const match = authored?.match(/^(\d{2}):(\d{2})/)
+  if (!match) {
+    const totalMinutes = Math.floor(milliseconds / 60_000)
+    return `${String(Math.floor(totalMinutes / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`
+  }
+  const startMinutes = Number(match[1]) * 60 + Number(match[2])
+  const currentMinutes = (startMinutes + Math.floor(milliseconds / 60_000)) % (24 * 60)
+  return `${String(Math.floor(currentMinutes / 60)).padStart(2, '0')}:${String(currentMinutes % 60).padStart(2, '0')}`
+}
+
 function caseTimeLabel(manifest: ShellPublicCaseManifest, milliseconds: number): string {
   const authored = manifest.case.time?.startsAt
   const match = authored?.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/)
@@ -409,6 +421,24 @@ export function createManifestWorkspaceModels(
       }]
     }),
   ]
+  const inboxQuickPrompts: NonNullable<InboxViewModel['quickPrompts']> = activeContactActions.flatMap(
+    (affordance, index) => {
+      const interaction = affordance.interaction
+      const request = interaction?.request?.trim()
+      if (!interaction || !request || selection.contactActionStatuses?.[affordance.id] === 'completed') {
+        return []
+      }
+      return [{
+        affordanceId: affordance.id,
+        channelId: interaction.channel,
+        label: affordanceLabel(affordance, `Soru ${index + 1}`),
+        request,
+        status: selection.contactActionStatuses?.[affordance.id] === 'pending'
+          ? 'pending' as const
+          : 'ready' as const,
+      }]
+    },
+  )
 
   const files: FilesViewModel = {
     selectedRecordId: selection.selectedRecordId ?? runtimeEvidence[0]?.id,
@@ -638,6 +668,7 @@ export function createManifestWorkspaceModels(
     inbox: {
       selectedThreadId: selection.selectedThreadId ?? callId,
       replyDraft: selection.replyDraft,
+      ...(inboxQuickPrompts.length > 0 ? { quickPrompts: inboxQuickPrompts } : {}),
       threads: [{
         id: callId,
         sender: callerName,
@@ -655,6 +686,7 @@ export function createManifestWorkspaceModels(
       }],
     },
     phone: {
+      clockLabel: caseClockLabel(manifest, runtime?.clocks.caseTimeMs ?? 0),
       selectedContactId: selection.selectedContactId ?? callerId,
       affordances: unassignedPhoneAffordances.map((affordance, index) => (
         affordanceViewModel(affordance, index, 'İşlem')

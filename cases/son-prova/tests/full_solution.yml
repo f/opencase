@@ -1,6 +1,6 @@
 schema: case-test/v0.1
 
-case: {id: official.son-prova, version: 0.4.1}
+case: {id: official.son-prova, version: 0.4.2}
 
 scenario:
   id: full_solution
@@ -171,7 +171,10 @@ scenario:
         state:
           clocks: {case-time: 37m}
           deductions: {selin_killed_orhan: supported}
-          affordances: {conclude_selin: offered}
+          affordances:
+            conclude_selin: offered
+            conclude_baran: offered
+            conclude_leyla: offered
     - detective.conclude: selin
       expect:
         result: {status: accepted}

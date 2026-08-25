@@ -4,6 +4,7 @@ import type { FilesViewModel, PhoneViewModel } from './apps'
 import { createCaseBoardViewModel } from './case-board-model'
 
 const phone: PhoneViewModel = {
+  clockLabel: '21:00',
   contacts: [{
     id: 'listed-contact',
     name: 'Deniz Kaya',

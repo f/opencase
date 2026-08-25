@@ -83,7 +83,10 @@ export interface DesktopShellProps {
   ariaLabel?: string
   backgroundImage?: string
   brandIcon?: ShellIcon
-  statusSlot?: ReactNode
+  /** Opaque application settings rendered inside the shell's settings popover. */
+  settingsSlot?: ReactNode
+  /** Transient application feedback that must stay visible while settings are closed. */
+  notificationSlot?: ReactNode
   startLabel?: string
   layoutPersistence?: DesktopLayoutPersistence
   onLayoutChange?: (layout: DesktopLayoutSnapshot) => void

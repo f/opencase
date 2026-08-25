@@ -8,6 +8,7 @@ import { PhoneApp } from './PhoneApp'
 import type { PhoneViewModel } from './types'
 
 const model: PhoneViewModel = {
+  clockLabel: '21:12',
   selectedContactId: 'ece',
   recentCalls: [],
   contacts: [{

@@ -1,5 +1,5 @@
 schema: case-i18n/v0.1
-case: {id: official.son-prova, version: 0.4.1}
+case: {id: official.son-prova, version: 0.4.2}
 locale: tr
 messages:
   case.title: Son Prova
@@ -59,9 +59,9 @@ messages:
   affordances.deduce_selin_prepared_murder.result: Selin, Orhan'ı sahne kapağındaki X işaretinde kalmaya yönlendirdi. Kulis ve tablet kayıtları tuzağı Selin'in hazırlayıp çalıştırdığını gösteriyor.
   affordances.deduce_selin_financial_motive.result: Mali kayıtlar, Orhan'ın bulgularından çıkar sağlayan kişinin Selin olduğunu gösteriyor. Selin'in Orhan'ı susturmak için mali bir nedeni vardı.
   affordances.deduce_selin_killed_orhan.result: Kanıtlar aynı sonucu veriyor; Selin sahne kapağı tuzağını hazırladı, sahte yayınla kendine mazeret kurdu ve Orhan'ı öldürdü.
-  affordances.conclude_selin.label: Nihai sonuç olarak Selin'i bildir
-  affordances.conclude_baran.label: Nihai sonuç olarak Baran'ı bildir
-  affordances.conclude_leyla.label: Nihai sonuç olarak Leyla'yı bildir
+  affordances.conclude_selin.label: Selin'i fail olarak bildir
+  affordances.conclude_baran.label: Baran'ı fail olarak bildir
+  affordances.conclude_leyla.label: Leyla'yı fail olarak bildir
   affordances.request_scene_report.result: Ekin, inceleme raporunu ve çıkarılmış emniyet piminin fotoğrafını Dosyalar'a gönderdi.
   affordances.request_automation_export.result: Sahne otomasyonu dışa aktarımı Dosyalar'da incelemeye hazır.
   affordances.request_victim_phone.result: Orhan'ın telefon çıkarımı hazır. Mesajları artık incelenebilir.
@@ -85,9 +85,9 @@ messages:
   affordances.present_audit_to_selin.confirmation: Selin şimdi yüzleştirilsin mi? Bu onu uyarabilir; kayıtların silinmesini veya ayrılmasını hızlandırabilir.
   affordances.accuse_baran.confirmation: Baran şüpheli olarak kayda geçirilsin mi? Yanlış suçlama güvenini zedeler ve bir kanıt yolunu kapatabilir.
   affordances.accuse_leyla.confirmation: Leyla şüpheli olarak kayda geçirilsin mi? Yanlış suçlama güvenini zedeler ve bir kanıt yolunu kapatabilir.
-  affordances.conclude_selin.confirmation: Selin'i nihai sonuç olarak bildirip vakayı bitirmek istiyor musun?
-  affordances.conclude_baran.confirmation: Baran'ı nihai sonuç olarak bildirip vakayı bitirmek istiyor musun?
-  affordances.conclude_leyla.confirmation: Leyla'yı nihai sonuç olarak bildirip vakayı bitirmek istiyor musun?
+  affordances.conclude_selin.confirmation: Selin'i sorumlu kişi olarak bildirip dosyayı kapatmak istiyor musun? Bu seçim vakayı bitirir. Kararın ve kanıt desteğin sonuç raporunda ayrı değerlendirilir.
+  affordances.conclude_baran.confirmation: Baran'ı sorumlu kişi olarak bildirip dosyayı kapatmak istiyor musun? Bu seçim vakayı bitirir. Kararın ve kanıt desteğin sonuç raporunda ayrı değerlendirilir.
+  affordances.conclude_leyla.confirmation: Leyla'yı sorumlu kişi olarak bildirip dosyayı kapatmak istiyor musun? Bu seçim vakayı bitirir. Kararın ve kanıt desteğin sonuç raporunda ayrı değerlendirilir.
   evidence.threat_message.title: Leyla'nın tehdit mesajı
   evidence.threat_message.description: Orhan'ın telefonundan çıkarılan sert bir mesaj.
   evidence.threat_message.findings.sent_by: Mesajı Leyla gönderdi.
@@ -210,10 +210,13 @@ messages:
   assessment.bands.strong_with_cost: Güçlü, fakat iz bırakan
   assessment.bands.fragile: Sonuç var, yöntem kırılgan
   assessment.bands.reconsider: Yöntem yeniden değerlendirilmeli
+  assessment.categories.conclusion_accuracy: Nihai karar
   assessment.categories.evidence_reasoning: Kanıt ve muhakeme
   assessment.categories.intervention_protection: Müdahale ve koruma
   assessment.categories.procedure_people: Usul ve kişi etkisi
   assessment.categories.time_management: Zaman yönetimi
+  assessment.criteria.correct_conclusion.met: Nihai kararında doğru kişiyi, Selin'i bildirdin.
+  assessment.criteria.correct_conclusion.missed: Nihai karar yanlış kişiyi sorumlu tuttu.
   assessment.criteria.baran_operator.met: Baran'ın otomasyon komutunu veremeyeceğini kanıtladın.
   assessment.criteria.baran_operator.missed: Baran'ı otomasyon komutundan dışlayan kanıt zinciri kurulmadı.
   assessment.criteria.culprit.met: Orhan'ı Selin'in öldürdüğünü tam kanıt zinciriyle ortaya koydun.
@@ -229,17 +232,17 @@ messages:
   assessment.criteria.preserve_finance.met: Orhan'ın mali çalışma alanını silinmeden korudun.
   assessment.criteria.preserve_finance.missed: Orhan'ın mali kayıtları korunamadı.
   assessment.criteria.stop_selin.met: Selin olay yerinden ayrılmadan nihai işlemi tamamladın.
-  assessment.criteria.stop_selin.missed: Selin, nihai işlem tamamlanmadan olay yerinden ayrıldı.
+  assessment.criteria.stop_selin.missed: Nihai karar, Selin'i durduracak kanıt desteğine sahip değildi veya Selin daha önce ayrıldı.
   assessment.criteria.clear_leyla.met: Leyla'yı hazırlık zinciriyle suçlamanın dışında tuttun.
   assessment.criteria.clear_leyla.missed: Leyla gereksiz bir suçlamanın etkisinde kaldı veya onu aklayan zincir tamamlanmadı.
   assessment.criteria.protect_baran.met: Baran'ı kanıtlarla akladın; suçlama ve gözaltı zararını önledin.
   assessment.criteria.protect_baran.missed: Baran aklanmadan suçlandı, gözaltına alındı veya kanıt zinciri eksik kaldı.
   assessment.criteria.avoid_detention.met: Baran'ın gözaltı süresi dolmadan kanıtı tamamladın.
-  assessment.criteria.avoid_detention.missed: Baran, soruşturma uzadığı için gözaltına alındı.
+  assessment.criteria.avoid_detention.missed: Baran'ı zamanında kanıtlarla aklayan işlem tamamlanmadı veya Baran gözaltına alındı.
   assessment.criteria.preserve_before_deletion.met: Silme süresi dolmadan çalışma alanı kaybını önledin.
-  assessment.criteria.preserve_before_deletion.missed: Silme süresi doldu ve mali çalışma alanı kaybedildi.
+  assessment.criteria.preserve_before_deletion.missed: Dosya kapanmadan önce mali çalışma alanının korumalı yedeği alınmadı.
   assessment.criteria.stop_departure.met: Selin'in ayrılma süresi dolmadan ilerledin.
-  assessment.criteria.stop_departure.missed: Selin soruşturma sonuçlanmadan olay yerinden ayrıldı.
+  assessment.criteria.stop_departure.missed: Selin'i durduracak kanıtlı işlem zamanında tamamlanmadı.
   outcomes.full_curtain.title: Tam Perde
   outcomes.full_curtain.body: Selin, bütün vaka kanıtlanarak durduruldu. Orhan'ın mali kayıtları kurtuldu; Baran ve Leyla kurulan tuzağın bedelini ödemedi.
   outcomes.bitter_applause.title: Acı Alkış
@@ -248,5 +251,7 @@ messages:
   outcomes.truth_too_late.body: Orhan'ı Selin'in öldürdüğünü kanıtladın, fakat sonuç onu durduramadan Selin ayrıldı.
   outcomes.killer_found.title: Katil Bulundu
   outcomes.killer_found.body: Selin tespit edilip durduruldu, fakat Orhan'ın mali kanıtları korunamadan kayboldu.
-  outcomes.wrong_stage.title: Yanlış Sahne
-  outcomes.wrong_stage.body: Selin gerçek plan gizli kalacak şekilde ayrılırken vaka Baran veya Leyla'nın üzerine kapandı.
+  outcomes.wrong_stage.title: Yanlış Kanaat
+  outcomes.wrong_stage.body: Dosyayı yanlış kişi hakkında kapattın. Seçtiğin kişiyi aklayan ve Selin'in gerçek planını ortaya çıkaran kanıt zinciri tamamlanmadı.
+  outcomes.right_instinct_weak_case.title: Doğru Sezgi, Eksik Dosya
+  outcomes.right_instinct_weak_case.body: Selin'i doğru kişi olarak bildirdin, ancak onu Orhan'ın ölümüne bağlayan kanıt zincirini tamamlamadın. Kanaat doğru olsa da dosya onu durduracak kadar güçlü değil.

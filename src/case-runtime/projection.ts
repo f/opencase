@@ -310,6 +310,15 @@ export function projectCaseState(
   const affordanceSlots = object(slots.affordances, 'case runtime affordances')
   const deductionSlots = object(slots.deductions, 'case runtime deductions')
   const finalSlots = object(slots.final, 'case runtime final conclusion')
+  const listedActorIds = new Set(Object.entries(privateCatalog.actors).flatMap(([id, definition]) => {
+    if (!definition.public) return []
+    const actorState = object(actorSlots[id], `actor state ${id}`)
+    const contact = actorState.contact ?? definition.contactInitial
+    if (contact !== 'hidden' && contact !== 'listed') {
+      throw new Error(`Unknown contact state ${String(contact)} for actor ${id}`)
+    }
+    return contact === 'listed' ? [id] : []
+  }))
   const objectiveState = Object.fromEntries(
     Object.entries(privateCatalog.objectives).map(([id, condition]) => [
       id,
@@ -389,6 +398,20 @@ export function projectCaseState(
         }
         if (definition.intent.kind !== 'action') return true
         const action = definition.intent.action
+        const referencedActorIds = [action.actor, action.target, action.from].filter(
+          (candidate): candidate is string => (
+            candidate !== undefined && Object.hasOwn(privateCatalog.actors, candidate)
+          ),
+        )
+        const referencesUnavailableActor = referencedActorIds.some((id) => (
+          !listedActorIds.has(id)
+        ))
+        const isPublicRevealInteraction = (
+          definition.surface === 'inbox'
+          && definition.interaction?.kind === 'async-message'
+          && referencedActorIds.every((id) => privateCatalog.actors[id]?.public === true)
+        )
+        if (referencesUnavailableActor && !isPublicRevealInteraction) return false
         const prerequisite = action.evidence ?? (
           action.ref && privateCatalog.evidence[action.ref] ? action.ref : undefined
         )
@@ -448,15 +471,7 @@ export function projectCaseState(
       })
       .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)),
     actors: Object.entries(privateCatalog.actors)
-      .filter(([id, definition]) => {
-        if (!definition.public) return false
-        const actorState = object(actorSlots[id], `actor state ${id}`)
-        const contact = actorState.contact ?? definition.contactInitial
-        if (contact !== 'hidden' && contact !== 'listed') {
-          throw new Error(`Unknown contact state ${String(contact)} for actor ${id}`)
-        }
-        return contact === 'listed'
-      })
+      .filter(([id]) => listedActorIds.has(id))
       .map(([id, definition]) => {
         const actorState = object(actorSlots[id], `actor state ${id}`)
         const stateId = typeof actorState.conversation === 'string'

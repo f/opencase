@@ -1,0 +1,18 @@
+schema: case-test/v0.1
+
+case: {id: official.son-prova, version: 0.4.2}
+
+scenario:
+  id: early_wrong_leyla
+  perspective: detective
+  description: Close the case on Leyla immediately and receive a terminal wrong-conclusion report.
+  steps:
+    - detective.conclude: leyla
+      expect:
+        result: {status: accepted}
+        state:
+          status: ended
+          clocks: {case-time: 1m}
+          final_conclusion: leyla
+          outcome: wrong_stage
+          assessment: {score: 0, max_score: 100}

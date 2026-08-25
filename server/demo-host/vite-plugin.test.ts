@@ -50,7 +50,7 @@ describe('demo asset HTTP endpoint', () => {
       {
         ref: {
           caseId: 'official.son-prova',
-          caseVersion: '0.4.1',
+          caseVersion: '0.4.2',
           locale: 'tr',
           saveId: PRIMARY_DEMO_SAVE_ID,
         },

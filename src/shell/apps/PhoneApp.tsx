@@ -187,10 +187,13 @@ function TranscriptReply({ line }: { readonly line: string }) {
   )
 }
 
-function StatusBar({ light = false }: { readonly light?: boolean }) {
+function StatusBar({ timeLabel, light = false }: {
+  readonly timeLabel: string
+  readonly light?: boolean
+}) {
   return (
     <div className={`iphone-status ${light ? 'iphone-status--light' : ''}`} aria-label="Marmara mobil ağı bağlı">
-      <time dateTime="09:41">09:41</time>
+      <time dateTime={timeLabel} aria-label={`Vaka saati ${timeLabel}`}>{timeLabel}</time>
       <div className="iphone-dynamic-island" aria-hidden="true">
         <i />
       </div>
@@ -345,7 +348,7 @@ function HomeScreen({ actions, contact, busy, onAction, onNavigate, onOpenContac
 
 type CallWaveState = 'dialing' | 'active' | 'settling'
 
-const ACTIVE_VOICE_ENVELOPE = [0.42, 0.78, 0.58, 0.96, 0.5, 0.7, 0.36, 0.86, 0.62, 0.48] as const
+const ACTIVE_VOICE_ENVELOPE = [1.25, 2.05, 1.55, 2.55, 1.4, 1.9, 1.05, 2.3, 1.7, 1.3] as const
 
 function SiriCallWave({ state, statusLabel }: {
   readonly state: CallWaveState
@@ -363,7 +366,7 @@ function SiriCallWave({ state, statusLabel }: {
     let envelopeTimer: number | undefined
     let envelopeIndex = 0
 
-    const amplitude = state === 'active' ? ACTIVE_VOICE_ENVELOPE[0] : state === 'dialing' ? 0.26 : 0.025
+    const amplitude = state === 'active' ? ACTIVE_VOICE_ENVELOPE[0] : state === 'dialing' ? 0.46 : 0.035
     const speed = state === 'active' ? 0.17 : state === 'dialing' ? 0.095 : 0.045
 
     const buildWave = () => {
@@ -378,21 +381,27 @@ function SiriCallWave({ state, statusLabel }: {
         container: host,
         width: Math.round(bounds.width),
         height: Math.round(bounds.height),
-        style: 'ios',
+        style: 'ios9',
         speed,
         amplitude,
-        frequency: 5,
         autostart: true,
         cover: true,
         lerpSpeed: 0.08,
         globalCompositeOperation: 'lighter',
         curveDefinition: [
-          { attenuation: -2, lineWidth: 1, opacity: 0.13, color: '#d6b86f' },
-          { attenuation: -6, lineWidth: 1, opacity: 0.18, color: '#7ac8b1' },
-          { attenuation: 4, lineWidth: 1, opacity: 0.26, color: '#dfeae5' },
-          { attenuation: 2, lineWidth: 1.15, opacity: 0.46, color: '#84cfb9' },
-          { attenuation: 1, lineWidth: 1.45, opacity: 0.88, color: '#dcc477' },
+          { color: '222, 234, 228', supportLine: true },
+          { color: '42, 112, 121' },
+          { color: '209, 161, 88' },
+          { color: '94, 211, 176' },
         ],
+        ranges: {
+          noOfCurves: [3, 5],
+          amplitude: [0.42, 1],
+          offset: [-3, 3],
+          width: [1.15, 2.7],
+          speed: [0.45, 1.08],
+          despawnTimeout: [650, 1_650],
+        },
       })
     }
 
@@ -620,7 +629,7 @@ export function PhoneApp({
 
   return (
     <section className={`phone-realistic ${inCall ? 'phone-realistic--in-call' : ''}`} aria-label={labels.title}>
-      <StatusBar light={inCall || screen === 'home'} />
+      <StatusBar timeLabel={model.clockLabel} light={inCall || screen === 'home'} />
 
       {model.outgoingCall ? (
         <OutgoingCallScreen

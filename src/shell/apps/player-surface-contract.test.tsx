@@ -117,10 +117,22 @@ const caseBoard: CaseBoardViewModel = {
 }
 
 const inbox: InboxViewModel = {
+  selectedChannelId: 'forensics',
   selectedThreadId: INTERNAL_SENTINELS.id,
   replyDraft: '',
+  channelLead: {
+    name: 'Ece Aydın',
+    roleLabel: 'Adli İnceleme Lideri',
+    promptLabel: 'Ece’ye sor',
+  },
+  channels: [{
+    id: 'forensics',
+    label: 'forensics',
+    threadId: INTERNAL_SENTINELS.id,
+  }],
   threads: [{
     id: INTERNAL_SENTINELS.id,
+    channelId: 'forensics',
     sender: 'Gece görevlisi',
     subject: 'Teslim kaydı',
     preview: 'Tutanağı masada bıraktım.',
@@ -139,9 +151,17 @@ const inbox: InboxViewModel = {
       label: 'Vardiya notu',
     }],
   }],
+  quickPrompts: [{
+    affordanceId: INTERNAL_SENTINELS.key,
+    channelId: 'forensics',
+    label: 'Deniz Kaya’nın kurum kaydını sor',
+    request: 'Deniz Kaya’nın güncel kurum kaydını doğrulayabilir misin?',
+    status: 'ready',
+  }],
 }
 
 const phone: PhoneViewModel = {
+  clockLabel: '00:18',
   selectedContactId: INTERNAL_SENTINELS.id,
   affordances: [{ id: INTERNAL_SENTINELS.key, label: 'Danışma masasını ara' }],
   contacts: [{

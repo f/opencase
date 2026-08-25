@@ -1,0 +1,35 @@
+schema: case-test/v0.1
+
+case: {id: official.son-prova, version: 0.4.2}
+
+scenario:
+  id: early_correct_hunch
+  perspective: detective
+  description: Name the right person immediately, end the case, and receive accuracy credit without proof credit.
+  steps:
+    - expect:
+        state:
+          status: active
+          clocks: {case-time: 0s}
+          affordances:
+            conclude_selin: offered
+            conclude_baran: offered
+            conclude_leyla: offered
+
+    - detective.conclude: selin
+      expect:
+        result: {status: accepted}
+        state:
+          status: ended
+          clocks: {case-time: 1m}
+          final_conclusion: selin
+          outcome: right_instinct_weak_case
+          assessment: {score: 15, max_score: 100}
+
+    - detective.act: {action: request, from: ekin, topic: scene-report}
+      expect:
+        result: {status: denied, code: case-ended}
+        state:
+          status: ended
+          final_conclusion: selin
+          outcome: right_instinct_weak_case

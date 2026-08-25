@@ -168,6 +168,20 @@ export interface InboxChannelViewModel {
   readonly private?: boolean
 }
 
+export type InboxQuickPromptStatus = 'ready' | 'pending'
+
+/**
+ * Player-safe suggested message for a specific Inbox channel. The component
+ * receives only authored copy and returns the opaque affordance token.
+ */
+export interface InboxQuickPromptViewModel {
+  readonly affordanceId: string
+  readonly channelId: string
+  readonly label: string
+  readonly request: string
+  readonly status?: InboxQuickPromptStatus
+}
+
 export interface InboxViewModel {
   readonly workspaceLabel?: string
   readonly channels?: readonly InboxChannelViewModel[]
@@ -176,8 +190,10 @@ export interface InboxViewModel {
     readonly name: string
     readonly roleLabel: string
     readonly avatarLabel?: string
+    readonly promptLabel?: string
   }
   readonly typingAuthor?: string
+  readonly quickPrompts?: readonly InboxQuickPromptViewModel[]
   readonly threads: readonly InboxThreadViewModel[]
   readonly selectedThreadId?: string
   readonly messages: readonly InboxMessageViewModel[]
@@ -235,6 +251,8 @@ export interface PhoneOutgoingCallViewModel {
 }
 
 export interface PhoneViewModel {
+  /** Current game time, already formatted for the phone status bar by the host. */
+  readonly clockLabel: string
   readonly contacts: readonly PhoneContactViewModel[]
   readonly recentCalls: readonly PhoneCallViewModel[]
   readonly affordances?: readonly AffordanceViewModel[]

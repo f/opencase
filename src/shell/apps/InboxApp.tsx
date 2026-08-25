@@ -13,6 +13,7 @@ import homeIcon from 'lucide-static/icons/home.svg'
 import inboxIcon from 'lucide-static/icons/inbox.svg'
 import lockIcon from 'lucide-static/icons/lock.svg'
 import maximizeIcon from 'lucide-static/icons/maximize-2.svg'
+import messageQuestionIcon from 'lucide-static/icons/message-circle-question.svg'
 import moreIcon from 'lucide-static/icons/more-horizontal.svg'
 import paperclipIcon from 'lucide-static/icons/paperclip.svg'
 import plusIcon from 'lucide-static/icons/plus.svg'
@@ -42,6 +43,10 @@ export interface InboxLabels {
   readonly sending: string
   readonly openAttachment: string
   readonly imageAttachmentMeta: string
+  readonly quickPrompts: string
+  readonly quickPromptsHint: string
+  readonly ask: string
+  readonly waiting: string
 }
 
 const DEFAULT_LABELS: InboxLabels = {
@@ -56,6 +61,10 @@ const DEFAULT_LABELS: InboxLabels = {
   sending: 'Gönderiliyor…',
   openAttachment: 'Eki aç',
   imageAttachmentMeta: 'Görsel eki · İnceleme kaydı',
+  quickPrompts: 'Ekibe sor',
+  quickPromptsHint: 'Vakadaki açık araştırmalar',
+  ask: 'Sor',
+  waiting: 'Yanıt bekleniyor',
 }
 
 const DEFAULT_CHANNELS: readonly InboxChannelViewModel[] = [
@@ -192,6 +201,7 @@ export interface InboxAppProps {
   readonly onSendReply?: (threadId: string, body: string) => void
   readonly onOpenAttachment?: (assetId: string) => void
   readonly onMessageCta?: (ctaId: string) => void
+  readonly onQuickPrompt?: (affordanceId: string) => void
 }
 
 export function InboxApp({
@@ -202,6 +212,7 @@ export function InboxApp({
   onSendReply,
   onOpenAttachment,
   onMessageCta,
+  onQuickPrompt,
 }: InboxAppProps) {
   const replyId = useId()
   const messagesRef = useRef<HTMLOListElement>(null)
@@ -214,6 +225,10 @@ export function InboxApp({
   const isForensics = selectedChannel?.id === 'forensics' || selectedChannel?.label.toLocaleLowerCase('tr-TR') === 'forensics'
   const channelLead = model.channelLead
   const hasStreamingMessage = model.messages.some(({ streaming }) => streaming)
+  const quickPrompts = (model.quickPrompts ?? []).filter(({ channelId }) => (
+    channelId === selectedChannelId
+  ))
+  const quickPromptsBusy = Boolean(model.sending || model.typingAuthor || hasStreamingMessage)
 
   useEffect(() => {
     const messages = messagesRef.current
@@ -440,6 +455,50 @@ export function InboxApp({
                   </li>
                 ) : null}
               </ol>
+
+              {isForensics && quickPrompts.length > 0 ? (
+                <section
+                  className="workspace-quick-prompts"
+                  aria-label={channelLead?.promptLabel ?? labels.quickPrompts}
+                  aria-busy={quickPromptsBusy || quickPrompts.some(({ status }) => status === 'pending') || undefined}
+                >
+                  <header>
+                    <span className="workspace-quick-prompts__mark" aria-hidden="true">
+                      <Icon src={messageQuestionIcon} />
+                    </span>
+                    <span>
+                      <strong>{channelLead?.promptLabel ?? labels.quickPrompts}</strong>
+                      <small>{labels.quickPromptsHint}</small>
+                    </span>
+                    <b>{quickPrompts.length}</b>
+                  </header>
+                  <div className="workspace-quick-prompts__list">
+                    {quickPrompts.map((prompt) => {
+                      const pending = prompt.status === 'pending'
+                      return (
+                        <button
+                          key={prompt.affordanceId}
+                          type="button"
+                          className="workspace-quick-prompt"
+                          data-status={prompt.status ?? 'ready'}
+                          aria-label={`${channelLead?.promptLabel ?? labels.quickPrompts}: ${prompt.request}`}
+                          disabled={quickPromptsBusy || pending || !onQuickPrompt}
+                          onClick={() => onQuickPrompt?.(prompt.affordanceId)}
+                        >
+                          <span className="workspace-quick-prompt__copy">
+                            <strong>{prompt.label}</strong>
+                            <small>{prompt.request}</small>
+                          </span>
+                          <span className="workspace-quick-prompt__action">
+                            {pending ? labels.waiting : labels.ask}
+                            <Icon src={arrowRightIcon} />
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </section>
+              ) : null}
 
               {onSendReply ? (
                 <form className="workspace-composer" onSubmit={submitReply}>

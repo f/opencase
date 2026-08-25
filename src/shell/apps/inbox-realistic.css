@@ -365,7 +365,7 @@
 
 .workspace-conversation {
   display: grid;
-  grid-template-rows: 58px minmax(120px, 1fr) auto;
+  grid-template-rows: 58px minmax(120px, 1fr) auto auto;
   min-width: 0;
   min-height: 0;
   background: #fff;
@@ -876,6 +876,152 @@ button.workspace-image-attachment__preview:focus-visible {
 .workspace-typing p > span i:nth-child(2) { animation-delay: 150ms; }
 .workspace-typing p > span i:nth-child(3) { animation-delay: 300ms; }
 
+.workspace-quick-prompts {
+  display: grid;
+  gap: 8px;
+  padding: 10px 14px 11px;
+  border-top: 1px solid #e5e5e5;
+  background:
+    linear-gradient(180deg, rgba(241, 248, 246, 0.78), #fff 72%);
+}
+
+.workspace-quick-prompts > header {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.workspace-quick-prompts__mark {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(0, 122, 90, 0.16);
+  border-radius: 8px;
+  background: #eaf6f2;
+  color: #007a5a;
+  place-items: center;
+}
+
+.workspace-quick-prompts__mark img {
+  width: 15px;
+  height: 15px;
+}
+
+.workspace-quick-prompts > header > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+}
+
+.workspace-quick-prompts > header strong {
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.workspace-quick-prompts > header small {
+  color: var(--workspace-muted);
+  font-size: 0.56rem;
+}
+
+.workspace-quick-prompts > header b {
+  display: grid;
+  min-width: 21px;
+  height: 21px;
+  padding-inline: 5px;
+  border-radius: 999px;
+  background: #e8ecea;
+  color: #545856;
+  font-size: 0.56rem;
+  font-weight: 720;
+  place-items: center;
+}
+
+.workspace-quick-prompts__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.workspace-quick-prompt {
+  display: grid;
+  min-width: 0;
+  min-height: 62px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 9px 8px 10px;
+  border: 1px solid #d8ddda;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(30, 50, 42, 0.045);
+  color: var(--workspace-ink);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 130ms ease, box-shadow 130ms ease, transform 130ms ease;
+}
+
+.workspace-quick-prompt:not(:disabled):hover {
+  border-color: rgba(0, 122, 90, 0.45);
+  box-shadow: 0 5px 16px rgba(20, 84, 67, 0.1);
+  transform: translateY(-1px);
+}
+
+.workspace-quick-prompt:focus-visible {
+  outline: 3px solid rgba(0, 122, 90, 0.22);
+  outline-offset: 1px;
+}
+
+.workspace-quick-prompt:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+.workspace-quick-prompt[data-status="pending"] {
+  border-color: rgba(18, 100, 163, 0.24);
+  background: #f6fafc;
+}
+
+.workspace-quick-prompt__copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.workspace-quick-prompt__copy strong {
+  overflow: hidden;
+  font-size: 0.65rem;
+  font-weight: 690;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-quick-prompt__copy small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--workspace-muted);
+  font-size: 0.55rem;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.workspace-quick-prompt__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #007a5a;
+  font-size: 0.56rem;
+  font-weight: 740;
+  white-space: nowrap;
+}
+
+.workspace-quick-prompt__action img {
+  width: 12px;
+  height: 12px;
+}
+
 .workspace-composer {
   padding: 8px 14px 13px;
   background: #fff;
@@ -1001,6 +1147,10 @@ button.workspace-image-attachment__preview:focus-visible {
   .workspace-conversation__tools > img:not(:last-child) {
     display: none;
   }
+
+  .workspace-quick-prompts__list {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @container (max-width: 500px) {
@@ -1040,6 +1190,10 @@ button.workspace-image-attachment__preview:focus-visible {
     transition: none;
   }
 
+  .workspace-quick-prompt {
+    transition: none;
+  }
+
   .workspace-image-attachment__preview > img,
   .workspace-image-attachment__open {
     transition: none;
@@ -1052,7 +1206,8 @@ button.workspace-image-attachment__preview:focus-visible {
   }
 
   .workspace-image-attachment,
-  button.workspace-image-attachment__preview {
+  button.workspace-image-attachment__preview,
+  .workspace-quick-prompt {
     border: 1px solid ButtonText;
   }
 

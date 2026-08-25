@@ -153,4 +153,58 @@ describe('DesktopShell fixed docks', () => {
     expect(html.match(/detective-window__resize detective-window__resize--/g)).toHaveLength(8)
     expect(html).toContain('translate3d')
   })
+
+  it('keeps the menu bar clock-free and places desktop controls behind one settings button', async () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+
+    await act(async () => {
+      root.render(
+        <DesktopShell
+          apps={[{ ...dockedApp, placement: 'floating', defaultOpen: true }]}
+          brand="dedektif"
+          settingsSlot={(
+            <div>
+              <label>
+                Aktif vaka
+                <select defaultValue="one"><option value="one">Son Prova</option></select>
+              </label>
+              <button type="button">Vakayı baştan başlat</button>
+            </div>
+          )}
+          notificationSlot={<span role="status">Kayıt tamamlandı</span>}
+        />,
+      )
+    })
+
+    const settings = host.querySelector<HTMLButtonElement>('[aria-label="Ayarlar"]')
+    expect(settings).not.toBeNull()
+    expect(settings?.getAttribute('aria-expanded')).toBe('false')
+    expect(host.querySelector('.detective-menubar__status time')).toBeNull()
+    expect(host.querySelector('.detective-settings-panel')).toBeNull()
+    expect(host.querySelector('[role="status"]')?.textContent).toBe('Kayıt tamamlandı')
+
+    await act(async () => settings?.click())
+    expect(settings?.getAttribute('aria-expanded')).toBe('true')
+    expect(host.querySelector('.detective-settings-panel')?.textContent).toContain('Son Prova')
+    expect(host.querySelector('.detective-settings-panel')?.textContent).toContain('Vakayı baştan başlat')
+    expect(document.activeElement).toBe(host.querySelector('.detective-settings-panel select'))
+
+    const launcher = host.querySelector<HTMLButtonElement>('.detective-menubar__launcher')
+    await act(async () => launcher?.click())
+    expect(host.querySelector('.detective-settings-panel')).toBeNull()
+    expect(host.querySelector('.detective-app-menu')).not.toBeNull()
+
+    await act(async () => settings?.click())
+    const select = host.querySelector<HTMLSelectElement>('.detective-settings-panel select')
+    await act(async () => {
+      select?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    })
+    expect(host.querySelector('.detective-settings-panel')).toBeNull()
+    expect(document.activeElement).toBe(settings)
+
+    await act(async () => root.unmount())
+    host.remove()
+  })
 })

@@ -30,7 +30,8 @@ interface MockDesktopShellProps {
     readonly title: string
     readonly content: ReactNode
   }[]
-  readonly statusSlot?: ReactNode
+  readonly settingsSlot?: ReactNode
+  readonly notificationSlot?: ReactNode
   readonly focusRequest?: { readonly appId: string }
 }
 
@@ -44,10 +45,11 @@ vi.mock('./shell', async () => {
       save: () => undefined,
       clear: () => undefined,
     }),
-    DesktopShell: ({ apps, statusSlot, focusRequest }: MockDesktopShellProps) => createElement(
+    DesktopShell: ({ apps, settingsSlot, notificationSlot, focusRequest }: MockDesktopShellProps) => createElement(
       'main',
       { 'data-testid': 'desktop-shell', 'data-focus-app': focusRequest?.appId },
-      statusSlot,
+      createElement('aside', { 'data-testid': 'settings-slot' }, settingsSlot),
+      notificationSlot,
       ...apps.map((app) => createElement('section', { key: app.id, 'data-app-id': app.id }, app.content)),
     ),
   }
@@ -168,7 +170,10 @@ describe('App wall-clock session recovery', () => {
         saveId: 'primary',
         exists: true,
         assetSessionId: 'asset-session-one',
-        snapshot: activeSnapshot,
+        snapshot: {
+          ...activeSnapshot,
+          clocks: { ...activeSnapshot.clocks, caseTimeMs: 120_000 },
+        },
       })
       .mockResolvedValueOnce({
         schema: 'detective-demo-session/v1',
@@ -203,8 +208,15 @@ describe('App wall-clock session recovery', () => {
       await flushMicrotasks()
     })
 
-    expect(host.textContent).toContain('Baştan başlat')
+    expect(host.textContent).toContain('Vakayı baştan başlat')
     expect(host.textContent).not.toContain('Gelen vaka çağrısı')
+    expect(host.querySelector('.workspace-status__timer')).toBeNull()
+    expect(host.querySelector('[data-testid="settings-slot"]')?.textContent).toContain('Kaydedildi')
+    expect(host.querySelector('.workspace-settings__detail.is-deadline')).not.toBeNull()
+    expect(host.querySelector('[data-testid="settings-slot"]')?.textContent).toContain('Teslim süresi')
+    expect(host.querySelector<HTMLSelectElement>('[aria-label="Aktif vaka"]')?.value)
+      .toBe(manifest.case.id)
+    expect(host.querySelector('[data-app-id="phone"] .iphone-status time')?.textContent).toBe('21:02')
 
     await act(async () => {
       vi.advanceTimersByTime(5_000)
@@ -212,9 +224,14 @@ describe('App wall-clock session recovery', () => {
     })
 
     expect(hostMocks.status).toHaveBeenCalledTimes(2)
-    expect(host.textContent).not.toContain('Baştan başlat')
+    expect(host.textContent).not.toContain('Vakayı baştan başlat')
     expect(host.textContent).toContain('Gelen vaka çağrısı')
     expect(host.textContent).toContain('Yanıtla')
+    expect(host.querySelector<HTMLSelectElement>('[aria-label="Gelen vaka"]')?.value)
+      .toBe(manifest.case.id)
+    expect(host.textContent).not.toContain('VAKA SAATİ DURUYOR')
+    expect(host.querySelector('[data-app-id="incoming-phone"] .iphone-status time')?.textContent)
+      .toBe('21:00')
   })
 })
 
@@ -464,11 +481,22 @@ describe('App contact discovery handoff', () => {
       await flushMicrotasks()
     })
 
-    const lookup = Array.from(host.querySelectorAll<HTMLButtonElement>('button')).find((button) => (
-      button.textContent?.includes('Tanığı bul')
-    ))
-    expect(lookup).toBeDefined()
+    const forensicsChannel = Array.from(
+      host.querySelectorAll<HTMLButtonElement>('[data-app-id="inbox"] button'),
+    ).find((button) => button.getAttribute('aria-label') === 'forensics')
+    expect(forensicsChannel).toBeDefined()
     expect(host.querySelector('[data-app-id="phone"]')?.textContent).not.toContain('Deniz Kaya')
+
+    await act(async () => {
+      forensicsChannel!.click()
+      await flushMicrotasks()
+    })
+
+    const lookup = host.querySelector<HTMLButtonElement>(
+      '[data-app-id="inbox"] .workspace-quick-prompt',
+    )
+    expect(lookup?.textContent).toContain('Tanığı bul')
+    expect(lookup?.textContent).toContain('Ece, tanığın doğrulanmış iletişim kaydını bulabilir misin?')
 
     await act(async () => {
       lookup!.click()
@@ -478,6 +506,7 @@ describe('App contact discovery handoff', () => {
     expect(host.querySelector<HTMLElement>('[data-testid="desktop-shell"]')?.dataset.focusApp)
       .toBe('inbox')
     expect(host.textContent).toContain('Ece Aydın yazıyor')
+    expect(lookup?.disabled).toBe(true)
     expect(hostMocks.command).not.toHaveBeenCalled()
 
     await act(async () => {
@@ -490,6 +519,7 @@ describe('App contact discovery handoff', () => {
       { kind: 'action', action: 'locate-contact', target: 'witness' },
     )
     expect(host.textContent).toContain('Kaydı doğruladım.')
+    expect(host.querySelector('[data-app-id="inbox"] .workspace-quick-prompt')).toBeNull()
     const contactsTab = Array.from(
       host.querySelectorAll<HTMLButtonElement>('[data-app-id="phone"] button'),
     ).find((button) => button.textContent?.trim() === 'Kişiler')

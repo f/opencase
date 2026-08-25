@@ -297,6 +297,27 @@ const performAction: CommandDecider = ({ state, command }) => {
         'The investigation action does not match its authored public command.',
       )
     }
+    const referencedActorIds = ['actor', 'target', 'from'].flatMap((field) => {
+      const candidate = normalized[field]
+      return candidate && Object.hasOwn(catalog.actors, candidate) ? [candidate] : []
+    })
+    if (referencedActorIds.length > 0) {
+      const actorSlots = object(slotObject(state).actors, 'case runtime actors')
+      const referencesUnavailableActor = referencedActorIds.some((actorId) => {
+        const definition = catalog.actors[actorId]!
+        if (!definition.public) return true
+        const actorState = object(actorSlots[actorId], `actor state ${actorId}`)
+        return (actorState.contact ?? definition.contactInitial) !== 'listed'
+      })
+      const isPublicRevealInteraction = (
+        matchingAffordance?.definition.surface === 'inbox'
+        && matchingAffordance.definition.interaction?.kind === 'async-message'
+        && referencedActorIds.every((actorId) => catalog.actors[actorId]?.public === true)
+      )
+      if (referencesUnavailableActor && !isPublicRevealInteraction) {
+        return reject('actor-unavailable', 'That actor is not available for this action.')
+      }
+    }
     const regulatedActors = Object.entries(catalog.actors).filter(([, definition]) =>
       Object.hasOwn(definition.channels, action),
     )

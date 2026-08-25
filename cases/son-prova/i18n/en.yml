@@ -1,5 +1,5 @@
 schema: case-i18n/v0.1
-case: {id: official.son-prova, version: 0.4.1}
+case: {id: official.son-prova, version: 0.4.2}
 locale: en
 messages:
   case.title: Final Rehearsal
@@ -59,9 +59,9 @@ messages:
   affordances.deduce_selin_prepared_murder.result: Selin directed Orhan to remain on the X mark over the hatch. The backstage and tablet records show that she prepared and triggered the trap.
   affordances.deduce_selin_financial_motive.result: The financial records identify Selin as the person who benefited from Orhan's findings. She had a financial motive to silence him.
   affordances.deduce_selin_killed_orhan.result: The evidence leads to one result; Selin prepared the hatch trap, created a false broadcast alibi, and killed Orhan.
-  affordances.conclude_selin.label: Submit Selin as the final conclusion
-  affordances.conclude_baran.label: Submit Baran as the final conclusion
-  affordances.conclude_leyla.label: Submit Leyla as the final conclusion
+  affordances.conclude_selin.label: Accuse Selin as the perpetrator
+  affordances.conclude_baran.label: Accuse Baran as the perpetrator
+  affordances.conclude_leyla.label: Accuse Leyla as the perpetrator
   affordances.request_scene_report.result: Ekin sent the scene report and a photo of the removed safety pin to Files.
   affordances.request_automation_export.result: The stage automation export is ready to inspect in Files.
   affordances.request_victim_phone.result: Orhan's phone extraction is ready. Its messages can now be inspected.
@@ -85,9 +85,9 @@ messages:
   affordances.present_audit_to_selin.confirmation: Confront Selin now? This may alert her and speed up the loss of records or her departure.
   affordances.accuse_baran.confirmation: Record Baran as the suspect? A false accusation will damage his trust and may close an evidence route.
   affordances.accuse_leyla.confirmation: Record Leyla as the suspect? A false accusation will damage her trust and may close an evidence route.
-  affordances.conclude_selin.confirmation: Submit Selin as your final conclusion and end the case?
-  affordances.conclude_baran.confirmation: Submit Baran as your final conclusion and end the case?
-  affordances.conclude_leyla.confirmation: Submit Leyla as your final conclusion and end the case?
+  affordances.conclude_selin.confirmation: Name Selin as the responsible person and close the file? This ends the case. The final report scores your conclusion and its evidence support separately.
+  affordances.conclude_baran.confirmation: Name Baran as the responsible person and close the file? This ends the case. The final report scores your conclusion and its evidence support separately.
+  affordances.conclude_leyla.confirmation: Name Leyla as the responsible person and close the file? This ends the case. The final report scores your conclusion and its evidence support separately.
   evidence.threat_message.title: Leyla's threatening message
   evidence.threat_message.description: A hostile message recovered from Orhan's phone.
   evidence.threat_message.findings.sent_by: Leyla sent the message.
@@ -210,10 +210,13 @@ messages:
   assessment.bands.strong_with_cost: Strong, but left a mark
   assessment.bands.fragile: A result with a fragile method
   assessment.bands.reconsider: Method needs review
+  assessment.categories.conclusion_accuracy: Final conclusion
   assessment.categories.evidence_reasoning: Evidence and reasoning
   assessment.categories.intervention_protection: Intervention and protection
   assessment.categories.procedure_people: Procedure and people
   assessment.categories.time_management: Time management
+  assessment.criteria.correct_conclusion.met: Your final conclusion named the right person, Selin.
+  assessment.criteria.correct_conclusion.missed: Your final conclusion held the wrong person responsible.
   assessment.criteria.baran_operator.met: You proved that Baran could not have issued the automation command.
   assessment.criteria.baran_operator.missed: The evidence chain excluding Baran from the automation command was not completed.
   assessment.criteria.culprit.met: You established with a complete evidence chain that Selin killed Orhan.
@@ -229,17 +232,17 @@ messages:
   assessment.criteria.preserve_finance.met: You preserved Orhan's financial workspace before it was deleted.
   assessment.criteria.preserve_finance.missed: Orhan's financial records were not preserved.
   assessment.criteria.stop_selin.met: You completed the final action before Selin left the scene.
-  assessment.criteria.stop_selin.missed: Selin left before the final action could stop her.
+  assessment.criteria.stop_selin.missed: The conclusion lacked enough evidence to stop Selin, or she had already left.
   assessment.criteria.clear_leyla.met: You kept Leyla outside the accusation by completing the preparation chain.
   assessment.criteria.clear_leyla.missed: Leyla carried an unnecessary accusation, or the chain clearing her was incomplete.
   assessment.criteria.protect_baran.met: You cleared Baran with evidence and prevented accusation or detention harm.
   assessment.criteria.protect_baran.missed: Baran was accused, detained, or left without the evidence chain that cleared him.
   assessment.criteria.avoid_detention.met: You completed the evidence before Baran's detention deadline.
-  assessment.criteria.avoid_detention.missed: Baran was detained because the investigation took too long.
+  assessment.criteria.avoid_detention.missed: You did not clear Baran with evidence in time, or he was detained.
   assessment.criteria.preserve_before_deletion.met: You prevented the workspace loss before the deletion deadline.
-  assessment.criteria.preserve_before_deletion.missed: The deletion deadline passed and the financial workspace was lost.
+  assessment.criteria.preserve_before_deletion.missed: You did not create a protected copy of the financial workspace before closing the file.
   assessment.criteria.stop_departure.met: You progressed before Selin's departure deadline.
-  assessment.criteria.stop_departure.missed: Selin left before the investigation was completed.
+  assessment.criteria.stop_departure.missed: You did not complete an evidence-backed action that could stop Selin in time.
   outcomes.full_curtain.title: Full Curtain
   outcomes.full_curtain.body: Selin is stopped with the full case proved. Orhan's financial records survive, and neither Baran nor Leyla pays for the setup.
   outcomes.bitter_applause.title: Bitter Applause
@@ -248,5 +251,7 @@ messages:
   outcomes.truth_too_late.body: You proved that Selin killed Orhan, but she left before the conclusion could stop her.
   outcomes.killer_found.title: Killer Identified
   outcomes.killer_found.body: Selin is identified and stopped, but Orhan's financial evidence was lost before it could be preserved.
-  outcomes.wrong_stage.title: Wrong Stage
-  outcomes.wrong_stage.body: The case closes on Baran or Leyla while Selin leaves with the real plan hidden.
+  outcomes.wrong_stage.title: Wrong Conclusion
+  outcomes.wrong_stage.body: You closed the file on the wrong person. The evidence chain clearing your choice and exposing Selin's real plan was not completed.
+  outcomes.right_instinct_weak_case.title: Right Instinct, Weak Case
+  outcomes.right_instinct_weak_case.body: You named Selin correctly, but you did not complete the evidence chain linking her to Orhan's death. The hunch was right; the file was not strong enough to stop her.

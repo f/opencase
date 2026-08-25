@@ -25,6 +25,7 @@ function outgoingCallModel(
   result?: string,
 ): PhoneViewModel {
   return {
+    clockLabel: '21:04',
     contacts: [],
     recentCalls: [],
     outgoingCall: {
@@ -44,6 +45,7 @@ describe('PhoneApp conversation replies', () => {
 
   it('opens on an iPhone-style home screen without a visible Telefon app title', () => {
     const model: PhoneViewModel = {
+      clockLabel: '21:07',
       contacts: [],
       recentCalls: [],
       affordances: [{ id: 'call-lead', label: 'Call the night clerk', costLabel: '2 min' }],
@@ -52,6 +54,8 @@ describe('PhoneApp conversation replies', () => {
     const html = renderToStaticMarkup(<PhoneApp model={model} onAffordance={() => undefined} />)
 
     expect(html).toContain('Marmara')
+    expect(html).toContain('<time dateTime="21:07" aria-label="Vaka saati 21:07">21:07</time>')
+    expect(html).not.toContain('09:41')
     expect(html).toContain('aria-label="Uygulamalar"')
     expect(html).toContain('Aramalar')
     expect(html).toContain('Kişiler')
@@ -67,6 +71,7 @@ describe('PhoneApp conversation replies', () => {
   it('renders each visual word separately while preserving one immediate accessible reply', () => {
     const reply = 'The camera clock runs seven minutes fast.'
     const model: PhoneViewModel = {
+      clockLabel: '21:08',
       contacts: [],
       recentCalls: [],
       activeCall: {
@@ -90,6 +95,7 @@ describe('PhoneApp conversation replies', () => {
   it('uses the same spoken-word flow for the connected opening briefing', () => {
     const briefing = 'The office closes in ten minutes.'
     const model: PhoneViewModel = {
+      clockLabel: '21:09',
       contacts: [],
       recentCalls: [],
       incomingCall: {
@@ -168,6 +174,7 @@ describe('PhoneApp outgoing call presentation', () => {
     host.innerHTML = renderToStaticMarkup(
       <PhoneApp
         model={{
+          clockLabel: '21:10',
           contacts: [],
           recentCalls: [],
           activeCall: {

@@ -139,6 +139,19 @@ const runtime: PublicCaseRuntimeState = {
 }
 
 describe('manifest workspace projection adapter', () => {
+  it('projects the current game clock into the phone status bar model', () => {
+    const models = createManifestWorkspaceModels(
+      manifest,
+      { query: '', replyDraft: '' },
+      {
+        ...runtime,
+        clocks: { ...runtime.clocks, caseTimeMs: 150_000 },
+      },
+    )
+
+    expect(models.phone.clockLabel).toBe('21:02')
+  })
+
   it('keeps an undiscovered actor out of Phone and anchors its authored lookup to the mention note', () => {
     const callerOnlyManifest: ShellPublicCaseManifest = {
       ...manifest,
@@ -196,6 +209,13 @@ describe('manifest workspace projection adapter', () => {
       label: 'Tanığı bul',
       description: 'Tanığın güncel iletişim kaydını doğrular mısın?',
       destinationLabel: '#forensics',
+      status: 'ready',
+    }])
+    expect(models.inbox.quickPrompts).toEqual([{
+      affordanceId: 'find-hidden-witness',
+      channelId: 'forensics',
+      label: 'Tanığı bul',
+      request: 'Tanığın güncel iletişim kaydını doğrular mısın?',
       status: 'ready',
     }])
     expect(JSON.stringify(models.phone)).not.toContain('hidden-witness')

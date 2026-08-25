@@ -3,7 +3,7 @@ schema: case-source/v0.1
 
 case:
   id: official.son-prova
-  version: 0.4.1
+  version: 0.4.2
   title: {$text: case.title}
   locale: tr
   duration: 60m
@@ -315,7 +315,7 @@ affordances:
     risk: terminal
     confirmation: {$text: affordances.conclude_selin.confirmation}
     surface: casebook
-    initial: withdrawn
+    initial: offered
     action: {action: submit-conclusion, target: selin}
     cost: {clock: case-time, by: 1m}
   conclude_baran:
@@ -323,7 +323,7 @@ affordances:
     risk: terminal
     confirmation: {$text: affordances.conclude_baran.confirmation}
     surface: casebook
-    initial: withdrawn
+    initial: offered
     action: {action: submit-conclusion, target: baran}
     cost: {clock: case-time, by: 1m}
   conclude_leyla:
@@ -331,7 +331,7 @@ affordances:
     risk: terminal
     confirmation: {$text: affordances.conclude_leyla.confirmation}
     surface: casebook
-    initial: withdrawn
+    initial: offered
     action: {action: submit-conclusion, target: leyla}
     cost: {clock: case-time, by: 1m}
 
@@ -796,7 +796,7 @@ deductions:
     require: [death_not_accident, baran_not_operator, selin_alibi_false,
               selin_prepared_murder, selin_financial_motive]
 
-flags: [financial_backup, baran_accused, leyla_accused, baran_detained,
+flags: [financial_backup, correct_conclusion, baran_accused, leyla_accused, baran_detained,
         baran_ever_detained, baran_released, selin_stopped, selin_escaped,
         financial_files_deleted]
 
@@ -1128,11 +1128,6 @@ reactions:
     once: true
     do: [{offer: deduce_selin_killed_orhan}]
 
-  - id: culprit-supported
-    on: {supported: selin_killed_orhan}
-    once: true
-    do: [{offer: conclude_selin}]
-
   - on: {action: report-suspect, target: baran}
     unless: {supported: baran_not_operator}
     once: true
@@ -1183,6 +1178,20 @@ reactions:
     once: true
     do: [{withdraw: accuse_leyla}]
 
+  # A final conclusion records who the detective chose independently from how
+  # much of the evidence chain was actually proved. The assessment scores both.
+  - on: {action: submit-conclusion, target: selin}
+    once: true
+    do: [{mark: correct_conclusion}]
+
+  - on: {action: submit-conclusion, target: baran}
+    once: true
+    do: [{mark: baran_accused}]
+
+  - on: {action: submit-conclusion, target: leyla}
+    once: true
+    do: [{mark: leyla_accused}]
+
   - on: {action: submit-conclusion, target: selin}
     when:
       all: [{supported: selin_killed_orhan}, {not-marked: selin_escaped}]
@@ -1217,8 +1226,7 @@ deadlines:
     offline: on-resume-once
     do: [{mark: selin_escaped}, {conversation: [selin, escaped]},
          {withdraw: interview_selin_alibi}, {withdraw: present_audit_to_selin},
-         {offer: request_livestream_archive},
-         {offer: conclude_baran}, {offer: conclude_leyla}]
+         {offer: request_livestream_archive}]
 
 objectives:
   killer: {supported: selin_killed_orhan}
@@ -1239,6 +1247,14 @@ assessment:
     - {min_score: 50, label: {$text: assessment.bands.fragile}}
     - {min_score: 0, label: {$text: assessment.bands.reconsider}}
   categories:
+    conclusion_accuracy:
+      label: {$text: assessment.categories.conclusion_accuracy}
+      criteria:
+        correct_conclusion:
+          points: 15
+          when: {marked: correct_conclusion}
+          met: {$text: assessment.criteria.correct_conclusion.met}
+          missed: {$text: assessment.criteria.correct_conclusion.missed}
     evidence_reasoning:
       label: {$text: assessment.categories.evidence_reasoning}
       criteria:
@@ -1276,12 +1292,12 @@ assessment:
       label: {$text: assessment.categories.intervention_protection}
       criteria:
         preserve_finance:
-          points: 15
+          points: 12
           when: {marked: financial_backup}
           met: {$text: assessment.criteria.preserve_finance.met}
           missed: {$text: assessment.criteria.preserve_finance.missed}
         stop_selin:
-          points: 15
+          points: 13
           when: {marked: selin_stopped}
           met: {$text: assessment.criteria.stop_selin.met}
           missed: {$text: assessment.criteria.stop_selin.missed}
@@ -1289,13 +1305,13 @@ assessment:
       label: {$text: assessment.categories.procedure_people}
       criteria:
         clear_leyla:
-          points: 10
+          points: 8
           when:
             all: [{not-marked: leyla_accused}, {supported: selin_prepared_murder}]
           met: {$text: assessment.criteria.clear_leyla.met}
           missed: {$text: assessment.criteria.clear_leyla.missed}
         protect_baran:
-          points: 15
+          points: 12
           when:
             all: [{supported: baran_not_operator}, {not-marked: baran_accused},
                   {not-marked: baran_ever_detained}]
@@ -1305,18 +1321,19 @@ assessment:
       label: {$text: assessment.categories.time_management}
       criteria:
         avoid_detention:
-          points: 2
-          when: {not-marked: baran_ever_detained}
+          points: 1
+          when:
+            all: [{supported: baran_not_operator}, {not-marked: baran_ever_detained}]
           met: {$text: assessment.criteria.avoid_detention.met}
           missed: {$text: assessment.criteria.avoid_detention.missed}
         preserve_before_deletion:
-          points: 4
-          when: {not-marked: financial_files_deleted}
+          points: 2
+          when: {marked: financial_backup}
           met: {$text: assessment.criteria.preserve_before_deletion.met}
           missed: {$text: assessment.criteria.preserve_before_deletion.missed}
         stop_departure:
-          points: 4
-          when: {not-marked: selin_escaped}
+          points: 2
+          when: {marked: selin_stopped}
           met: {$text: assessment.criteria.stop_departure.met}
           missed: {$text: assessment.criteria.stop_departure.missed}
 
@@ -1334,5 +1351,8 @@ outcomes:
     {title: {$text: outcomes.killer_found.title}, body: {$text: outcomes.killer_found.body}, priority: 70, require: [killer, intent, stop_selin],
      unless: [preserve_finance]}
   wrong_stage:
-    {title: {$text: outcomes.wrong_stage.title}, body: {$text: outcomes.wrong_stage.body}, priority: 40, final_target: [baran, leyla],
-     when_marked: selin_escaped}
+    {title: {$text: outcomes.wrong_stage.title}, body: {$text: outcomes.wrong_stage.body}, priority: 40,
+     final_target: [baran, leyla]}
+  right_instinct_weak_case:
+    {title: {$text: outcomes.right_instinct_weak_case.title}, body: {$text: outcomes.right_instinct_weak_case.body},
+     priority: 10, final_target: selin}
