@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
 import { DesktopShell } from './DesktopShell'
-import type { DesktopLayoutSnapshot, ShellAppDefinition } from './types'
+import type { DesktopItemDefinition, DesktopLayoutSnapshot, ShellAppDefinition } from './types'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -19,6 +19,144 @@ const dockedApp: ShellAppDefinition = {
 }
 
 const turkishShellProps = { locale: 'tr' as const }
+
+const floatingDockApps: ShellAppDefinition[] = ['notes', 'files', 'browser'].map((id, index) => ({
+  id,
+  title: id,
+  icon: { type: 'glyph', value: `${index + 1}` },
+  content: <p>{id}</p>,
+  placement: 'floating',
+}))
+
+const desktopFiles: DesktopItemDefinition[] = [
+  {
+    id: 'lobby-camera',
+    title: 'Lobby camera',
+    kind: 'image',
+    previewUrl: '/assets/lobby-camera.jpg',
+    status: 'new',
+  },
+  {
+    id: 'witness-statement',
+    title: 'Witness statement',
+    kind: 'document',
+    status: 'reviewed',
+  },
+]
+
+describe('DesktopShell dock presentation', () => {
+  it('keeps applications in the dock and renders supplied files on the desktop', () => {
+    const html = renderToStaticMarkup(
+      <DesktopShell {...turkishShellProps} apps={floatingDockApps} desktopItems={desktopFiles} />,
+    )
+
+    expect(html.match(/detective-dock__icon/g)).toHaveLength(floatingDockApps.length)
+    expect(html.match(/data-desktop-item-id=/g)).toHaveLength(desktopFiles.length)
+    expect(html).toContain('/assets/lobby-camera.jpg')
+    expect(html).toContain('detective-desktop__file-icon--document')
+    expect(html).not.toContain('detective-desktop__alias-badge')
+  })
+
+  it('selects desktop files on one click and opens them on double click or Enter', async () => {
+    const onOpenDesktopItem = vi.fn()
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+
+    try {
+      await act(async () => {
+        root.render(
+          <DesktopShell
+            {...turkishShellProps}
+            apps={floatingDockApps}
+            desktopItems={desktopFiles}
+            onOpenDesktopItem={onOpenDesktopItem}
+          />,
+        )
+      })
+      const file = host.querySelector<HTMLButtonElement>('[data-desktop-item-id="lobby-camera"]')!
+
+      await act(async () => file.click())
+      expect(file.classList.contains('is-selected')).toBe(true)
+      expect(onOpenDesktopItem).not.toHaveBeenCalled()
+
+      await act(async () => {
+        file.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))
+      })
+      expect(onOpenDesktopItem).toHaveBeenLastCalledWith('lobby-camera')
+
+      await act(async () => {
+        file.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      })
+      expect(onOpenDesktopItem).toHaveBeenCalledTimes(2)
+    } finally {
+      await act(async () => root.unmount())
+      host.remove()
+    }
+  })
+
+  it('magnifies and spreads nearby dock icons continuously, then resets on leave', async () => {
+    const originalRect = HTMLElement.prototype.getBoundingClientRect
+    HTMLElement.prototype.getBoundingClientRect = function getBoundingClientRect() {
+      if (this.matches('.detective-dock button')) {
+        const buttons = [...this.parentElement!.querySelectorAll('button')]
+        const index = buttons.indexOf(this as HTMLButtonElement)
+        return new DOMRect(100 + index * 54, 700, 48, 53)
+      }
+      return originalRect.call(this)
+    }
+    const pointer = (
+      type: string,
+      clientX: number,
+      pointerType = 'mouse',
+      relatedTarget?: EventTarget,
+    ) => {
+      const event = new MouseEvent(type, {
+        bubbles: true,
+        clientX,
+        relatedTarget,
+      })
+      Object.defineProperty(event, 'pointerType', { value: pointerType })
+      return event
+    }
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+
+    try {
+      await act(async () => {
+        root.render(<DesktopShell {...turkishShellProps} apps={floatingDockApps} />)
+      })
+      const dock = host.querySelector<HTMLElement>('.detective-dock')!
+      const shelf = host.querySelector<HTMLElement>('.detective-dock__apps')!
+      const buttons = [...host.querySelectorAll<HTMLButtonElement>('.detective-dock button')]
+
+      await act(async () => dock.dispatchEvent(pointer('pointermove', 178)))
+
+      const scales = buttons.map((button) => Number(button.style.getPropertyValue('--dock-scale')))
+      expect(scales[1]).toBeCloseTo(1.52, 2)
+      expect(scales[0]).toBeGreaterThan(1)
+      expect(scales[0]).toBeLessThan(scales[1]!)
+      expect(scales[2]).toBeCloseTo(scales[0]!, 2)
+      expect(Number.parseFloat(buttons[0]!.style.getPropertyValue('--dock-shift'))).toBeLessThan(0)
+      expect(Number.parseFloat(buttons[2]!.style.getPropertyValue('--dock-shift'))).toBeGreaterThan(0)
+      expect(Number.parseFloat(shelf.style.getPropertyValue('--dock-side-expansion'))).toBeGreaterThan(0)
+      expect(shelf.classList.contains('is-magnifying')).toBe(true)
+
+      await act(async () => dock.dispatchEvent(pointer('pointerout', 400, 'mouse', document.body)))
+      expect(buttons[1]!.style.getPropertyValue('--dock-scale')).toBe('')
+      expect(shelf.style.getPropertyValue('--dock-side-expansion')).toBe('')
+      expect(shelf.classList.contains('is-magnifying')).toBe(false)
+
+      await act(async () => dock.dispatchEvent(pointer('pointermove', 178, 'touch')))
+      expect(buttons[1]!.style.getPropertyValue('--dock-scale')).toBe('')
+    } finally {
+      await act(async () => root.unmount())
+      host.remove()
+      HTMLElement.prototype.getBoundingClientRect = originalRect
+    }
+  })
+})
 
 describe('DesktopShell fixed docks', () => {
   it('keeps a non-closable right dock open and omits all window controls', () => {
@@ -320,6 +458,7 @@ describe('DesktopShell fixed docks', () => {
               { ...dockedApp, id: 'floating-app', placement: 'floating', defaultOpen: true },
               { ...dockedApp, defaultOpen: true },
             ]}
+            desktopItems={desktopFiles}
             layoutPersistence={{ load: () => persistedOverlayLayout }}
             settingsSlot={<button type="button">Setting action</button>}
           />,
@@ -370,8 +509,8 @@ describe('DesktopShell fixed docks', () => {
       })
       expect(panel?.style.left).toBe('558px')
 
-      const desktopShortcut = host.querySelector<HTMLButtonElement>('.detective-desktop__shortcut')
-      await act(async () => desktopShortcut?.click())
+      const desktopItem = host.querySelector<HTMLButtonElement>('.detective-desktop__item')
+      await act(async () => desktopItem?.click())
       expect(host.querySelector('.detective-settings-panel')).not.toBeNull()
       expect(panel?.style.left).toBe('558px')
 

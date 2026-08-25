@@ -56,6 +56,12 @@ interface MockDesktopShellProps {
   readonly settingsSlot?: ReactNode
   readonly notificationSlot?: ReactNode
   readonly focusRequest?: { readonly appId: string }
+  readonly desktopItems?: readonly {
+    readonly id: string
+    readonly title: string
+    readonly previewUrl?: string
+  }[]
+  readonly onOpenDesktopItem?: (itemId: string) => void
 }
 
 vi.mock('./shell', async () => {
@@ -68,11 +74,33 @@ vi.mock('./shell', async () => {
       save: () => undefined,
       clear: () => undefined,
     }),
-    DesktopShell: ({ apps, settingsSlot, notificationSlot, focusRequest }: MockDesktopShellProps) => createElement(
+    DesktopShell: ({
+      apps,
+      settingsSlot,
+      notificationSlot,
+      focusRequest,
+      desktopItems = [],
+      onOpenDesktopItem,
+    }: MockDesktopShellProps) => createElement(
       'main',
       { 'data-testid': 'desktop-shell', 'data-focus-app': focusRequest?.appId },
       createElement('aside', { 'data-testid': 'settings-slot' }, settingsSlot),
       notificationSlot,
+      createElement(
+        'nav',
+        { 'data-testid': 'desktop-items' },
+        ...desktopItems.map((item) => createElement(
+          'button',
+          {
+            key: item.id,
+            type: 'button',
+            'data-desktop-item-id': item.id,
+            onDoubleClick: () => onOpenDesktopItem?.(item.id),
+          },
+          item.previewUrl ? createElement('img', { src: item.previewUrl, alt: '' }) : null,
+          item.title,
+        )),
+      ),
       ...apps.map((app) => createElement('section', { key: app.id, 'data-app-id': app.id }, app.content)),
     ),
   }
@@ -611,6 +639,30 @@ describe('App forensics handoff', () => {
       attachment!.querySelector<HTMLButtonElement>('button')!.click()
       await flushMicrotasks()
     })
+    const viewer = host.querySelector<HTMLElement>('[data-modal-kind="asset"]')
+    expect(viewer?.textContent).toContain('Lobi kamera kaydı')
+    expect(viewer?.textContent).not.toContain('Görsel 1')
+  })
+
+  it('puts only projected evidence files on the desktop and opens their authorized asset', async () => {
+    await act(async () => {
+      root.render(<App />)
+      await flushMicrotasks()
+    })
+
+    const items = host.querySelector<HTMLElement>('[data-testid="desktop-items"]')!
+    const file = items.querySelector<HTMLButtonElement>('[data-desktop-item-id="camera-record"]')!
+    expect(items.querySelectorAll('button')).toHaveLength(1)
+    expect(file.textContent).toContain('Lobi kamera kaydı')
+    expect(file.querySelector('img')?.getAttribute('src')).toBe(
+      'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==',
+    )
+
+    await act(async () => {
+      file.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))
+      await flushMicrotasks()
+    })
+
     const viewer = host.querySelector<HTMLElement>('[data-modal-kind="asset"]')
     expect(viewer?.textContent).toContain('Lobi kamera kaydı')
     expect(viewer?.textContent).not.toContain('Görsel 1')

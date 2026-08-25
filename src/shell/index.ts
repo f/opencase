@@ -24,6 +24,8 @@ export type {
 } from './persistence'
 export type {
   DesktopBounds,
+  DesktopItemDefinition,
+  DesktopItemKind,
   DesktopLayoutPersistence,
   DesktopLayoutSnapshot,
   DesktopShellProps,

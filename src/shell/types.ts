@@ -52,6 +52,17 @@ export type ShellIcon =
   | { type: 'image'; src: string; alt?: string }
   | { type: 'glyph'; value: string }
 
+export type DesktopItemKind = 'image' | 'audio' | 'video' | 'document' | 'file'
+
+/** A presentation-safe file shown on the desktop; it carries no case or engine data. */
+export interface DesktopItemDefinition {
+  readonly id: string
+  readonly title: string
+  readonly kind: DesktopItemKind
+  readonly previewUrl?: string
+  readonly status?: 'new' | 'reviewed'
+}
+
 export interface ShellAppDefinition {
   id: string
   title: string
@@ -71,7 +82,6 @@ export interface ShellAppDefinition {
   defaultActive?: boolean
   minSize?: Partial<DesktopSize>
   defaultOpen?: boolean
-  desktopShortcut?: boolean
   startMenu?: boolean
   taskbarPinned?: boolean
   badge?: string | number
@@ -80,6 +90,9 @@ export interface ShellAppDefinition {
 
 export interface DesktopShellProps {
   apps: readonly ShellAppDefinition[]
+  /** File-like desktop objects supplied by the host independently from applications. */
+  desktopItems?: readonly DesktopItemDefinition[]
+  onOpenDesktopItem?: (itemId: string) => void
   /** Opens, restores, and focuses the target app when `nonce` changes. */
   focusRequest?: {
     appId: string

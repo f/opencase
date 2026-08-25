@@ -8,12 +8,18 @@ import {
   useRef,
   useState,
 } from 'react'
+import fileAudioIcon from 'lucide-static/icons/file-audio.svg'
+import fileIcon from 'lucide-static/icons/file.svg'
+import fileTextIcon from 'lucide-static/icons/file-text.svg'
+import fileVideoIcon from 'lucide-static/icons/file-video.svg'
+import imageIcon from 'lucide-static/icons/image.svg'
 import settingsIcon from 'lucide-static/icons/settings-2.svg'
 import xIcon from 'lucide-static/icons/x.svg'
 import { clampBounds, moveBounds, resizeBounds } from './geometry'
 import type { ResizeDirection } from './geometry'
 import type {
   DesktopBounds,
+  DesktopItemKind,
   DesktopLayoutSnapshot,
   DesktopShellProps,
   DesktopSize,
@@ -27,6 +33,9 @@ const DEFAULT_AREA: DesktopSize = { width: 1_440, height: 820 }
 const DEFAULT_MINIMUM: DesktopSize = { width: 340, height: 220 }
 const SETTINGS_EDGE_GAP = 10
 const SETTINGS_MENU_GAP = 8
+const DOCK_MAGNIFICATION_RADIUS = 150
+const DOCK_MAXIMUM_SCALE = 1.52
+const DOCK_ICON_SLOT = 48
 const RESIZE_DIRECTIONS: readonly ResizeDirection[] = [
   'n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw',
 ]
@@ -53,6 +62,9 @@ const SHELL_COPY = {
     deskReady: 'Masa hazır',
     applicationMenu: 'uygulamaları',
     dock: "Uygulama Dock'u",
+    desktopFiles: 'Masaüstü dosyaları',
+    openDesktopFile: 'Dosyayı aç',
+    newDesktopFile: 'Yeni dosya',
   },
   en: {
     menuBar: 'menu bar',
@@ -75,6 +87,9 @@ const SHELL_COPY = {
     deskReady: 'Desk ready',
     applicationMenu: 'applications',
     dock: 'Application Dock',
+    desktopFiles: 'Desktop files',
+    openDesktopFile: 'Open file',
+    newDesktopFile: 'New file',
   },
 } as const
 
@@ -247,6 +262,16 @@ function ShellAppIcon({ icon }: { icon: ShellIcon }) {
   return <span className="detective-desktop__app-icon-glyph" aria-hidden="true">{icon.value}</span>
 }
 
+function desktopItemIcon(kind: DesktopItemKind): string {
+  return {
+    image: imageIcon,
+    audio: fileAudioIcon,
+    video: fileVideoIcon,
+    document: fileTextIcon,
+    file: fileIcon,
+  }[kind]
+}
+
 function useCompactDesktop(): boolean {
   const [compact, setCompact] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches,
@@ -265,6 +290,8 @@ function useCompactDesktop(): boolean {
 
 export function DesktopShell({
   apps,
+  desktopItems = [],
+  onOpenDesktopItem,
   focusRequest,
   brand = 'CASE DESK',
   subtitle = 'Investigation workspace',
@@ -297,7 +324,7 @@ export function DesktopShell({
   const hasRightDock = apps.some((app) => (
     isRightDock(app) && layout.windows[app.id]?.open
   ))
-  const [selectedShortcut, setSelectedShortcut] = useState<string | null>(null)
+  const [selectedDesktopItem, setSelectedDesktopItem] = useState<string | null>(null)
   const [startOpen, setStartOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsPosition, setSettingsPosition] = useState<SettingsPosition | null>(null)
@@ -309,6 +336,7 @@ export function DesktopShell({
   const startMenuRef = useRef<HTMLDivElement>(null)
   const settingsPanelRef = useRef<HTMLDivElement>(null)
   const settingsButtonRef = useRef<HTMLButtonElement>(null)
+  const dockAppsRef = useRef<HTMLDivElement>(null)
   const dockButtonRefs = useRef(new Map<string, HTMLButtonElement>())
   const pointerAction = useRef<PointerAction | null>(null)
   const settingsPointerAction = useRef<SettingsPointerAction | null>(null)
@@ -732,10 +760,62 @@ export function DesktopShell({
     else focusWindow(appId)
   }
 
+  const resetDockMagnification = () => {
+    const dock = dockAppsRef.current
+    if (!dock) return
+    dock.classList.remove('is-magnifying')
+    dock.style.removeProperty('--dock-side-expansion')
+    dock.querySelectorAll<HTMLButtonElement>('button[data-app-id]').forEach((button) => {
+      button.style.removeProperty('--dock-scale')
+      button.style.removeProperty('--dock-lift')
+      button.style.removeProperty('--dock-shift')
+      button.style.removeProperty('--dock-layer')
+      button.style.removeProperty('--dock-label-scale')
+    })
+  }
+
+  const magnifyDockAt = (clientX: number) => {
+    const dock = dockAppsRef.current
+    if (!dock) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      resetDockMagnification()
+      return
+    }
+
+    const buttons = [...dock.querySelectorAll<HTMLButtonElement>('button[data-app-id]')]
+    const scales = buttons.map((button) => {
+      const rect = button.getBoundingClientRect()
+      const currentShift = Number.parseFloat(button.style.getPropertyValue('--dock-shift')) || 0
+      const center = rect.left + rect.width / 2 - currentShift
+      const distance = Math.abs(clientX - center)
+      if (distance >= DOCK_MAGNIFICATION_RADIUS) return 1
+      const influence = (Math.cos(Math.PI * distance / DOCK_MAGNIFICATION_RADIUS) + 1) / 2
+      return 1 + (DOCK_MAXIMUM_SCALE - 1) * influence
+    })
+    const extraWidths = scales.map((scale) => DOCK_ICON_SLOT * (scale - 1))
+    const totalExtraWidth = extraWidths.reduce((total, extra) => total + extra, 0)
+    let accumulatedExtraWidth = 0
+
+    buttons.forEach((button, index) => {
+      const scale = scales[index] ?? 1
+      const extraWidth = extraWidths[index] ?? 0
+      const influence = (scale - 1) / (DOCK_MAXIMUM_SCALE - 1)
+      const shift = accumulatedExtraWidth + extraWidth / 2 - totalExtraWidth / 2
+      button.style.setProperty('--dock-scale', scale.toFixed(3))
+      button.style.setProperty('--dock-lift', `${(-19 * influence).toFixed(2)}px`)
+      button.style.setProperty('--dock-shift', `${shift.toFixed(2)}px`)
+      button.style.setProperty('--dock-layer', `${Math.round(influence * 10) + 1}`)
+      button.style.setProperty('--dock-label-scale', (1 / scale).toFixed(3))
+      accumulatedExtraWidth += extraWidth
+    })
+
+    dock.style.setProperty('--dock-side-expansion', `${(totalExtraWidth / 2).toFixed(2)}px`)
+    dock.classList.add('is-magnifying')
+  }
+
   const wallpaperStyle = backgroundImage
     ? ({ '--detective-wallpaper': `url(${JSON.stringify(backgroundImage)})` } as CSSProperties)
     : undefined
-  const shortcutApps = apps.filter((app) => app.desktopShortcut !== false && !isRightDock(app))
   const menuApps = apps.filter((app) => app.startMenu !== false)
   const dockApps = apps.filter((app) => app.taskbarPinned !== false || layout.windows[app.id]?.open)
   const activeApp = layout.activeWindowId ? appById.get(layout.activeWindowId) : undefined
@@ -746,8 +826,11 @@ export function DesktopShell({
       className={`detective-desktop ${hasRightDock ? 'has-right-dock' : ''} ${className}`.trim()}
       aria-label={ariaLabel}
       style={wallpaperStyle}
-      onPointerDown={() => {
+      onPointerDown={(event) => {
         if (startOpen) setStartOpen(false)
+        if (!(event.target as HTMLElement).closest('.detective-desktop__item')) {
+          setSelectedDesktopItem(null)
+        }
       }}
     >
       <header className="detective-menubar" aria-label={`${brand} ${copy.menuBar}`}>
@@ -797,32 +880,37 @@ export function DesktopShell({
       {notificationSlot}
       <div className="detective-desktop__workarea" ref={workAreaRef}>
         <div className="detective-desktop__atmosphere" aria-hidden="true" />
-        <nav className="detective-desktop__shortcuts" aria-label={locale === 'tr' ? 'Masaüstü kısayolları' : 'Desktop shortcuts'}>
-          {shortcutApps.map((app) => (
+        <nav className="detective-desktop__items" aria-label={copy.desktopFiles}>
+          {desktopItems.map((item) => (
             <button
-              className={`detective-desktop__shortcut ${selectedShortcut === app.id ? 'is-selected' : ''}`}
-              data-app-id={app.id}
-              key={app.id}
+              className={`detective-desktop__item ${selectedDesktopItem === item.id ? 'is-selected' : ''}`}
+              data-desktop-item-id={item.id}
+              key={item.id}
               type="button"
-              aria-label={`${app.title} ${copy.openApp}`}
+              aria-label={`${copy.openDesktopFile}: ${item.title}`}
               onClick={(event) => {
                 event.stopPropagation()
-                setSelectedShortcut(app.id)
-                openApp(app.id)
+                setSelectedDesktopItem(item.id)
               }}
-              onDoubleClick={() => openApp(app.id)}
+              onDoubleClick={(event) => {
+                event.stopPropagation()
+                onOpenDesktopItem?.(item.id)
+              }}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
+                if (event.key === 'Enter') {
                   event.preventDefault()
-                  openApp(app.id)
+                  onOpenDesktopItem?.(item.id)
                 }
               }}
             >
-              <span className="detective-desktop__shortcut-icon">
-                <ShellAppIcon icon={app.icon} />
-                {app.badge !== undefined && <b>{app.badge}</b>}
+              <span
+                className={`detective-desktop__file-icon detective-desktop__file-icon--${item.kind} ${item.previewUrl ? 'has-preview' : ''}`}
+                aria-hidden="true"
+              >
+                <img src={item.previewUrl ?? desktopItemIcon(item.kind)} alt="" loading="lazy" />
+                {item.status === 'new' ? <i title={copy.newDesktopFile} /> : null}
               </span>
-              <span>{app.title}</span>
+              <span className="detective-desktop__item-label">{item.title}</span>
             </button>
           ))}
         </nav>
@@ -1039,8 +1127,34 @@ export function DesktopShell({
         </div>
       ) : null}
 
-      <nav className="detective-dock" aria-label={copy.dock} onPointerDown={(event) => event.stopPropagation()}>
-        <div className="detective-dock__apps" role="toolbar" aria-label={copy.applications}>
+      <nav
+        className="detective-dock"
+        aria-label={copy.dock}
+        onPointerDown={(event) => event.stopPropagation()}
+        onPointerMove={(event) => {
+          if (event.pointerType !== 'touch') magnifyDockAt(event.clientX)
+        }}
+        onPointerLeave={resetDockMagnification}
+      >
+        <div
+          className="detective-dock__apps"
+          ref={dockAppsRef}
+          role="toolbar"
+          aria-label={copy.applications}
+          onFocus={(event) => {
+            const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-app-id]')
+            if (!button) return
+            const rect = button.getBoundingClientRect()
+            const currentShift = Number.parseFloat(button.style.getPropertyValue('--dock-shift')) || 0
+            magnifyDockAt(rect.left + rect.width / 2 - currentShift)
+          }}
+          onBlur={(event) => {
+            const nextTarget = event.relatedTarget
+            if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
+              resetDockMagnification()
+            }
+          }}
+        >
           {dockApps.map((app) => {
             const window = layout.windows[app.id]
             const active = window?.open && window.mode !== 'minimized' && layout.activeWindowId === app.id

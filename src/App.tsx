@@ -31,6 +31,7 @@ import {
   createLocalStorageLayoutPersistence,
   DesktopShell,
   kebabCaseChannelName,
+  type DesktopItemDefinition,
   type ShellAppDefinition,
 } from './shell'
 import {
@@ -1655,10 +1656,50 @@ function CaseDesktop({
     if (boardAsset) return boardAsset
     for (const record of models.files.records) {
       const asset = record.assets.find(({ id }) => id === openAssetId)
-      if (asset) return asset
+      if (asset) {
+        return {
+          ...asset,
+          label: record.assets.length === 1
+            ? record.title
+            : `${record.title} · ${asset.label}`,
+          description: asset.description ?? record.summary,
+        }
+      }
     }
     return undefined
   }, [caseBoardModel.pins, inboxModel.messages, models.files.records, openAssetId])
+
+  const desktopItems = useMemo<readonly DesktopItemDefinition[]>(() => (
+    models.files.records.map((record) => {
+      const asset = record.assets[0]
+      const previewUrl = asset?.thumbnailUrl ?? (
+        asset?.kind === 'image' ? asset.deliveryUrl : undefined
+      )
+      return {
+        id: record.id,
+        title: record.title,
+        kind: asset?.kind ?? 'file',
+        ...(previewUrl ? { previewUrl } : {}),
+        status: record.status === 'new' ? 'new' : 'reviewed',
+      }
+    })
+  ), [models.files.records])
+
+  const openDesktopItem = useCallback((recordId: string) => {
+    const record = models.files.records.find(({ id }) => id === recordId)
+    if (!record) return
+    setSelection((current) => ({
+      ...current,
+      selectedEvidenceId: record.id,
+      selectedRecordId: record.id,
+    }))
+    const firstAsset = record.assets[0]
+    if (firstAsset?.deliveryUrl) {
+      setOpenAssetId(firstAsset.id)
+      return
+    }
+    focusApp('files')
+  }, [focusApp, models.files.records])
 
   const apps = useMemo<readonly ShellAppDefinition[]>(() => [
     {
@@ -1700,7 +1741,6 @@ function CaseDesktop({
       defaultActive: false,
       minSize: { width: 650, height: 430 },
       defaultOpen: true,
-      desktopShortcut: true,
       startMenu: true,
       taskbarPinned: true,
       windowClassName: 'detective-window--casebook',
@@ -1720,7 +1760,6 @@ function CaseDesktop({
       initialBounds: { x: 145, y: 52, width: 940, height: 650 },
       minSize: { width: 760, height: 520 },
       defaultOpen: false,
-      desktopShortcut: true,
       startMenu: true,
       taskbarPinned: true,
       windowClassName: 'detective-window--case-board',
@@ -1740,7 +1779,6 @@ function CaseDesktop({
       initialBounds: { x: 355, y: 58, width: 820, height: 610 },
       minSize: { width: 680, height: 480 },
       defaultOpen: false,
-      desktopShortcut: true,
       startMenu: true,
       taskbarPinned: true,
       windowClassName: 'detective-window--case-dispatch',
@@ -1763,7 +1801,6 @@ function CaseDesktop({
       initialBounds: { x: 105, y: 35, width: 900, height: 620 },
       minSize: { width: 720, height: 450 },
       defaultOpen: false,
-      desktopShortcut: true,
       startMenu: true,
       taskbarPinned: true,
       windowClassName: 'detective-window--inbox',
@@ -1822,7 +1859,6 @@ function CaseDesktop({
       closable: true,
       defaultOpen: true,
       defaultActive: true,
-      desktopShortcut: true,
       startMenu: true,
       taskbarPinned: true,
       badge: newContactIds.length || models.phone.affordances?.length || undefined,
@@ -1851,7 +1887,6 @@ function CaseDesktop({
       initialBounds: { x: 72, y: 28, width: 920, height: 620 },
       minSize: { width: 720, height: 500 },
       defaultOpen: false,
-      desktopShortcut: true,
       startMenu: true,
       taskbarPinned: true,
     },
@@ -1885,7 +1920,6 @@ function CaseDesktop({
       initialBounds: { x: 180, y: 54, width: 960, height: 640 },
       minSize: { width: 450, height: 280 },
       defaultOpen: false,
-      desktopShortcut: true,
       startMenu: true,
       taskbarPinned: true,
       badge: snapshot.affordances.filter(({ surface }) => surface === 'web').length || undefined,
@@ -1911,7 +1945,6 @@ function CaseDesktop({
       initialBounds: { x: 1130, y: 115, width: 310, height: 594 },
       minSize: { width: 280, height: 380 },
       defaultOpen: false,
-      desktopShortcut: false,
       startMenu: true,
       taskbarPinned: false,
     },
@@ -1948,6 +1981,8 @@ function CaseDesktop({
         <DesktopShell
           key={`${manifest.case.id}:${runEpoch}`}
           apps={apps}
+          desktopItems={desktopItems}
+          onOpenDesktopItem={openDesktopItem}
           brand="opencase"
           subtitle={manifest.case.title}
           ariaLabel={copy.desktopAria(manifest.case.title)}
