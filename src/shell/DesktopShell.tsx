@@ -13,7 +13,10 @@ import fileIcon from 'lucide-static/icons/file.svg'
 import fileTextIcon from 'lucide-static/icons/file-text.svg'
 import fileVideoIcon from 'lucide-static/icons/file-video.svg'
 import imageIcon from 'lucide-static/icons/image.svg'
+import batteryMediumIcon from 'lucide-static/icons/battery-medium.svg'
+import signalHighIcon from 'lucide-static/icons/signal-high.svg'
 import settingsIcon from 'lucide-static/icons/settings-2.svg'
+import wifiIcon from 'lucide-static/icons/wifi.svg'
 import xIcon from 'lucide-static/icons/x.svg'
 import { clampBounds, moveBounds, resizeBounds } from './geometry'
 import type { ResizeDirection } from './geometry'
@@ -28,6 +31,7 @@ import type {
   ShellIcon,
 } from './types'
 import './desktop-shell.css'
+import './mobile-shell.css'
 
 const DEFAULT_AREA: DesktopSize = { width: 1_440, height: 820 }
 const DEFAULT_MINIMUM: DesktopSize = { width: 340, height: 220 }
@@ -36,6 +40,7 @@ const SETTINGS_MENU_GAP = 8
 const DOCK_MAGNIFICATION_RADIUS = 150
 const DOCK_MAXIMUM_SCALE = 1.52
 const DOCK_ICON_SLOT = 48
+const MOBILE_SHELL_QUERY = '(max-width: 760px), ((pointer: coarse) and (max-height: 500px))'
 const RESIZE_DIRECTIONS: readonly ResizeDirection[] = [
   'n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw',
 ]
@@ -65,6 +70,11 @@ const SHELL_COPY = {
     desktopFiles: 'Masaüstü dosyaları',
     openDesktopFile: 'Dosyayı aç',
     newDesktopFile: 'Yeni dosya',
+    homeScreen: 'Ana Ekran',
+    recentFiles: 'Son dosyalar',
+    noRecentFiles: 'Henüz yeni dosya yok',
+    returnHome: 'Ana Ekrana dön',
+    mobileStatus: 'iPhone durum çubuğu',
   },
   en: {
     menuBar: 'menu bar',
@@ -90,6 +100,11 @@ const SHELL_COPY = {
     desktopFiles: 'Desktop files',
     openDesktopFile: 'Open file',
     newDesktopFile: 'New file',
+    homeScreen: 'Home Screen',
+    recentFiles: 'Recent files',
+    noRecentFiles: 'No recent files yet',
+    returnHome: 'Return to Home Screen',
+    mobileStatus: 'iPhone status bar',
   },
 } as const
 
@@ -262,6 +277,26 @@ function ShellAppIcon({ icon }: { icon: ShellIcon }) {
   return <span className="detective-desktop__app-icon-glyph" aria-hidden="true">{icon.value}</span>
 }
 
+function MobileStatusBar({
+  label,
+  clockLabel,
+}: {
+  readonly label: string
+  readonly clockLabel: string
+}) {
+  return (
+    <div className="detective-mobile-shell__status" aria-label={label}>
+      <time>{clockLabel}</time>
+      <span className="detective-mobile-shell__island" aria-hidden="true"><i /></span>
+      <span className="detective-mobile-shell__network" aria-hidden="true">
+        <img src={signalHighIcon} alt="" />
+        <img src={wifiIcon} alt="" />
+        <img className="is-battery" src={batteryMediumIcon} alt="" />
+      </span>
+    </div>
+  )
+}
+
 function desktopItemIcon(kind: DesktopItemKind): string {
   return {
     image: imageIcon,
@@ -274,15 +309,19 @@ function desktopItemIcon(kind: DesktopItemKind): string {
 
 function useCompactDesktop(): boolean {
   const [compact, setCompact] = useState(() =>
-    typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches,
+    typeof window !== 'undefined' && window.matchMedia(MOBILE_SHELL_QUERY).matches,
   )
 
   useEffect(() => {
-    const query = window.matchMedia('(max-width: 760px)')
+    const query = window.matchMedia(MOBILE_SHELL_QUERY)
     const update = () => setCompact(query.matches)
     update()
-    query.addEventListener('change', update)
-    return () => query.removeEventListener('change', update)
+    if (query.addEventListener) {
+      query.addEventListener('change', update)
+      return () => query.removeEventListener('change', update)
+    }
+    query.addListener?.(update)
+    return () => query.removeListener?.(update)
   }, [])
 
   return compact
@@ -297,6 +336,9 @@ export function DesktopShell({
   subtitle = 'Investigation workspace',
   ariaLabel = 'Detective desktop',
   backgroundImage,
+  mobileBackgroundImage,
+  mobileClockLabel = '09:41',
+  mobileInitialView,
   brandIcon,
   settingsSlot,
   settingsWindowActions,
@@ -327,6 +369,9 @@ export function DesktopShell({
   const [selectedDesktopItem, setSelectedDesktopItem] = useState<string | null>(null)
   const [startOpen, setStartOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [mobileHomeVisible, setMobileHomeVisible] = useState(() => (
+    mobileInitialView ? mobileInitialView === 'home' : apps.length > 1
+  ))
   const [settingsPosition, setSettingsPosition] = useState<SettingsPosition | null>(null)
   const [settingsDragging, setSettingsDragging] = useState(false)
   const [activeInteraction, setActiveInteraction] = useState<string | null>(null)
@@ -452,8 +497,13 @@ export function DesktopShell({
     if (!focusRequest || !appById.has(focusRequest.appId)) return
     if (handledFocusRequestRef.current?.nonce === focusRequest.nonce) return
 
+    const initialFocusRequest = handledFocusRequestRef.current === null
     handledFocusRequestRef.current = focusRequest
     setStartOpen(false)
+    setSettingsOpen(false)
+    if (!(compact && initialFocusRequest && mobileInitialView === 'home')) {
+      setMobileHomeVisible(false)
+    }
     setLayout((current) => {
       const target = current.windows[focusRequest.appId]
       if (!target) return current
@@ -473,7 +523,7 @@ export function DesktopShell({
         },
       }
     })
-  }, [appById, focusRequest])
+  }, [appById, compact, focusRequest, mobileInitialView])
 
   const focusWindow = (appId: string, restore = false) => {
     setLayout((current) => {
@@ -512,6 +562,18 @@ export function DesktopShell({
         },
       }
     })
+  }
+
+  const openMobileApp = (appId: string) => {
+    setSettingsOpen(false)
+    setMobileHomeVisible(false)
+    openApp(appId)
+  }
+
+  const returnToMobileHome = () => {
+    setSettingsOpen(false)
+    setStartOpen(false)
+    setMobileHomeVisible(true)
   }
 
   const minimizeWindow = (appId: string) => {
@@ -816,9 +878,167 @@ export function DesktopShell({
   const wallpaperStyle = backgroundImage
     ? ({ '--detective-wallpaper': `url(${JSON.stringify(backgroundImage)})` } as CSSProperties)
     : undefined
+  const mobileWallpaper = mobileBackgroundImage ?? backgroundImage
+  const mobileWallpaperStyle = mobileWallpaper
+    ? ({ '--detective-mobile-wallpaper': `url(${JSON.stringify(mobileWallpaper)})` } as CSSProperties)
+    : undefined
   const menuApps = apps.filter((app) => app.startMenu !== false)
   const dockApps = apps.filter((app) => app.taskbarPinned !== false || layout.windows[app.id]?.open)
   const activeApp = layout.activeWindowId ? appById.get(layout.activeWindowId) : undefined
+  const activeMobileApp = activeApp
+    ?? apps.find((app) => app.defaultActive)
+    ?? apps.find((app) => app.defaultOpen)
+    ?? apps[0]
+  const mobileApps = [...menuApps].sort((left, right) => (
+    (left.mobile?.order ?? Number.MAX_SAFE_INTEGER)
+      - (right.mobile?.order ?? Number.MAX_SAFE_INTEGER)
+  ))
+  const mobileDockApps = mobileApps
+    .filter((app) => app.mobile?.placement === 'dock')
+    .slice(0, 4)
+  const mobileHomeApps = mobileApps.filter((app) => app.mobile?.placement !== 'dock')
+
+  if (compact) {
+    const selfChromedApp = activeMobileApp?.mobile?.chrome === 'self'
+    return (
+      <main
+        ref={desktopRef}
+        className={`detective-mobile-shell ${selfChromedApp ? 'has-self-chromed-app' : ''} ${className}`.trim()}
+        aria-label={ariaLabel}
+        style={mobileWallpaperStyle}
+        data-mobile-view={mobileHomeVisible ? 'home' : settingsOpen ? 'settings' : 'application'}
+      >
+        {notificationSlot ? <div className="detective-mobile-shell__notification">{notificationSlot}</div> : null}
+
+        {mobileHomeVisible ? (
+          <section className="detective-mobile-shell__home" aria-label={copy.homeScreen}>
+            <MobileStatusBar label={copy.mobileStatus} clockLabel={mobileClockLabel} />
+            <div className="detective-mobile-shell__home-scroll">
+              <header className="detective-mobile-shell__identity">
+                <span className="detective-mobile-shell__brand-icon">
+                  {brandIcon ? <ShellAppIcon icon={brandIcon} /> : <i aria-hidden="true">o</i>}
+                </span>
+                <span><strong>{brand}</strong><small>{subtitle}</small></span>
+              </header>
+
+              <section className="detective-mobile-shell__recent" aria-labelledby="mobile-recent-title">
+                <header>
+                  <strong id="mobile-recent-title">{copy.recentFiles}</strong>
+                  <span>{desktopItems.length}</span>
+                </header>
+                {desktopItems.length > 0 ? (
+                  <div className="detective-mobile-shell__recent-list">
+                    {desktopItems.slice(0, 3).map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        data-mobile-file-id={item.id}
+                        onClick={() => onOpenDesktopItem?.(item.id)}
+                      >
+                        <span className={`is-${item.kind}`} aria-hidden="true">
+                          <img src={item.previewUrl ?? desktopItemIcon(item.kind)} alt="" />
+                          {item.status === 'new' ? <i /> : null}
+                        </span>
+                        <strong>{item.title}</strong>
+                      </button>
+                    ))}
+                  </div>
+                ) : <p>{copy.noRecentFiles}</p>}
+              </section>
+
+              <nav className="detective-mobile-shell__app-grid" aria-label={copy.applications}>
+                {mobileHomeApps.map((app) => (
+                  <button
+                    key={app.id}
+                    type="button"
+                    data-mobile-app-id={app.id}
+                    aria-label={`${app.title}: ${copy.openApplication}`}
+                    onClick={() => openMobileApp(app.id)}
+                  >
+                    <span className="detective-mobile-shell__app-icon"><ShellAppIcon icon={app.icon} /></span>
+                    <small>{app.title}</small>
+                    {app.badge !== undefined ? <b>{app.badge}</b> : null}
+                  </button>
+                ))}
+                {settingsSlot ? (
+                  <button
+                    type="button"
+                    data-mobile-app-id="settings"
+                    aria-label={`${copy.settings}: ${copy.openApplication}`}
+                    onClick={() => {
+                      setMobileHomeVisible(false)
+                      setSettingsOpen(true)
+                    }}
+                  >
+                    <span className="detective-mobile-shell__app-icon is-settings"><img src={settingsIcon} alt="" /></span>
+                    <small>{copy.settings}</small>
+                  </button>
+                ) : null}
+              </nav>
+            </div>
+
+            {mobileDockApps.length > 0 ? (
+              <nav className="detective-mobile-shell__dock" aria-label={copy.dock}>
+                {mobileDockApps.map((app) => (
+                  <button
+                    key={app.id}
+                    type="button"
+                    data-mobile-app-id={app.id}
+                    aria-label={`${app.title}: ${copy.openApplication}`}
+                    onClick={() => openMobileApp(app.id)}
+                  >
+                    <span className="detective-mobile-shell__app-icon"><ShellAppIcon icon={app.icon} /></span>
+                    {app.badge !== undefined ? <b>{app.badge}</b> : null}
+                  </button>
+                ))}
+              </nav>
+            ) : null}
+          </section>
+        ) : null}
+
+        <section
+          className={`detective-mobile-shell__application ${selfChromedApp ? 'is-self-chromed' : ''}`}
+          hidden={mobileHomeVisible || settingsOpen}
+          aria-label={activeMobileApp?.title}
+        >
+          {!selfChromedApp && !mobileHomeVisible && !settingsOpen ? (
+            <MobileStatusBar label={copy.mobileStatus} clockLabel={mobileClockLabel} />
+          ) : null}
+          <div className="detective-mobile-shell__app-stack">
+            {apps.map((app) => (
+              <section
+                className={`detective-mobile-shell__app-layer ${app.windowClassName ?? ''}`.trim()}
+                key={app.id}
+                data-app-id={app.id}
+                data-mobile-chrome={app.mobile?.chrome ?? 'system'}
+                aria-label={app.title}
+                hidden={mobileHomeVisible || settingsOpen || activeMobileApp?.id !== app.id}
+              >
+                {app.content}
+              </section>
+            ))}
+          </div>
+        </section>
+
+        {settingsSlot && settingsOpen && !mobileHomeVisible ? (
+          <section className="detective-mobile-shell__settings" aria-labelledby="detective-mobile-settings-title">
+            <MobileStatusBar label={copy.mobileStatus} clockLabel={mobileClockLabel} />
+            <header><strong id="detective-mobile-settings-title">{copy.settings}</strong></header>
+            <div className="detective-mobile-shell__settings-body">{settingsSlot}</div>
+          </section>
+        ) : null}
+
+        {!mobileHomeVisible ? (
+          <button
+            className="detective-mobile-shell__home-indicator"
+            type="button"
+            aria-label={copy.returnHome}
+            onClick={returnToMobileHome}
+          ><i aria-hidden="true" /></button>
+        ) : null}
+      </main>
+    )
+  }
 
   return (
     <main

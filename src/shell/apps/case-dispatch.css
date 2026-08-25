@@ -1333,6 +1333,175 @@
   }
 }
 
+/* On iPhone the filing app remains a believable document viewer. The rail is
+   removed, the paper is inset from the screen, and its actions stack below
+   the report rather than forcing desktop columns. */
+.detective-mobile-shell .case-dispatch-app > .detective-app__header {
+  min-height: 52px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.detective-mobile-shell .case-dispatch-app .detective-app__heading {
+  padding: 7px 13px;
+}
+
+.detective-mobile-shell .case-dispatch-app .detective-app__heading p {
+  font-size: 0.49rem;
+}
+
+.detective-mobile-shell .case-dispatch-app .detective-app__heading h2 {
+  font-size: 1rem;
+}
+
+.detective-mobile-shell .case-dispatch-app .detective-app__meta {
+  display: none;
+}
+
+.detective-mobile-shell .case-dispatch-app > .detective-app__body {
+  overflow: hidden;
+}
+
+.detective-mobile-shell .case-dispatch {
+  display: block;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detective-mobile-shell .case-dispatch__rail {
+  display: none;
+}
+
+.detective-mobile-shell .case-dispatch__workspace {
+  min-height: auto;
+  padding: 10px 9px max(34px, env(safe-area-inset-bottom));
+  overflow: visible;
+}
+
+.detective-mobile-shell .case-dispatch__document {
+  width: 100%;
+  min-height: auto;
+  margin: 0;
+  padding: 25px 16px 26px;
+  overflow: visible;
+}
+
+.detective-mobile-shell .case-dispatch__letterhead {
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.detective-mobile-shell .case-dispatch__document-mark {
+  width: 36px;
+  height: 36px;
+}
+
+.detective-mobile-shell .case-dispatch__document-mark img {
+  width: 20px;
+  height: 20px;
+}
+
+.detective-mobile-shell .case-dispatch__draft-mark {
+  grid-column: 2;
+  justify-self: start;
+  padding: 6px 8px;
+}
+
+.detective-mobile-shell .case-dispatch__document-meta,
+.detective-mobile-shell .case-dispatch__correspondence,
+.detective-mobile-shell .case-dispatch__signatures {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.detective-mobile-shell .case-dispatch__document-meta > div + div,
+.detective-mobile-shell .case-dispatch__correspondence > div + div {
+  border-top: 1px solid #d8dcdb;
+  border-left: 0;
+}
+
+.detective-mobile-shell .case-dispatch__document-heading {
+  padding-block: 22px 17px;
+}
+
+.detective-mobile-shell .case-dispatch__document-heading h3 {
+  font-size: clamp(1.28rem, 7vw, 1.66rem);
+}
+
+.detective-mobile-shell .case-dispatch__report-section,
+.detective-mobile-shell .case-dispatch__summary,
+.detective-mobile-shell .case-dispatch__evidence,
+.detective-mobile-shell .case-dispatch__routing {
+  margin-top: 22px;
+}
+
+.detective-mobile-shell .case-dispatch__summary > p {
+  text-align: left;
+}
+
+.detective-mobile-shell .case-dispatch__evidence-table th,
+.detective-mobile-shell .case-dispatch__evidence-table td {
+  padding: 7px 5px;
+  overflow-wrap: anywhere;
+}
+
+.detective-mobile-shell .case-dispatch__evidence-table th:nth-child(3),
+.detective-mobile-shell .case-dispatch__evidence-table td:nth-child(3) {
+  display: none;
+}
+
+.detective-mobile-shell .case-dispatch__signatures {
+  gap: 26px;
+  margin-top: 34px;
+}
+
+.detective-mobile-shell .case-dispatch__document-footer {
+  position: static;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 30px;
+}
+
+.detective-mobile-shell .case-dispatch__document-footer > :nth-child(2) {
+  display: none;
+}
+
+.detective-mobile-shell .case-dispatch__filings {
+  margin-top: 12px;
+  padding: 15px 12px 16px;
+  border-radius: 10px;
+}
+
+.detective-mobile-shell .case-dispatch__filings > header {
+  align-items: flex-start;
+}
+
+.detective-mobile-shell .case-dispatch__filings > header > span {
+  display: none;
+}
+
+.detective-mobile-shell .case-dispatch__filing-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.detective-mobile-shell .case-dispatch__filing {
+  min-height: auto;
+  padding: 13px;
+}
+
+.detective-mobile-shell .case-dispatch__filing-meta {
+  gap: 5px;
+}
+
+@media (max-height: 520px) {
+  .detective-mobile-shell .case-dispatch-app > .detective-app__header {
+    min-height: 46px;
+  }
+
+  .detective-mobile-shell .case-dispatch-app .detective-app__heading p {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .case-dispatch__progress span,
   .case-dispatch__filing {

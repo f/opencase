@@ -1103,6 +1103,423 @@ img {
   }
 }
 
+/* iPhone modal system. Case decisions are bottom sheets, while reports and
+   evidence own the screen like native detail views. */
+@media (max-width: 760px), (pointer: coarse) and (max-height: 500px) {
+  .detective-modal {
+    padding: 0;
+    background: rgba(5, 8, 10, 0.42);
+    place-items: end center;
+    backdrop-filter: blur(12px) saturate(0.88);
+    -webkit-backdrop-filter: blur(12px) saturate(0.88);
+  }
+
+  .detective-modal__panel {
+    max-width: none;
+    max-height: 100dvh;
+  }
+
+  .modal-surface--decision,
+  .modal-surface--restart {
+    width: 100%;
+    max-height: min(82dvh, 620px);
+    border: 0;
+    border-radius: 28px 28px 0 0;
+    background: rgba(248, 248, 250, 0.98);
+    box-shadow: 0 -18px 56px rgba(0, 0, 0, 0.28), inset 0 1px rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(34px) saturate(1.35);
+    -webkit-backdrop-filter: blur(34px) saturate(1.35);
+  }
+
+  .modal-surface--decision::before,
+  .modal-surface--restart::before {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 36px;
+    height: 5px;
+    border-radius: 99px;
+    background: rgba(60, 60, 67, 0.24);
+    content: "";
+    transform: translateX(-50%);
+  }
+
+  .modal-surface--decision,
+  .modal-surface--restart,
+  .modal-surface--outcome {
+    position: relative;
+  }
+
+  .modal-surface--decision .modal-sheet__content,
+  .modal-surface--restart .modal-sheet__content {
+    grid-template-columns: 46px minmax(0, 1fr);
+    gap: 14px;
+    padding: 31px 20px 18px;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-surface--decision .modal-sheet__icon,
+  .modal-surface--restart .modal-sheet__icon {
+    width: 46px;
+    height: 46px;
+    border: 0;
+    border-radius: 14px;
+  }
+
+  .modal-sheet__copy h2 {
+    font-size: 1.18rem;
+    line-height: 1.22;
+  }
+
+  .modal-sheet__copy p {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    line-height: 1.48;
+  }
+
+  .modal-surface--decision .modal-sheet__actions,
+  .modal-surface--restart .modal-sheet__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding:
+      12px max(16px, env(safe-area-inset-right))
+      max(14px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    border-top-color: rgba(60, 60, 67, 0.16);
+    background: rgba(242, 242, 247, 0.9);
+  }
+
+  .modal-surface--decision .modal-sheet__actions button,
+  .modal-surface--restart .modal-sheet__actions button {
+    width: 100%;
+    min-width: 0;
+    min-height: 50px;
+    border: 0;
+    border-radius: 14px;
+    background: rgba(118, 118, 128, 0.12);
+    box-shadow: none;
+    color: #1c1c1e;
+    font-size: 1rem;
+    font-weight: 620;
+  }
+
+  .modal-surface--decision .modal-sheet__actions button.is-danger,
+  .modal-surface--restart .modal-sheet__actions button.is-danger {
+    background: #ff3b30;
+    color: #fff;
+  }
+
+  .modal-surface--outcome {
+    width: 100%;
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    background: #f2f2f7;
+    box-shadow: none;
+  }
+
+  .modal-surface--outcome .case-outcome-report {
+    min-height: 0;
+    overflow: auto;
+    scrollbar-gutter: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-surface--outcome > .case-outcome-report--compact {
+    align-content: start;
+    grid-template-columns: 46px minmax(0, 1fr);
+    gap: 14px;
+    padding:
+      max(34px, env(safe-area-inset-top))
+      max(20px, env(safe-area-inset-right))
+      24px max(20px, env(safe-area-inset-left));
+    background: #fff;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-surface--outcome > .case-outcome-report--compact .modal-sheet__icon {
+    width: 46px;
+    height: 46px;
+    border: 0;
+    border-radius: 14px;
+  }
+
+  .modal-surface--outcome > .case-outcome-report--compact h2 {
+    font-family: var(--font-editorial);
+    font-size: clamp(1.75rem, 8vw, 2.3rem);
+    line-height: 1.05;
+  }
+
+  .modal-surface--outcome .case-outcome-report__hero {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 13px;
+    padding:
+      max(30px, env(safe-area-inset-top))
+      max(18px, env(safe-area-inset-right))
+      20px max(18px, env(safe-area-inset-left));
+    background:
+      radial-gradient(circle at 90% 0, var(--case-outcome-tone-soft), transparent 38%),
+      #fff;
+  }
+
+  .modal-surface--outcome .case-outcome-report__icon {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 13px;
+  }
+
+  .modal-surface--outcome .case-outcome-report__copy h2 {
+    max-width: none;
+    font-size: clamp(1.65rem, 8vw, 2.2rem);
+    line-height: 1.04;
+  }
+
+  .modal-surface--outcome .case-outcome-report__copy p {
+    font-size: 0.9rem;
+  }
+
+  .modal-surface--outcome .case-outcome-report__score-stamp {
+    min-height: 0;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    padding: 13px 14px;
+    border-radius: 14px;
+  }
+
+  .modal-surface--outcome .case-outcome-report__score {
+    grid-column: 1;
+  }
+
+  .modal-surface--outcome .case-outcome-report__score strong {
+    font-size: 2.65rem;
+  }
+
+  .modal-surface--outcome .case-outcome-report__band {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    max-width: 16ch;
+    margin: 0;
+    text-align: right;
+  }
+
+  .modal-surface--outcome .case-outcome-report__assessment {
+    padding: 20px max(14px, env(safe-area-inset-right)) 26px max(14px, env(safe-area-inset-left));
+    background: #f2f2f7;
+  }
+
+  .modal-surface--outcome .case-outcome-report__section-heading {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .modal-surface--outcome .case-outcome-report__categories {
+    border: 0;
+    border-radius: 13px;
+    background: #fff;
+    box-shadow: none;
+  }
+
+  .modal-surface--outcome .case-outcome-report__category summary {
+    grid-template-columns: 17px minmax(0, 1fr) auto;
+    min-height: 64px;
+    gap: 9px;
+    padding: 10px 12px;
+  }
+
+  .modal-surface--outcome .case-outcome-report__category-meter {
+    display: none;
+  }
+
+  .modal-surface--outcome .case-outcome-report__category-copy strong {
+    white-space: normal;
+  }
+
+  .modal-surface--outcome .case-outcome-report__details {
+    padding: 0 12px 14px 38px;
+  }
+
+  .modal-surface--outcome .case-outcome-report__detail {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 7px 10px;
+    padding: 11px 0;
+  }
+
+  .modal-surface--outcome .case-outcome-report__detail-status {
+    grid-column: 1;
+  }
+
+  .modal-surface--outcome .case-outcome-report__detail p {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .modal-surface--outcome .case-outcome-report__detail-score {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .modal-surface--outcome > .modal-sheet__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding:
+      10px max(14px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+    background: rgba(248, 248, 250, 0.9);
+    backdrop-filter: blur(22px) saturate(1.4);
+    -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  }
+
+  .modal-surface--outcome > .modal-sheet__actions button {
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    border: 0;
+    border-radius: 13px;
+    box-shadow: none;
+    font-size: 0.96rem;
+  }
+
+  .modal-surface--outcome > .modal-sheet__actions button.is-primary {
+    background: #0a84ff;
+  }
+
+  .detective-modal.asset-viewer-dialog {
+    padding: 0;
+    background: #0d1011;
+    place-items: stretch;
+  }
+
+  .modal-surface.modal-surface--viewer {
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    grid-template-rows:
+      calc(54px + env(safe-area-inset-top))
+      minmax(0, 1fr)
+      calc(38px + env(safe-area-inset-bottom));
+    border: 0;
+    border-radius: 0;
+    background: #0d1011;
+    box-shadow: none;
+  }
+
+  .asset-viewer-dialog__toolbar {
+    grid-template-columns: 58px minmax(0, 1fr) 58px;
+    padding-top: env(safe-area-inset-top);
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+    background: rgba(24, 25, 27, 0.88);
+    box-shadow: none;
+    backdrop-filter: blur(24px) saturate(1.35);
+    -webkit-backdrop-filter: blur(24px) saturate(1.35);
+  }
+
+  .asset-viewer-dialog__controls {
+    padding-left: max(10px, env(safe-area-inset-left));
+  }
+
+  .asset-viewer-dialog__controls button {
+    width: 38px;
+    height: 38px;
+    background: rgba(118, 118, 128, 0.2);
+  }
+
+  .asset-viewer-dialog__controls button::before {
+    display: none;
+  }
+
+  .asset-viewer-dialog__controls button img,
+  .asset-viewer-dialog__controls button:hover img,
+  .asset-viewer-dialog__controls button:focus-visible img {
+    width: 18px;
+    height: 18px;
+    filter: brightness(0) invert(1);
+    opacity: 0.92;
+  }
+
+  .asset-viewer-dialog__title h2 {
+    color: #f5f5f7;
+    font-size: 0.98rem;
+  }
+
+  .asset-viewer-dialog__title span {
+    display: none;
+  }
+
+  .asset-viewer-dialog__mode {
+    padding-right: max(15px, env(safe-area-inset-right));
+  }
+
+  .asset-viewer-dialog__mode img {
+    filter: brightness(0) invert(1);
+    opacity: 0.58;
+  }
+
+  .asset-viewer-dialog__content {
+    padding: 10px;
+    background: #0d1011;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .asset-viewer-dialog__content > img,
+  .asset-viewer-dialog__content > video,
+  .asset-viewer-dialog__content > iframe {
+    border-radius: 8px;
+    box-shadow: none;
+  }
+
+  .asset-viewer-dialog__content > audio {
+    width: calc(100% - 20px);
+    padding: 12px;
+  }
+
+  .asset-viewer-dialog__footer {
+    padding: 0 max(14px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(14px, env(safe-area-inset-left));
+    border-top-color: rgba(255, 255, 255, 0.1);
+    background: rgba(24, 25, 27, 0.9);
+    box-shadow: none;
+    color: rgba(245, 245, 247, 0.62);
+  }
+
+  .asset-viewer-dialog__footer > span {
+    color: rgba(245, 245, 247, 0.72);
+  }
+
+  .asset-viewer-dialog__footer p {
+    display: none;
+  }
+}
+
+@media (pointer: coarse) and (max-height: 500px) {
+  .modal-surface--decision,
+  .modal-surface--restart {
+    max-height: 96dvh;
+  }
+
+  .modal-surface--decision .modal-sheet__content,
+  .modal-surface--restart .modal-sheet__content {
+    padding-top: 24px;
+    padding-bottom: 12px;
+  }
+
+  .modal-surface--outcome .case-outcome-report__hero {
+    padding-top: max(16px, env(safe-area-inset-top));
+  }
+
+  .modal-surface.modal-surface--viewer {
+    grid-template-rows:
+      calc(44px + env(safe-area-inset-top))
+      minmax(0, 1fr)
+      calc(32px + env(safe-area-inset-bottom));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .case-boot__progress span {
     animation: none;

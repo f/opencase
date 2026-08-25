@@ -670,6 +670,230 @@
   .settings-confirmation > div:last-child { display: grid; }
 }
 
+/* iPhone presentation: the same settings model becomes a native-feeling,
+   grouped iOS screen. Desktop windows keep the macOS split view above. */
+@media (max-width: 760px), (pointer: coarse) and (max-height: 500px) {
+  .settings-workspace {
+    --settings-content: #f2f2f7;
+    --settings-surface: #fff;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    background: var(--settings-content);
+    font-size: 15px;
+  }
+
+  .settings-workspace__sidebar {
+    z-index: 4;
+    grid-row: 2;
+    padding:
+      6px max(8px, env(safe-area-inset-right))
+      max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    overflow: visible;
+    border: 0;
+    border-top: 0.5px solid rgba(60, 60, 67, 0.23);
+    background: rgba(248, 248, 250, 0.88);
+    box-shadow: 0 -1px rgba(255, 255, 255, 0.58);
+    backdrop-filter: blur(26px) saturate(1.65);
+    -webkit-backdrop-filter: blur(26px) saturate(1.65);
+  }
+
+  .settings-workspace__sidebar-profile,
+  .settings-workspace__sidebar-note {
+    display: none;
+  }
+
+  .settings-workspace__navigation {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2px;
+    overflow: visible;
+  }
+
+  .settings-workspace__navigation button,
+  .settings-workspace__navigation button.is-active {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    min-height: 45px;
+    grid-template-columns: 1fr;
+    grid-template-rows: 25px auto;
+    justify-items: center;
+    gap: 2px;
+    padding: 2px 1px 1px;
+    border-radius: 9px;
+    background: transparent;
+    box-shadow: none;
+    color: #79797f;
+    font-size: 9px;
+    font-weight: 570;
+    line-height: 1.05;
+    text-align: center;
+  }
+
+  .settings-workspace__navigation button.is-active {
+    color: var(--settings-accent);
+  }
+
+  .settings-workspace__navigation button:hover {
+    background: rgba(118, 118, 128, 0.08);
+  }
+
+  .settings-workspace__navigation-icon {
+    width: 25px;
+    height: 25px;
+    border-radius: 7px;
+  }
+
+  .settings-workspace__content {
+    grid-row: 1;
+    padding:
+      max(22px, env(safe-area-inset-top))
+      max(16px, env(safe-area-inset-right))
+      28px max(16px, env(safe-area-inset-left));
+    background: var(--settings-content);
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .settings-workspace__heading {
+    margin: 0 4px 20px;
+  }
+
+  .settings-workspace__heading h2 {
+    font-size: 34px;
+    font-weight: 710;
+    letter-spacing: -0.045em;
+    line-height: 1.05;
+  }
+
+  .settings-workspace__heading > span {
+    margin-top: 7px;
+    color: #6c6c70;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .settings-pane {
+    gap: 18px;
+  }
+
+  .settings-card,
+  .settings-case-list,
+  .settings-storage-grid {
+    border: 0;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: none;
+  }
+
+  .settings-card__intro {
+    padding: 14px 16px 12px;
+  }
+
+  .settings-card__intro h3,
+  .settings-section-heading h3 {
+    font-size: 15px;
+  }
+
+  .settings-card__intro p,
+  .settings-section-heading p {
+    font-size: 12px;
+  }
+
+  .settings-profile-card {
+    padding: 16px;
+  }
+
+  .settings-field input,
+  .settings-field select {
+    min-height: 44px;
+    border-color: rgba(60, 60, 67, 0.2);
+    border-radius: 10px;
+    background: #fff;
+    font-size: 16px;
+  }
+
+  .settings-button-row button,
+  .settings-inline-form__actions button,
+  .settings-confirmation button,
+  .settings-case-card > button,
+  .settings-primary-action,
+  .settings-danger-action {
+    min-height: 44px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+
+  .settings-language-options {
+    border: 0;
+    border-radius: 11px;
+    background: #fff;
+  }
+
+  .settings-language-options label {
+    min-height: 50px;
+    padding-inline: 12px;
+  }
+
+  .settings-case-card {
+    grid-template-columns: 42px minmax(0, 1fr);
+    padding: 13px 14px;
+    border-bottom-color: rgba(60, 60, 67, 0.16);
+  }
+
+  .settings-case-card > button {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+  }
+
+  .settings-storage-grid,
+  .settings-create-profile__form {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-stat {
+    min-height: 58px;
+    border-right: 0;
+    border-bottom: 0.5px solid rgba(60, 60, 67, 0.18);
+  }
+
+  .settings-stat:last-child {
+    border-bottom: 0;
+  }
+
+  .settings-import-kind {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .settings-import-kind label {
+    min-height: 36px;
+  }
+
+  .settings-button-row,
+  .settings-inline-form__actions,
+  .settings-confirmation > div:last-child {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (pointer: coarse) and (max-height: 500px) {
+  .settings-workspace__content {
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+
+  .settings-workspace__heading h2 {
+    font-size: 28px;
+  }
+
+  .settings-workspace__heading {
+    margin-bottom: 14px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .settings-workspace *,
   .settings-workspace *::before,

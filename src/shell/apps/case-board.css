@@ -601,6 +601,111 @@ button.case-board-card__photo { cursor: zoom-in; }
   .case-board-toolbar__counts > span:nth-child(-n + 2) { display: none; }
 }
 
+/* The board stays a spatial canvas on iPhone. It is deliberately wider than
+   the viewport so players pan the corkboard instead of getting a miniature,
+   untouchable diagram. */
+.detective-mobile-shell .case-board-app {
+  grid-template-rows: 66px minmax(0, 1fr);
+}
+
+.detective-mobile-shell .case-board-toolbar {
+  min-height: 66px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.detective-mobile-shell .case-board-toolbar__title {
+  gap: 8px;
+}
+
+.detective-mobile-shell .case-board-toolbar__mark {
+  width: 36px;
+  height: 36px;
+  flex-basis: 36px;
+  border-radius: 9px;
+}
+
+.detective-mobile-shell .case-board-toolbar__mark img {
+  width: 19px;
+  height: 19px;
+}
+
+.detective-mobile-shell .case-board-toolbar__title strong {
+  font-size: clamp(17px, 5.2vw, 21px);
+}
+
+.detective-mobile-shell .case-board-toolbar > p,
+.detective-mobile-shell .case-board-toolbar__counts > span:nth-child(-n + 2) {
+  display: none;
+}
+
+.detective-mobile-shell .case-board-toolbar__counts {
+  gap: 4px;
+}
+
+.detective-mobile-shell .case-board-toolbar__counts > span,
+.detective-mobile-shell .case-board-toolbar__counts > button {
+  min-height: 36px;
+}
+
+.detective-mobile-shell .case-board-toolbar__counts > button {
+  width: 36px;
+  justify-content: center;
+  padding: 0;
+  font-size: 0;
+}
+
+.detective-mobile-shell .case-board-scroll {
+  padding: 10px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scroll-padding: 10px;
+  scrollbar-color: rgba(220, 198, 166, 0.38) transparent;
+  scrollbar-width: thin;
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detective-mobile-shell .case-board-frame {
+  width: 760px;
+  min-width: 760px;
+  height: max(100%, 520px);
+  min-height: 520px;
+  padding: 10px;
+}
+
+.detective-mobile-shell .case-board-stage {
+  min-height: 498px;
+}
+
+.detective-mobile-shell .case-board-instructions {
+  right: auto;
+  bottom: 10px;
+  left: 10px;
+  width: min(300px, calc(100vw - 54px));
+}
+
+.detective-mobile-shell .case-board-card__expand {
+  width: 30px;
+  height: 30px;
+}
+
+@media (max-height: 520px) {
+  .detective-mobile-shell .case-board-app {
+    grid-template-rows: 56px minmax(0, 1fr);
+  }
+
+  .detective-mobile-shell .case-board-toolbar {
+    min-height: 56px;
+    padding-block: 6px;
+  }
+
+  .detective-mobile-shell .case-board-toolbar__title small {
+    display: none;
+  }
+}
+
 @media (pointer: coarse) {
   .case-board-card__expand { opacity: 1; transform: scale(1); }
   .case-board-tack { width: 44px; height: 44px; }

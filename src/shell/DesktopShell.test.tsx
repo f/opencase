@@ -3,7 +3,7 @@
 import { act, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DesktopShell } from './DesktopShell'
 import type { DesktopItemDefinition, DesktopLayoutSnapshot, ShellAppDefinition } from './types'
@@ -524,6 +524,292 @@ describe('DesktopShell fixed docks', () => {
       await act(async () => root.unmount())
       host.remove()
       HTMLElement.prototype.getBoundingClientRect = originalRect
+    }
+  })
+})
+
+describe('DesktopShell iPhone presentation', () => {
+  let originalMatchMedia: typeof window.matchMedia
+
+  beforeEach(() => {
+    originalMatchMedia = window.matchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: vi.fn((query: string): MediaQueryList => ({
+        matches: query.includes('(max-width: 760px)'),
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(() => true),
+      })),
+    })
+  })
+
+  afterEach(() => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: originalMatchMedia,
+    })
+  })
+
+  it('renders an iPhone Home Screen instead of shrinking the macOS desktop', async () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    const apps: ShellAppDefinition[] = [
+      {
+        id: 'notes',
+        title: 'Case Notes',
+        icon: { type: 'glyph', value: 'N' },
+        content: <p>Notes content</p>,
+        mobile: { order: 2 },
+      },
+      {
+        id: 'inbox',
+        title: 'Inbox',
+        icon: { type: 'glyph', value: 'I' },
+        content: <p>Inbox content</p>,
+        mobile: { placement: 'dock', order: 1 },
+      },
+    ]
+
+    try {
+      await act(async () => {
+        root.render(
+          <DesktopShell
+            {...turkishShellProps}
+            apps={apps}
+            brand="opencase"
+            mobileClockLabel="21:04"
+            mobileBackgroundImage="/assets/phone-wallpaper.png"
+            desktopItems={desktopFiles}
+            settingsSlot={<button type="button">Dil ayarı</button>}
+          />,
+        )
+      })
+
+      const shell = host.querySelector<HTMLElement>('.detective-mobile-shell')
+      expect(shell).not.toBeNull()
+      expect(host.querySelector('.detective-mobile-shell__home')).not.toBeNull()
+      expect(host.querySelector('button[data-mobile-app-id="notes"]')?.getAttribute('aria-label')).toContain('Case Notes')
+      expect(host.querySelector('button[data-mobile-app-id="inbox"]')?.getAttribute('aria-label')).toContain('Inbox')
+      expect(host.querySelector('button[data-mobile-app-id="settings"]')?.getAttribute('aria-label')).toContain('Ayarlar')
+      expect(host.textContent).toContain('21:04')
+      expect(host.textContent).toContain('Lobby camera')
+      expect(shell?.getAttribute('style')).toContain('/assets/phone-wallpaper.png')
+
+      expect(host.querySelector('.detective-desktop')).toBeNull()
+      expect(host.querySelector('.detective-menubar')).toBeNull()
+      expect(host.querySelector('.detective-window')).toBeNull()
+      expect(host.querySelector('.detective-dock')).toBeNull()
+    } finally {
+      await act(async () => root.unmount())
+      host.remove()
+    }
+  })
+
+  it('launches apps full-screen and returns Home without losing mounted app state', async () => {
+    function StatefulNotes() {
+      const [count, setCount] = useState(0)
+      return (
+        <button type="button" onClick={() => setCount((value) => value + 1)}>
+          Checked {count}
+        </button>
+      )
+    }
+
+    const apps: ShellAppDefinition[] = [
+      {
+        id: 'notes',
+        title: 'Case Notes',
+        icon: { type: 'glyph', value: 'N' },
+        content: <StatefulNotes />,
+        mobile: { placement: 'home' },
+      },
+      {
+        id: 'inbox',
+        title: 'Inbox',
+        icon: { type: 'glyph', value: 'I' },
+        content: <p>Inbox content</p>,
+        mobile: { placement: 'dock' },
+      },
+    ]
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+
+    try {
+      await act(async () => {
+        root.render(<DesktopShell {...turkishShellProps} apps={apps} mobileClockLabel="21:04" />)
+      })
+
+      await act(async () => {
+        host.querySelector<HTMLButtonElement>('button[data-mobile-app-id="notes"]')?.click()
+      })
+      const appLayer = host.querySelector<HTMLElement>(
+        '.detective-mobile-shell__app-layer[data-app-id="notes"]',
+      )
+      expect(appLayer).not.toBeNull()
+      expect(appLayer?.hidden).toBe(false)
+      expect(host.querySelector('.detective-mobile-shell__home')).toBeNull()
+
+      await act(async () => {
+        appLayer?.querySelector<HTMLButtonElement>('button')?.click()
+      })
+      expect(appLayer?.textContent).toContain('Checked 1')
+
+      await act(async () => {
+        host.querySelector<HTMLButtonElement>('.detective-mobile-shell__home-indicator')?.click()
+      })
+      expect(host.querySelector('.detective-mobile-shell__home')).not.toBeNull()
+      expect(appLayer?.hidden).toBe(true)
+
+      await act(async () => {
+        host.querySelector<HTMLButtonElement>('button[data-mobile-app-id="notes"]')?.click()
+      })
+      expect(appLayer?.hidden).toBe(false)
+      expect(appLayer?.textContent).toContain('Checked 1')
+    } finally {
+      await act(async () => root.unmount())
+      host.remove()
+    }
+  })
+
+  it('opens the requested app when the host sends a new mobile focus request', async () => {
+    const apps: ShellAppDefinition[] = [
+      {
+        id: 'notes',
+        title: 'Case Notes',
+        icon: { type: 'glyph', value: 'N' },
+        content: <p>Notes content</p>,
+      },
+      {
+        id: 'inbox',
+        title: 'Inbox',
+        icon: { type: 'glyph', value: 'I' },
+        content: <p>Inbox content</p>,
+      },
+    ]
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+
+    try {
+      await act(async () => {
+        root.render(
+          <DesktopShell
+            {...turkishShellProps}
+            apps={apps}
+            focusRequest={{ appId: 'inbox', nonce: 1 }}
+          />,
+        )
+      })
+      expect(host.querySelector<HTMLElement>(
+        '.detective-mobile-shell__app-layer[data-app-id="inbox"]',
+      )?.hidden).toBe(false)
+      expect(host.querySelector('.detective-mobile-shell__home')).toBeNull()
+
+      await act(async () => {
+        root.render(
+          <DesktopShell
+            {...turkishShellProps}
+            apps={apps}
+            focusRequest={{ appId: 'notes', nonce: 2 }}
+          />,
+        )
+      })
+      expect(host.querySelector<HTMLElement>(
+        '.detective-mobile-shell__app-layer[data-app-id="notes"]',
+      )?.hidden).toBe(false)
+      expect(host.querySelector<HTMLElement>(
+        '.detective-mobile-shell__app-layer[data-app-id="inbox"]',
+      )?.hidden).toBe(true)
+    } finally {
+      await act(async () => root.unmount())
+      host.remove()
+    }
+  })
+
+  it('opens Settings as a full-screen iPhone app and returns through the Home indicator', async () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+
+    try {
+      await act(async () => {
+        root.render(
+          <DesktopShell
+            {...turkishShellProps}
+            apps={floatingDockApps.slice(0, 2)}
+            settingsSlot={<button type="button">Vakayı içe aktar</button>}
+          />,
+        )
+      })
+
+      await act(async () => {
+        host.querySelector<HTMLButtonElement>('button[data-mobile-app-id="settings"]')?.click()
+      })
+      const settings = host.querySelector<HTMLElement>('.detective-mobile-shell__settings')
+      expect(settings).not.toBeNull()
+      expect(settings?.textContent).toContain('Vakayı içe aktar')
+      expect(host.querySelector('.detective-settings-panel')).toBeNull()
+
+      await act(async () => {
+        host.querySelector<HTMLButtonElement>('.detective-mobile-shell__home-indicator')?.click()
+      })
+      expect(host.querySelector('.detective-mobile-shell__settings')).toBeNull()
+      expect(host.querySelector('.detective-mobile-shell__home')).not.toBeNull()
+    } finally {
+      await act(async () => root.unmount())
+      host.remove()
+    }
+  })
+
+  it('does not add duplicate system chrome around a self-chromed mobile app', async () => {
+    const apps: ShellAppDefinition[] = [
+      {
+        id: 'phone',
+        title: 'Phone',
+        icon: { type: 'glyph', value: 'P' },
+        content: <div className="phone-owned-status">Phone-owned chrome</div>,
+        placement: 'right-dock',
+        closable: true,
+        mobile: { placement: 'dock', chrome: 'self' },
+      },
+      {
+        id: 'notes',
+        title: 'Case Notes',
+        icon: { type: 'glyph', value: 'N' },
+        content: <p>Notes content</p>,
+      },
+    ]
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+
+    try {
+      await act(async () => {
+        root.render(<DesktopShell {...turkishShellProps} apps={apps} mobileClockLabel="21:04" />)
+      })
+      await act(async () => {
+        host.querySelector<HTMLButtonElement>('button[data-mobile-app-id="phone"]')?.click()
+      })
+
+      const layer = host.querySelector<HTMLElement>(
+        '.detective-mobile-shell__app-layer[data-app-id="phone"]',
+      )
+      expect(layer?.dataset.mobileChrome).toBe('self')
+      expect(layer?.textContent).toContain('Phone-owned chrome')
+      expect(host.querySelector('.detective-mobile-shell__status')).toBeNull()
+      expect(host.querySelectorAll('.phone-owned-status')).toHaveLength(1)
+    } finally {
+      await act(async () => root.unmount())
+      host.remove()
     }
   })
 })

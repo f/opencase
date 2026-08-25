@@ -86,6 +86,14 @@ export interface ShellAppDefinition {
   taskbarPinned?: boolean
   badge?: string | number
   windowClassName?: string
+  /** Optional presentation hints for the iPhone shell. They never affect app data. */
+  mobile?: {
+    /** Dock apps stay available in the four-slot Home Screen dock. */
+    placement?: 'home' | 'dock'
+    /** Self-chromed apps, such as a simulated phone, already render their status area. */
+    chrome?: 'system' | 'self'
+    order?: number
+  }
 }
 
 export interface DesktopShellProps {
@@ -102,6 +110,12 @@ export interface DesktopShellProps {
   subtitle?: string
   ariaLabel?: string
   backgroundImage?: string
+  /** Dedicated Home Screen wallpaper; desktop wallpaper remains independent. */
+  mobileBackgroundImage?: string
+  /** Player-facing game time shown in the iPhone status bar. */
+  mobileClockLabel?: string
+  /** Selects the first iPhone view without changing desktop window persistence. */
+  mobileInitialView?: 'home' | 'active-app'
   brandIcon?: ShellIcon
   /** Opaque application settings rendered inside the shell's Settings window. */
   settingsSlot?: ReactNode

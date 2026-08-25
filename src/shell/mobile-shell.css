@@ -1,0 +1,719 @@
+.detective-mobile-shell,
+.detective-mobile-shell * {
+  box-sizing: border-box;
+}
+
+.detective-mobile-shell {
+  --mobile-safe-top: env(safe-area-inset-top, 0px);
+  --mobile-safe-right: env(safe-area-inset-right, 0px);
+  --mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --mobile-safe-left: env(safe-area-inset-left, 0px);
+  --mobile-status-height: calc(51px + var(--mobile-safe-top));
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background: #102f3b var(--detective-mobile-wallpaper) center / cover no-repeat;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  font-synthesis: none;
+  overscroll-behavior: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.detective-mobile-shell::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(2, 13, 18, 0.16), rgba(1, 9, 13, 0.25)),
+    radial-gradient(circle at 18% 9%, rgba(125, 221, 216, 0.18), transparent 32%);
+  content: "";
+  pointer-events: none;
+}
+
+.detective-mobile-shell button,
+.detective-mobile-shell input,
+.detective-mobile-shell select,
+.detective-mobile-shell textarea {
+  font: inherit;
+}
+
+.detective-mobile-shell button:focus-visible,
+.detective-mobile-shell input:focus-visible,
+.detective-mobile-shell select:focus-visible,
+.detective-mobile-shell textarea:focus-visible {
+  outline: 3px solid rgba(10, 132, 255, 0.66);
+  outline-offset: 2px;
+}
+
+.detective-mobile-shell__status {
+  position: relative;
+  z-index: 90;
+  display: grid;
+  width: 100%;
+  height: var(--mobile-status-height);
+  min-height: var(--mobile-status-height);
+  grid-template-columns: minmax(64px, 1fr) 126px minmax(64px, 1fr);
+  align-items: end;
+  padding: var(--mobile-safe-top) max(17px, var(--mobile-safe-right)) 10px max(20px, var(--mobile-safe-left));
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 680;
+  letter-spacing: -0.025em;
+  pointer-events: none;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+}
+
+.detective-mobile-shell__status time {
+  align-self: center;
+  justify-self: start;
+  font-variant-numeric: tabular-nums;
+}
+
+.detective-mobile-shell__island {
+  position: relative;
+  display: block;
+  width: 115px;
+  height: 31px;
+  align-self: center;
+  justify-self: center;
+  border: 1px solid rgba(255, 255, 255, 0.035);
+  border-radius: 999px;
+  background: #020303;
+  box-shadow: inset 0 -1px rgba(255, 255, 255, 0.055), 0 2px 9px rgba(0, 0, 0, 0.28);
+}
+
+.detective-mobile-shell__island i {
+  position: absolute;
+  top: 10px;
+  right: 11px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #204f87 0 13%, #081827 40%, #020303 72%);
+  box-shadow: 0 0 4px rgba(37, 100, 170, 0.55);
+}
+
+.detective-mobile-shell__network {
+  display: flex;
+  align-self: center;
+  justify-self: end;
+  align-items: center;
+  gap: 5px;
+}
+
+.detective-mobile-shell__network img {
+  display: block;
+  width: 13px;
+  height: 13px;
+  object-fit: contain;
+  filter: brightness(0) invert(1) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
+}
+
+.detective-mobile-shell__network img:first-child { width: 14px; }
+.detective-mobile-shell__network img.is-battery { width: 20px; }
+
+.detective-mobile-shell__home,
+.detective-mobile-shell__application,
+.detective-mobile-shell__settings {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.detective-mobile-shell__home {
+  display: grid;
+  grid-template-rows: var(--mobile-status-height) minmax(0, 1fr) auto;
+}
+
+.detective-mobile-shell__home > .detective-mobile-shell__status {
+  grid-row: 1;
+}
+
+.detective-mobile-shell__home-scroll {
+  grid-row: 2;
+  padding: 10px max(18px, calc(var(--mobile-safe-right) + 14px)) 112px max(18px, calc(var(--mobile-safe-left) + 14px));
+  overflow: auto;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detective-mobile-shell__home-scroll::-webkit-scrollbar { display: none; }
+
+.detective-mobile-shell__identity {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 20px;
+  background: rgba(14, 31, 37, 0.38);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.13), 0 12px 30px rgba(0, 7, 10, 0.12);
+  backdrop-filter: blur(24px) saturate(1.25);
+  -webkit-backdrop-filter: blur(24px) saturate(1.25);
+}
+
+.detective-mobile-shell__brand-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  place-items: center;
+  border-radius: 13px;
+  background: linear-gradient(145deg, rgba(241, 224, 176, 0.94), rgba(92, 151, 145, 0.92));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.45), 0 5px 12px rgba(0, 0, 0, 0.2);
+}
+
+.detective-mobile-shell__brand-icon img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.detective-mobile-shell__brand-icon i {
+  color: #0e3035;
+  font-family: Georgia, serif;
+  font-size: 1.6rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.detective-mobile-shell__identity > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.detective-mobile-shell__identity strong {
+  overflow: hidden;
+  color: #fff;
+  font-size: 1.12rem;
+  font-weight: 720;
+  letter-spacing: -0.035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detective-mobile-shell__identity small {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  font-weight: 520;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detective-mobile-shell__recent {
+  min-width: 0;
+  margin-bottom: 20px;
+  padding: 15px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  background: rgba(246, 246, 248, 0.9);
+  box-shadow: 0 16px 32px rgba(1, 8, 10, 0.2), inset 0 1px rgba(255, 255, 255, 0.8);
+  color: #171719;
+  backdrop-filter: blur(28px) saturate(1.22);
+  -webkit-backdrop-filter: blur(28px) saturate(1.22);
+}
+
+.detective-mobile-shell__recent > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.detective-mobile-shell__recent > header strong {
+  font-size: 0.98rem;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+}
+
+.detective-mobile-shell__recent > header span {
+  display: grid;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(60, 60, 67, 0.1);
+  color: #66666c;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.detective-mobile-shell__recent > p {
+  margin: 2px 0 1px;
+  color: #77777d;
+  font-size: 0.8rem;
+}
+
+.detective-mobile-shell__recent-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.detective-mobile-shell__recent-list button {
+  display: grid;
+  min-width: 0;
+  min-height: 94px;
+  align-content: start;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #202023;
+  cursor: pointer;
+  text-align: left;
+}
+
+.detective-mobile-shell__recent-list button > span {
+  position: relative;
+  display: grid;
+  width: 100%;
+  aspect-ratio: 1.45;
+  min-height: 53px;
+  overflow: hidden;
+  place-items: center;
+  border: 1px solid rgba(60, 60, 67, 0.12);
+  border-radius: 11px;
+  background: #e6e6ea;
+}
+
+.detective-mobile-shell__recent-list button > span > img {
+  width: 100%;
+  height: 100%;
+  padding: 11px;
+  object-fit: contain;
+}
+
+.detective-mobile-shell__recent-list button > span:has(+ strong) > img[src*="/assets/"] {
+  padding: 0;
+  object-fit: cover;
+}
+
+.detective-mobile-shell__recent-list button > span > i {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #0a84ff;
+}
+
+.detective-mobile-shell__recent-list button > strong {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 0.68rem;
+  font-weight: 620;
+  line-height: 1.2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.detective-mobile-shell__app-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px 11px;
+  padding: 0 2px;
+}
+
+.detective-mobile-shell__app-grid button,
+.detective-mobile-shell__dock button {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  place-items: center;
+}
+
+.detective-mobile-shell__app-grid button {
+  grid-template-rows: 58px auto;
+  align-content: start;
+  gap: 6px;
+}
+
+.detective-mobile-shell__app-icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  overflow: hidden;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(251, 250, 247, 0.98), rgba(203, 217, 217, 0.94));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.8), 0 7px 14px rgba(0, 0, 0, 0.23);
+}
+
+.detective-mobile-shell__app-icon.is-settings {
+  background: linear-gradient(145deg, #8d8e94, #4f5055);
+}
+
+.detective-mobile-shell__app-grid button:nth-child(4n + 1) .detective-mobile-shell__app-icon {
+  background: linear-gradient(145deg, #49a59b, #176d69);
+}
+
+.detective-mobile-shell__app-grid button:nth-child(4n + 2) .detective-mobile-shell__app-icon {
+  background: linear-gradient(145deg, #68a9e8, #2866ad);
+}
+
+.detective-mobile-shell__app-grid button:nth-child(4n + 3) .detective-mobile-shell__app-icon {
+  background: linear-gradient(145deg, #e1bb69, #ae7621);
+}
+
+.detective-mobile-shell__app-grid button:nth-child(4n + 4) .detective-mobile-shell__app-icon {
+  background: linear-gradient(145deg, #8e8aab, #54506f);
+}
+
+.detective-mobile-shell__app-grid button:last-child .detective-mobile-shell__app-icon.is-settings {
+  background: linear-gradient(145deg, #8d8e94, #4f5055);
+}
+
+.detective-mobile-shell__dock button:nth-child(1) .detective-mobile-shell__app-icon {
+  background: linear-gradient(145deg, #9857a0, #54205d);
+}
+
+.detective-mobile-shell__dock button:nth-child(2) .detective-mobile-shell__app-icon {
+  background: linear-gradient(145deg, #49dd78, #15a840);
+}
+
+.detective-mobile-shell__dock button:nth-child(3) .detective-mobile-shell__app-icon {
+  background: linear-gradient(145deg, #60bdf7, #1d78c9);
+}
+
+.detective-mobile-shell__dock button:nth-child(4) .detective-mobile-shell__app-icon {
+  background: linear-gradient(145deg, #fbfbfb, #cfd5db);
+}
+
+.detective-mobile-shell__app-icon > img,
+.detective-mobile-shell__app-icon .detective-desktop__app-icon-image {
+  width: 29px;
+  height: 29px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.detective-mobile-shell__dock button:nth-child(4) .detective-mobile-shell__app-icon img {
+  filter: none;
+}
+
+.detective-mobile-shell__app-icon.is-settings > img {
+  filter: brightness(0) invert(1);
+}
+
+.detective-mobile-shell__app-icon .detective-desktop__app-icon-glyph {
+  color: #18383d;
+  font-size: 1.35rem;
+  font-weight: 750;
+}
+
+.detective-mobile-shell__app-grid small {
+  display: -webkit-box;
+  width: 100%;
+  overflow: hidden;
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 560;
+  line-height: 1.15;
+  text-align: center;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.72);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.detective-mobile-shell__app-grid button > b,
+.detective-mobile-shell__dock button > b {
+  position: absolute;
+  z-index: 2;
+  top: -5px;
+  right: max(0px, calc(50% - 35px));
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  background: #ff3b30;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 760;
+  line-height: 1;
+}
+
+.detective-mobile-shell__dock {
+  position: absolute;
+  z-index: 20;
+  right: max(10px, var(--mobile-safe-right));
+  bottom: max(10px, var(--mobile-safe-bottom));
+  left: max(10px, var(--mobile-safe-left));
+  display: grid;
+  max-width: 390px;
+  min-height: 78px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+  justify-self: center;
+  margin-inline: auto;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 27px;
+  background: rgba(219, 229, 229, 0.29);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.2), 0 10px 28px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(28px) saturate(1.35);
+  -webkit-backdrop-filter: blur(28px) saturate(1.35);
+}
+
+.detective-mobile-shell__dock .detective-mobile-shell__app-icon {
+  width: 58px;
+  height: 58px;
+}
+
+.detective-mobile-shell__application,
+.detective-mobile-shell__settings {
+  background: #f2f2f7;
+  color: #1d1d1f;
+}
+
+.detective-mobile-shell__application > .detective-mobile-shell__status,
+.detective-mobile-shell__settings > .detective-mobile-shell__status {
+  position: absolute;
+  inset: 0 0 auto;
+  color: #171719;
+  text-shadow: none;
+}
+
+.detective-mobile-shell__application > .detective-mobile-shell__status img,
+.detective-mobile-shell__settings > .detective-mobile-shell__status img {
+  filter: none;
+}
+
+.detective-mobile-shell__app-stack {
+  position: absolute;
+  inset: var(--mobile-status-height) 0 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.detective-mobile-shell__application.is-self-chromed .detective-mobile-shell__app-stack {
+  inset: 0;
+}
+
+.detective-mobile-shell__app-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #f2f2f7;
+  container-type: inline-size;
+}
+
+.detective-mobile-shell__app-layer > * {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.detective-mobile-shell__app-layer[data-mobile-chrome="self"] .phone-realistic {
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+}
+
+/* The outer shell owns the only system Home gesture on a physical iPhone. */
+.detective-mobile-shell__app-layer[data-mobile-chrome="self"] .iphone-home-indicator {
+  display: none;
+}
+
+.detective-mobile-shell__settings {
+  display: grid;
+  grid-template-rows: var(--mobile-status-height) 44px minmax(0, 1fr);
+}
+
+.detective-mobile-shell__settings > .detective-mobile-shell__status {
+  grid-row: 1;
+}
+
+.detective-mobile-shell__settings > header {
+  z-index: 3;
+  display: flex;
+  grid-row: 2;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid rgba(60, 60, 67, 0.18);
+  background: rgba(248, 248, 250, 0.88);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+.detective-mobile-shell__settings > header strong {
+  font-size: 1rem;
+  font-weight: 680;
+  letter-spacing: -0.025em;
+}
+
+.detective-mobile-shell__settings-body {
+  min-width: 0;
+  min-height: 0;
+  grid-row: 3;
+  overflow: auto;
+  padding-bottom: calc(24px + var(--mobile-safe-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+
+.detective-mobile-shell__notification {
+  position: fixed;
+  z-index: 160;
+  top: calc(var(--mobile-status-height) + 7px);
+  right: max(12px, var(--mobile-safe-right));
+  left: max(12px, var(--mobile-safe-left));
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.detective-mobile-shell__notification > * {
+  max-width: 100%;
+  border-radius: 14px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22);
+}
+
+.detective-mobile-shell__home-indicator {
+  position: fixed;
+  z-index: 200;
+  right: 50%;
+  bottom: max(0px, calc(var(--mobile-safe-bottom) - 1px));
+  display: grid;
+  width: 148px;
+  height: 23px;
+  padding: 0;
+  place-items: end center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transform: translateX(50%);
+}
+
+.detective-mobile-shell__home-indicator i {
+  display: block;
+  width: 124px;
+  height: 5px;
+  margin-bottom: 5px;
+  border-radius: 999px;
+  background: rgba(20, 20, 22, 0.82);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.detective-mobile-shell.has-self-chromed-app .detective-mobile-shell__home-indicator i {
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.32);
+}
+
+@media (max-width: 350px) {
+  .detective-mobile-shell__status {
+    grid-template-columns: 54px 104px 54px;
+    padding-inline: max(11px, var(--mobile-safe-left)) max(11px, var(--mobile-safe-right));
+  }
+
+  .detective-mobile-shell__island { width: 96px; }
+  .detective-mobile-shell__home-scroll { padding-inline: 12px; }
+  .detective-mobile-shell__app-grid { gap-inline: 4px; }
+  .detective-mobile-shell__app-icon,
+  .detective-mobile-shell__dock .detective-mobile-shell__app-icon { width: 53px; height: 53px; }
+  .detective-mobile-shell__app-grid button { grid-template-rows: 53px auto; }
+}
+
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 500px) {
+  .detective-mobile-shell { --mobile-status-height: calc(37px + var(--mobile-safe-top)); }
+  .detective-mobile-shell__status {
+    grid-template-columns: minmax(74px, 1fr) 90px minmax(74px, 1fr);
+    padding-top: var(--mobile-safe-top);
+    padding-bottom: 5px;
+  }
+  .detective-mobile-shell__island { width: 84px; height: 24px; }
+  .detective-mobile-shell__island i { top: 7px; }
+  .detective-mobile-shell__home-scroll {
+    padding-top: 4px;
+    padding-right: calc(108px + var(--mobile-safe-right));
+    padding-bottom: 12px;
+  }
+  .detective-mobile-shell__identity {
+    grid-template-columns: 38px minmax(0, 1fr);
+    margin-bottom: 9px;
+    padding: 7px 10px;
+    border-radius: 15px;
+  }
+  .detective-mobile-shell__brand-icon { width: 38px; height: 38px; border-radius: 10px; }
+  .detective-mobile-shell__recent { margin-bottom: 10px; padding: 9px 11px; border-radius: 17px; }
+  .detective-mobile-shell__recent > header { margin-bottom: 6px; }
+  .detective-mobile-shell__recent-list button { min-height: 60px; grid-template-columns: 64px minmax(0, 1fr); align-items: center; }
+  .detective-mobile-shell__recent-list button > span { min-height: 42px; aspect-ratio: 1.4; }
+  .detective-mobile-shell__app-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+  .detective-mobile-shell__app-grid button { grid-template-rows: 47px auto; }
+  .detective-mobile-shell__app-icon { width: 47px; height: 47px; border-radius: 12px; }
+  .detective-mobile-shell__app-icon > img,
+  .detective-mobile-shell__app-icon .detective-desktop__app-icon-image { width: 23px; height: 23px; }
+  .detective-mobile-shell__dock {
+    top: calc(var(--mobile-status-height) + 4px);
+    right: max(8px, var(--mobile-safe-right));
+    bottom: auto;
+    left: auto;
+    width: 88px;
+    min-height: 0;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 7px;
+    padding: 8px;
+    border-radius: 21px;
+  }
+  .detective-mobile-shell__dock .detective-mobile-shell__app-icon { width: 30px; height: 30px; border-radius: 8px; }
+  .detective-mobile-shell__dock .detective-mobile-shell__app-icon > img { width: 16px; height: 16px; }
+  .detective-mobile-shell__home-indicator { bottom: max(0px, var(--mobile-safe-bottom)); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .detective-mobile-shell__app-grid button:active .detective-mobile-shell__app-icon,
+  .detective-mobile-shell__dock button:active .detective-mobile-shell__app-icon {
+    transform: scale(0.91);
+    transition: transform 80ms ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detective-mobile-shell *,
+  .detective-mobile-shell *::before,
+  .detective-mobile-shell *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

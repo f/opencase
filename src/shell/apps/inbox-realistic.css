@@ -1199,6 +1199,319 @@ button.workspace-image-attachment__preview:focus-visible {
   }
 }
 
+/* iPhone shell: keep every room reachable without squeezing the desktop
+   three-column workspace into a phone. Channels become a horizontally
+   scrollable picker and the conversation owns the remaining height. */
+.detective-mobile-shell .inbox-workspace {
+  grid-template-rows: 42px minmax(0, 1fr);
+  background: #fff;
+}
+
+.detective-mobile-shell .workspace-topbar {
+  grid-template-columns: minmax(0, 1fr) 30px;
+  gap: 7px;
+  padding: 0 9px;
+}
+
+.detective-mobile-shell .workspace-topbar__history {
+  display: none;
+}
+
+.detective-mobile-shell .workspace-search {
+  height: 29px;
+  justify-content: flex-start;
+  padding-inline: 11px;
+}
+
+.detective-mobile-shell .workspace-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 106px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.detective-mobile-shell .workspace-rail {
+  display: none;
+}
+
+.detective-mobile-shell .workspace-sidebar {
+  display: grid;
+  grid-template-rows: 31px minmax(0, 1fr);
+  border-right: 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.24);
+  box-shadow: 0 5px 14px rgba(42, 7, 43, 0.14);
+}
+
+.detective-mobile-shell .workspace-sidebar__header {
+  min-height: 31px;
+  padding: 5px 11px;
+}
+
+.detective-mobile-shell .workspace-sidebar__header strong {
+  font-size: 0.78rem;
+}
+
+.detective-mobile-shell .workspace-sidebar__header span,
+.detective-mobile-shell .workspace-sidebar__header > img,
+.detective-mobile-shell .workspace-nav-section,
+.detective-mobile-shell .workspace-channel-group > header,
+.detective-mobile-shell .workspace-channel-group > p {
+  display: none;
+}
+
+.detective-mobile-shell .workspace-channels {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px 9px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-padding-inline: 9px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detective-mobile-shell .workspace-channels::-webkit-scrollbar {
+  display: none;
+}
+
+.detective-mobile-shell .workspace-channel-group {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.detective-mobile-shell .workspace-channel-group ol {
+  display: flex;
+  gap: 6px;
+}
+
+.detective-mobile-shell .workspace-channel-group li {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+.detective-mobile-shell .workspace-channel-group li > button,
+.detective-mobile-shell .workspace-channel-group li > span {
+  width: auto;
+  min-width: max-content;
+  min-height: 44px;
+  grid-template-columns: 18px auto auto;
+  gap: 7px;
+  padding: 7px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.075);
+  scroll-snap-align: start;
+}
+
+.detective-mobile-shell .workspace-channel-group li > .is-active {
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.12), 0 2px 7px rgba(17, 4, 18, 0.18);
+}
+
+.detective-mobile-shell .workspace-conversation {
+  grid-template-rows: 50px minmax(0, 1fr) auto auto;
+}
+
+.detective-mobile-shell .workspace-conversation__header {
+  gap: 8px;
+  padding: 5px 12px;
+}
+
+.detective-mobile-shell .workspace-channel-title {
+  gap: 7px;
+}
+
+.detective-mobile-shell .workspace-channel-title h2 {
+  font-size: 0.88rem;
+}
+
+.detective-mobile-shell .workspace-channel-title p {
+  max-width: min(62vw, 31ch);
+  font-size: 0.57rem;
+}
+
+.detective-mobile-shell .workspace-lead,
+.detective-mobile-shell .workspace-conversation__tools {
+  display: none;
+}
+
+.detective-mobile-shell .workspace-messages {
+  overscroll-behavior-y: contain;
+  padding-bottom: 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detective-mobile-shell .workspace-channel-intro {
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 9px;
+  margin: 13px 12px 9px;
+  padding-bottom: 11px;
+}
+
+.detective-mobile-shell .workspace-channel-intro > span {
+  width: 34px;
+  height: 34px;
+}
+
+.detective-mobile-shell .workspace-channel-intro > span img {
+  width: 18px;
+  height: 18px;
+}
+
+.detective-mobile-shell .workspace-channel-intro h3 {
+  font-size: 0.9rem;
+}
+
+.detective-mobile-shell .workspace-channel-intro p {
+  font-size: 0.64rem;
+}
+
+.detective-mobile-shell .workspace-message {
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 9px;
+  padding: 8px 12px;
+}
+
+.detective-mobile-shell .workspace-message[data-direction="system"] {
+  padding-inline: 12px;
+}
+
+.detective-mobile-shell .workspace-avatar {
+  width: 34px;
+  height: 34px;
+}
+
+.detective-mobile-shell .workspace-message article > header,
+.detective-mobile-shell .workspace-message__system-row {
+  flex-wrap: wrap;
+}
+
+.detective-mobile-shell .workspace-message article > header span {
+  max-width: 46vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detective-mobile-shell .workspace-message__body {
+  font-size: 0.77rem;
+  overflow-wrap: anywhere;
+}
+
+.detective-mobile-shell .workspace-image-attachment__preview,
+.detective-mobile-shell .workspace-image-attachment__preview > img {
+  min-height: 132px;
+  max-height: 220px;
+}
+
+.detective-mobile-shell .workspace-quick-prompts {
+  gap: 7px;
+  max-height: 124px;
+  padding: 8px 10px 9px;
+  overflow: hidden;
+}
+
+.detective-mobile-shell .workspace-quick-prompts > header {
+  grid-template-columns: 25px minmax(0, 1fr) auto;
+  gap: 7px;
+}
+
+.detective-mobile-shell .workspace-quick-prompts__mark {
+  width: 25px;
+  height: 25px;
+}
+
+.detective-mobile-shell .workspace-quick-prompts > header small {
+  display: none;
+}
+
+.detective-mobile-shell .workspace-quick-prompts__list {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detective-mobile-shell .workspace-quick-prompts__list::-webkit-scrollbar {
+  display: none;
+}
+
+.detective-mobile-shell .workspace-quick-prompt {
+  min-height: 58px;
+  flex: 0 0 min(255px, 78vw);
+  scroll-snap-align: start;
+}
+
+.detective-mobile-shell .workspace-composer {
+  padding: 7px 10px max(10px, env(safe-area-inset-bottom));
+}
+
+.detective-mobile-shell .workspace-composer__field {
+  min-height: 65px;
+}
+
+.detective-mobile-shell .workspace-composer textarea {
+  font-size: 16px;
+}
+
+@media (max-height: 520px) {
+  .detective-mobile-shell .inbox-workspace {
+    grid-template-rows: 38px minmax(0, 1fr);
+  }
+
+  .detective-mobile-shell .workspace-shell {
+    grid-template-rows: 76px minmax(0, 1fr);
+  }
+
+  .detective-mobile-shell .workspace-sidebar {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .detective-mobile-shell .workspace-sidebar__header {
+    display: none;
+  }
+
+  .detective-mobile-shell .workspace-channels {
+    padding-block: 6px;
+  }
+
+  .detective-mobile-shell .workspace-conversation {
+    grid-template-rows: 44px minmax(0, 1fr) auto auto;
+  }
+
+  .detective-mobile-shell .workspace-channel-intro {
+    display: none;
+  }
+
+  .detective-mobile-shell .workspace-quick-prompts {
+    max-height: 88px;
+    grid-template-columns: minmax(0, 1fr);
+    padding-block: 6px;
+  }
+
+  .detective-mobile-shell .workspace-quick-prompts > header {
+    display: none;
+  }
+
+  .detective-mobile-shell .workspace-quick-prompt {
+    min-height: 60px;
+  }
+
+  .detective-mobile-shell .workspace-composer {
+    padding-block: 5px;
+  }
+
+  .detective-mobile-shell .workspace-composer__field {
+    min-height: 54px;
+    grid-template-rows: minmax(30px, auto) 22px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .workspace-message__word {
     opacity: 1;

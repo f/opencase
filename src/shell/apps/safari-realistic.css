@@ -646,6 +646,124 @@
   .safari-start-page__compass > .safari-icon { width: 24px; height: 24px; }
 }
 
+/* Mobile Safari chrome: one compact address row, iOS-sized controls and a
+   content viewport that owns its scrolling instead of the outer shell. */
+.detective-mobile-shell .safari-tabs {
+  display: none;
+}
+
+.detective-mobile-shell .safari-toolbar {
+  height: 50px;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 5px;
+  padding: 6px 8px;
+}
+
+.detective-mobile-shell .safari-toolbar__spacer,
+.detective-mobile-shell .safari-history-controls .safari-forward {
+  display: none;
+}
+
+.detective-mobile-shell .safari-history-controls,
+.detective-mobile-shell .safari-back {
+  width: 40px;
+  height: 38px;
+}
+
+.detective-mobile-shell .safari-address {
+  width: 100%;
+  grid-template-columns: 16px minmax(0, 1fr) 34px;
+  border-radius: 11px;
+}
+
+.detective-mobile-shell .safari-address input {
+  height: 36px;
+  font-size: 16px;
+  text-align: left;
+}
+
+.detective-mobile-shell .safari-address__go {
+  width: 34px;
+  height: 36px;
+}
+
+.detective-mobile-shell .safari-viewport {
+  overscroll-behavior-y: contain;
+  scroll-padding-bottom: max(24px, env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+
+.detective-mobile-shell .safari-suggestions {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  min-height: 54px;
+  padding: 7px 9px;
+}
+
+.detective-mobile-shell .safari-suggestions > header {
+  display: none;
+}
+
+.detective-mobile-shell .safari-suggestions > div {
+  gap: 7px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detective-mobile-shell .safari-suggestions > div::-webkit-scrollbar {
+  display: none;
+}
+
+.detective-mobile-shell .safari-suggestion {
+  min-height: 42px;
+  padding-inline: 11px;
+}
+
+.detective-mobile-shell .safari-start-page {
+  padding: 23px 17px max(36px, env(safe-area-inset-bottom));
+}
+
+.detective-mobile-shell .safari-start-suggestions {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.detective-mobile-shell .safari-favorites {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detective-mobile-shell .safari-search-page {
+  padding: 18px 16px max(34px, env(safe-area-inset-bottom));
+}
+
+.detective-mobile-shell .safari-search-header {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.detective-mobile-shell .safari-search-header > small {
+  display: none;
+}
+
+.detective-mobile-shell .safari-article {
+  padding-inline: 17px;
+  padding-bottom: max(36px, env(safe-area-inset-bottom));
+}
+
+@media (max-height: 520px) {
+  .detective-mobile-shell .safari-toolbar {
+    height: 44px;
+    padding-block: 4px;
+  }
+
+  .detective-mobile-shell .safari-suggestions {
+    min-height: 46px;
+    padding-block: 4px;
+  }
+
+  .detective-mobile-shell .safari-suggestion {
+    min-height: 38px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .safari-start-suggestions button { transition: none; }
 }

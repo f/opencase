@@ -783,6 +783,196 @@
   }
 }
 
+/* iPhone shell: Notes becomes one vertically scrolling app, with the note list
+   promoted to a native-feeling horizontal tab strip. Desktop keeps the
+   three-pane writing desk above. */
+.detective-mobile-shell .casebook-app > .detective-app__header {
+  min-height: 52px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.detective-mobile-shell .casebook-app .detective-app__heading {
+  padding: 7px 14px;
+}
+
+.detective-mobile-shell .casebook-app .detective-app__heading p {
+  font-size: 0.58rem;
+}
+
+.detective-mobile-shell .casebook-app .detective-app__heading h2 {
+  font-size: 0.96rem;
+}
+
+.detective-mobile-shell .casebook-app .detective-app__meta {
+  display: none;
+}
+
+.detective-mobile-shell .casebook-app .detective-app__toolbar {
+  gap: 4px;
+  padding: 0 9px;
+}
+
+.detective-mobile-shell .casebook-app > .detective-app__body {
+  overflow: hidden;
+}
+
+.detective-mobile-shell .casebook-app .casebook-app__layout {
+  display: block;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scroll-padding-block: 66px 34px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detective-mobile-shell .casebook-sidebar {
+  position: sticky;
+  z-index: 8;
+  top: 0;
+  display: block;
+  border-right: 0;
+  border-bottom: 1px solid rgba(52, 45, 33, 0.15);
+  background: rgba(239, 235, 227, 0.93);
+  box-shadow: 0 5px 16px rgba(48, 40, 28, 0.08);
+  backdrop-filter: blur(22px) saturate(1.35);
+}
+
+.detective-mobile-shell .casebook-sidebar__heading,
+.detective-mobile-shell .casebook-app .detective-index .detective-section-title {
+  display: none;
+}
+
+.detective-mobile-shell .casebook-app .detective-index {
+  display: block;
+  overflow: hidden;
+}
+
+.detective-mobile-shell .casebook-app .detective-index ol {
+  display: flex;
+  gap: 7px;
+  min-height: auto;
+  margin: 0;
+  padding: 8px 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-padding-inline: 10px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detective-mobile-shell .casebook-app .detective-index ol::-webkit-scrollbar {
+  display: none;
+}
+
+.detective-mobile-shell .casebook-app .detective-index li {
+  flex: 0 0 clamp(138px, 46vw, 184px);
+  scroll-snap-align: start;
+}
+
+.detective-mobile-shell .casebook-app .detective-index li > button {
+  min-height: 50px;
+  margin: 0;
+  padding: 7px 9px;
+  border: 1px solid rgba(75, 63, 40, 0.08);
+  background: rgba(255, 255, 255, 0.46);
+}
+
+.detective-mobile-shell .casebook-app .detective-index li > button.is-active {
+  border-color: rgba(139, 97, 11, 0.18);
+}
+
+.detective-mobile-shell .casebook-editor {
+  display: block;
+}
+
+.detective-mobile-shell .casebook-editor__bar {
+  display: none;
+}
+
+.detective-mobile-shell .casebook-app .casebook-page {
+  min-height: auto;
+  overflow: visible;
+  padding: 27px 18px 34px;
+}
+
+.detective-mobile-shell .casebook-app .casebook-page > header h3 {
+  max-width: 16ch;
+  font-size: clamp(1.9rem, 10vw, 2.55rem);
+}
+
+.detective-mobile-shell .casebook-app .casebook-page__body {
+  margin-block: 21px;
+  font-size: 1.04rem;
+  line-height: 1.58;
+}
+
+.detective-mobile-shell .casebook-contact-actions {
+  padding: 10px;
+}
+
+.detective-mobile-shell .casebook-contact-actions li > button {
+  min-height: 76px;
+  grid-template-columns: 34px minmax(0, 1fr) 12px;
+  gap: 9px;
+  padding: 10px;
+}
+
+.detective-mobile-shell .casebook-contact-actions__meta {
+  grid-column: 2;
+  grid-row: 2;
+  justify-items: start;
+  text-align: left;
+}
+
+.detective-mobile-shell .casebook-contact-actions__meta small {
+  display: none;
+}
+
+.detective-mobile-shell .casebook-contact-actions__chevron {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+}
+
+.detective-mobile-shell .casebook-inspector {
+  overflow: visible;
+  border-top: 1px solid var(--casebook-line);
+  border-left: 0;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+}
+
+.detective-mobile-shell .casebook-app .casebook-leads {
+  padding: 18px 14px;
+}
+
+.detective-mobile-shell .casebook-app .casebook-leads ol {
+  gap: 8px;
+}
+
+.detective-mobile-shell .casebook-app .casebook-leads button {
+  min-height: 68px;
+  padding: 10px 11px;
+}
+
+.detective-mobile-shell .casebook-app .deduction-board li {
+  margin-inline: 14px;
+}
+
+@media (max-height: 520px) {
+  .detective-mobile-shell .casebook-app > .detective-app__header {
+    min-height: 46px;
+  }
+
+  .detective-mobile-shell .casebook-app .detective-index ol {
+    padding-block: 6px;
+  }
+
+  .detective-mobile-shell .casebook-app .detective-index li > button {
+    min-height: 44px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .casebook-app .casebook-leads button,
   .casebook-contact-actions li > button {

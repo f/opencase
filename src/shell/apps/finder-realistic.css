@@ -928,6 +928,163 @@
   }
 }
 
+/* Finder keeps its list/detail relationship on iPhone, but stacks the panes
+   and gives the evidence rows full touch targets. */
+.detective-mobile-shell .finder-toolbar {
+  min-height: 54px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px;
+  padding: 6px 10px;
+}
+
+.detective-mobile-shell .finder-toolbar__navigation {
+  gap: 0;
+  min-width: 32px;
+  padding: 0;
+}
+
+.detective-mobile-shell .finder-toolbar__navigation img:last-child,
+.detective-mobile-shell .finder-view-switcher,
+.detective-mobile-shell .finder-search {
+  display: none;
+}
+
+.detective-mobile-shell .finder-toolbar__location {
+  gap: 8px;
+}
+
+.detective-mobile-shell .finder-folder {
+  width: 24px;
+  height: 24px;
+}
+
+.detective-mobile-shell .finder-toolbar__location strong {
+  font-size: 0.88rem;
+}
+
+.detective-mobile-shell .finder-toolbar__location small {
+  display: block;
+  font-size: 0.59rem;
+}
+
+.detective-mobile-shell .finder-app .affordance-tray {
+  display: block;
+  padding: 6px 9px;
+}
+
+.detective-mobile-shell .finder-app .affordance-tray > header {
+  display: none;
+}
+
+.detective-mobile-shell .finder-app .affordance-tray > div {
+  gap: 7px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detective-mobile-shell .finder-app .affordance-tray > div::-webkit-scrollbar {
+  display: none;
+}
+
+.detective-mobile-shell .finder-app .affordance-command {
+  min-height: 40px;
+  flex: 0 0 auto;
+  padding-inline: 11px;
+}
+
+.detective-mobile-shell .finder-app__workspace {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(188px, 44%) minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.detective-mobile-shell .finder-sidebar {
+  display: none;
+}
+
+.detective-mobile-shell .finder-file-list {
+  min-height: 0;
+  border-right: 0;
+  border-bottom: 1px solid var(--finder-line);
+}
+
+.detective-mobile-shell .finder-file-list__summary {
+  min-height: 38px;
+  padding-block: 6px;
+}
+
+.detective-mobile-shell .finder-file-list__columns,
+.detective-mobile-shell .finder-file-list li > button {
+  grid-template-columns: minmax(0, 1fr) minmax(82px, 0.42fr);
+}
+
+.detective-mobile-shell .finder-file-list li > button {
+  min-height: 46px;
+  cursor: pointer;
+}
+
+.detective-mobile-shell .finder-file-list__kind,
+.detective-mobile-shell .finder-file-list__received,
+.detective-mobile-shell .finder-file-list__columns span:nth-child(2),
+.detective-mobile-shell .finder-file-list__columns span:nth-child(3) {
+  display: none;
+}
+
+.detective-mobile-shell .finder-file-list ul,
+.detective-mobile-shell .finder-inspector {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detective-mobile-shell .finder-inspector {
+  padding: 13px 13px max(30px, env(safe-area-inset-bottom));
+}
+
+.detective-mobile-shell .finder-inspector__header {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  justify-items: start;
+  gap: 9px;
+  padding-bottom: 11px;
+  text-align: left;
+}
+
+.detective-mobile-shell .finder-inspector__header p {
+  grid-column: 1 / -1;
+  margin-bottom: 2px;
+}
+
+.detective-mobile-shell .finder-inspector__header .finder-file-icon {
+  width: 32px;
+  height: 39px;
+  margin: 0;
+}
+
+.detective-mobile-shell .finder-inspector__header h3,
+.detective-mobile-shell .finder-inspector__header .finder-status {
+  align-self: center;
+  margin: 0;
+}
+
+@media (max-height: 520px) {
+  .detective-mobile-shell .finder-toolbar {
+    min-height: 48px;
+  }
+
+  .detective-mobile-shell .finder-toolbar__location small {
+    display: none;
+  }
+
+  .detective-mobile-shell .finder-app__workspace {
+    grid-template-rows: minmax(132px, 46%) minmax(0, 1fr);
+  }
+
+  .detective-mobile-shell .finder-file-list__summary {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .finder-file-list li > button.is-active {
     animation: finder-selection 170ms ease-out;

@@ -18,6 +18,7 @@ import phoneIcon from 'lucide-static/icons/phone.svg'
 import rotateCcwIcon from 'lucide-static/icons/rotate-ccw.svg'
 import triangleAlertIcon from 'lucide-static/icons/triangle-alert.svg'
 import webIcon from 'lucide-static/icons/compass.svg'
+import opencasePhoneWallpaper from './assets/shell/opencase-phone-wallpaper.png'
 import opencaseWallpaper from './assets/shell/opencase-wallpaper.png'
 import { AccessibleModal, ModalBackground } from './AccessibleModal'
 import { CaseOutcomeReport } from './CaseOutcomeReport'
@@ -1744,6 +1745,7 @@ function CaseDesktop({
       startMenu: true,
       taskbarPinned: true,
       windowClassName: 'detective-window--casebook',
+      mobile: { placement: 'home', order: 1 },
     },
     {
       id: 'case-board',
@@ -1763,6 +1765,7 @@ function CaseDesktop({
       startMenu: true,
       taskbarPinned: true,
       windowClassName: 'detective-window--case-board',
+      mobile: { placement: 'home', order: 2 },
     },
     {
       id: 'case-dispatch',
@@ -1782,6 +1785,7 @@ function CaseDesktop({
       startMenu: true,
       taskbarPinned: true,
       windowClassName: 'detective-window--case-dispatch',
+      mobile: { placement: 'home', order: 3 },
     },
     {
       id: 'inbox',
@@ -1804,6 +1808,7 @@ function CaseDesktop({
       startMenu: true,
       taskbarPinned: true,
       windowClassName: 'detective-window--inbox',
+      mobile: { placement: 'dock', order: 1 },
     },
     {
       id: 'phone',
@@ -1862,6 +1867,7 @@ function CaseDesktop({
       startMenu: true,
       taskbarPinned: true,
       badge: newContactIds.length || models.phone.affordances?.length || undefined,
+      mobile: { placement: 'dock', chrome: 'self', order: 2 },
     },
     {
       id: 'files',
@@ -1889,6 +1895,7 @@ function CaseDesktop({
       defaultOpen: false,
       startMenu: true,
       taskbarPinned: true,
+      mobile: { placement: 'dock', order: 3 },
     },
     {
       id: 'web',
@@ -1923,6 +1930,7 @@ function CaseDesktop({
       startMenu: true,
       taskbarPinned: true,
       badge: snapshot.affordances.filter(({ surface }) => surface === 'web').length || undefined,
+      mobile: { placement: 'dock', order: 4 },
     },
     {
       id: 'evidence-rail',
@@ -1947,6 +1955,7 @@ function CaseDesktop({
       defaultOpen: false,
       startMenu: true,
       taskbarPinned: false,
+      mobile: { placement: 'home', order: 4 },
     },
   ], [caseBoardKey, caseBoardModel, caseBoardPersistence, commandBusy, copy, dismissOutgoingPhoneCall, executeIntent, focusApp, forensicsBusy, inboxModel, models, newContactIds.length, openDiscoveredContact, phoneModel, phoneOpenContactRequest, requestAffordance, requestAsyncForensicsAction, requestForensicsReview, snapshot.affordances, snapshot.evidence, startOutgoingPhoneCall, startPhoneAffordance])
 
@@ -1987,6 +1996,9 @@ function CaseDesktop({
           subtitle={manifest.case.title}
           ariaLabel={copy.desktopAria(manifest.case.title)}
           backgroundImage={opencaseWallpaper}
+          mobileBackgroundImage={opencasePhoneWallpaper}
+          mobileClockLabel={phoneModel.clockLabel}
+          mobileInitialView="home"
           brandIcon={{ type: 'image', src: casebookIcon }}
           startLabel="opencase"
           locale={uiLocale}
@@ -2204,6 +2216,7 @@ function OpeningDesktop({
     defaultActive: true,
     initialZIndex: 100,
     taskbarPinned: true,
+    mobile: { placement: 'dock', chrome: 'self', order: 1 },
   }], [busy, copy, model, onAccept, onAnswer, onDecline, phase])
 
   return (
@@ -2213,6 +2226,9 @@ function OpeningDesktop({
       subtitle={copy.newCaseCall}
       ariaLabel={copy.incomingCallAria(manifest.case.title)}
       backgroundImage={opencaseWallpaper}
+      mobileBackgroundImage={opencasePhoneWallpaper}
+      mobileClockLabel={model.clockLabel}
+      mobileInitialView="active-app"
       brandIcon={{ type: 'image', src: phoneIcon }}
       startLabel="opencase"
       locale={uiLocale}
