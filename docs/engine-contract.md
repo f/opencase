@@ -155,6 +155,14 @@ the affordance completes. The application may delay and animate that request,
 but it dispatches only the opaque offered affordance ID. The resulting runtime
 projection, not the chat UI, determines whether a new contact exists.
 
+The public runtime also projects an ordered activity timeline for accepted
+evidence observations and completed affordances. Each entry contains only its
+public kind, monotonic sequence, case-time position, and an opaque reference to
+data already visible in that projection. It never includes event IDs, command
+IDs, raw payloads, proof terms, or private reactions. Presentation clients may
+turn this timeline into a journal or conversation, but it is derived state and
+must not become a second save or gameplay authority.
+
 ## Portable asset contract
 
 An authored asset has a stable case-local ID, media kind, MIME type, visibility

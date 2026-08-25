@@ -6,6 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { PublicCaseRuntimeState } from './case-runtime'
 import {
+  PLAYER_PROFILES_SCHEMA,
+  PLAYER_PROFILES_STORAGE_KEY,
+} from './player-profiles'
+import {
   FORENSICS_TYPING_DELAY_MS,
   forensicsReplyDurationMs,
 } from './shell/forensics-workflow'
@@ -305,6 +309,109 @@ describe('App wall-clock session recovery', () => {
     expect(settingsSlot.textContent).toContain('Application language')
     expect(document.documentElement.lang).toBe('en-US')
     expect(host.querySelector('[data-testid="desktop-shell"]')).not.toBeNull()
+  })
+})
+
+describe('App case-channel activity', () => {
+  let host: HTMLDivElement
+  let root: Root
+
+  const journalSnapshot: PublicCaseRuntimeState = {
+    ...activeSnapshot,
+    revision: 12,
+    clocks: { caseTimeMs: 180_000, activeTimeMs: 180_000, wallTimeMs: 180_000 },
+    deadlines: [],
+    affordances: [{
+      id: 'call-public-contact',
+      surface: 'phone',
+      risk: 'normal',
+      intent: { kind: 'action', action: { action: 'interview', actor: 'public-contact' } },
+      label: 'Vardiya görevlisini ara',
+    }],
+    completedAffordances: [{
+      id: 'verify-delivery-window',
+      surface: 'casebook',
+      risk: 'normal',
+      intent: { kind: 'deduce', deductionId: 'delivery-window' },
+      label: 'Teslim penceresini karşılaştır',
+      result: 'Teslim kaydı ile kapı saati aynı dakikayı gösteriyor.',
+      completedAtMs: 120_000,
+      eventSequence: 8,
+    }],
+    supportedDeductions: [{
+      id: 'delivery-window',
+      label: 'Teslim penceresini karşılaştır',
+    }],
+    activity: [{
+      id: 'activity:8',
+      kind: 'affordance-completed',
+      sequence: 8,
+      occurredAtMs: 120_000,
+      affordanceId: 'verify-delivery-window',
+    }],
+  }
+
+  beforeEach(() => {
+    ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+    const storage = memoryStorage()
+    vi.stubGlobal('localStorage', storage)
+    window.localStorage.setItem(PLAYER_PROFILES_STORAGE_KEY, JSON.stringify({
+      schema: PLAYER_PROFILES_SCHEMA,
+      revision: 2,
+      activeProfileId: 'primary',
+      profiles: [{
+        id: 'primary',
+        displayName: 'Ada Yılmaz',
+        preferredLocale: 'tr',
+        selectedCaseId: `${manifest.case.id}@${manifest.case.version}`,
+      }],
+    }))
+    hostMocks.status.mockReset().mockResolvedValue({
+      schema: 'detective-demo-session/v1',
+      caseId: manifest.case.id,
+      caseVersion: manifest.case.version,
+      locale: 'tr',
+      saveId: 'primary',
+      exists: true,
+      assetSessionId: 'asset-session-case-channel',
+      snapshot: journalSnapshot,
+    })
+    host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+  })
+
+  afterEach(async () => {
+    await act(async () => root.unmount())
+    host.remove()
+    document.body.replaceChildren()
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  it('turns public progress into a profile-authored office conversation and current clue', async () => {
+    await act(async () => {
+      root.render(<App />)
+      await flushMicrotasks()
+    })
+
+    const inbox = host.querySelector<HTMLElement>('[data-app-id="inbox"]')!
+    const messages = inbox.querySelectorAll<HTMLElement>('.workspace-message')
+    const colleagueNames = ['Ece Aydın', 'Deniz Kara', 'Melis Kaya', 'Ozan Demir']
+
+    expect(messages).toHaveLength(4)
+    expect(inbox.textContent).toContain('Ada Yılmaz')
+    expect(inbox.textContent).toContain('Teslim kaydı ile kapı saati aynı dakikayı gösteriyor.')
+    expect(inbox.textContent).toContain('Vardiya görevlisini ara')
+    expect(colleagueNames.some((name) => inbox.textContent?.includes(name))).toBe(true)
+    expect(inbox.querySelector('.workspace-avatar--detective')?.textContent).toBe('AY')
+    expect(inbox.querySelector('.workspace-channel-intro p')?.textContent)
+      .toContain('Vardiya görevlisini ara')
+    const storageKeys = Array.from(
+      { length: window.localStorage.length },
+      (_, index) => window.localStorage.key(index) ?? '',
+    )
+    expect(storageKeys.some((key) => key.includes('activity'))).toBe(false)
   })
 })
 

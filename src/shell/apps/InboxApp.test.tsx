@@ -85,6 +85,26 @@ describe('InboxApp workspace', () => {
     expect(html).toContain('aria-busy="true"')
   })
 
+  it('uses the profile initials supplied for an outgoing detective message', () => {
+    const model: InboxViewModel = {
+      ...forensicsModel,
+      messages: [{
+        id: 'profile-update',
+        author: 'Ada Yılmaz',
+        avatarLabel: 'AY',
+        body: 'Zaman çizelgesini yeniden kontrol ettim.',
+        timestampLabel: '14:33',
+        direction: 'outgoing',
+      }],
+    }
+
+    const html = renderToStaticMarkup(<InboxApp model={model} />)
+
+    expect(html).toContain('workspace-avatar--detective')
+    expect(html).toContain('>AY</span>')
+    expect(html).not.toContain('workspace-avatar--detective" aria-hidden="true">D</span>')
+  })
+
   it('keeps message attachments and the existing reply callback surface', () => {
     const model: InboxViewModel = {
       ...forensicsModel,

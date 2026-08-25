@@ -46,6 +46,26 @@ interface LoadedStaticIndex {
   readonly url: string
 }
 
+function callerAbort<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise
+  if (signal.aborted) return Promise.reject(signal.reason ?? new DOMException('Aborted', 'AbortError'))
+
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(signal.reason ?? new DOMException('Aborted', 'AbortError'))
+    signal.addEventListener('abort', abort, { once: true })
+    void promise.then(
+      (value) => {
+        signal.removeEventListener('abort', abort)
+        resolve(value)
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', abort)
+        reject(error)
+      },
+    )
+  })
+}
+
 export interface BrowserCaseLibrary extends BrowserCaseRuntimeRepository {
   list(locale: string, signal?: AbortSignal): Promise<CaseCatalogResponse>
   importCase(
@@ -199,7 +219,9 @@ export function createBrowserCaseLibrary(
   const loadStaticIndex = (signal?: AbortSignal): Promise<LoadedStaticIndex> => {
     if (!staticIndexPromise) {
       const url = options.indexUrl ?? appUrl('/generated/cases.json')
-      staticIndexPromise = fetch(url, { headers: { accept: 'application/json' }, signal })
+      // This request is shared across callers. A React StrictMode cleanup may
+      // cancel one caller, but must not poison the cached catalog for the next.
+      staticIndexPromise = fetch(url, { headers: { accept: 'application/json' } })
         .then(async (response) => ({
           index: assertIndex(await responseJson(response, 'Static case index')),
           url: response.url || url,
@@ -209,7 +231,7 @@ export function createBrowserCaseLibrary(
           throw error
         })
     }
-    return staticIndexPromise
+    return callerAbort(staticIndexPromise, signal)
   }
 
   const builtInCatalog = async (locale: string, signal?: AbortSignal): Promise<CaseCatalogEntry[]> => {

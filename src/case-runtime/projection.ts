@@ -14,6 +14,7 @@ import {
   type CaseAction,
   type CaseRuntimeCatalog,
   type CasePresentationCatalog,
+  type PublicCaseActivityEntry,
   type PublicCaseRuntimeState,
   type RuntimeAssessmentDefinition,
   type RuntimeObjectiveCondition,
@@ -376,10 +377,51 @@ export function projectCaseState(
       ...presentedAffordanceResult(definition.result, presentation),
       risk: definition.risk,
       completedAtMs: event.meta.occurredAt.caseTimeMs + (definition.cost?.milliseconds ?? 0),
+      eventSequence: event.meta.sequence,
       ...presentedAffordanceInteraction(definition.interaction, presentation),
       ...(contactsListed.length > 0 ? { contactsListed } : {}),
     }]
   })
+  const completedAffordancesBySequence = new Map(
+    completedAffordances.map((completed) => [completed.eventSequence, completed]),
+  )
+  const activity = session.eventLog
+    .flatMap<PublicCaseActivityEntry>((event) => {
+      if (
+        event.type === CASE_EVENTS.evidenceObserved &&
+        typeof event.payload.evidenceId === 'string' &&
+        privateCatalog.evidence[event.payload.evidenceId]
+      ) {
+        const evidenceId = event.payload.evidenceId
+        const current = evidenceSlots[evidenceId]
+        if (
+          !current ||
+          typeof current !== 'object' ||
+          Array.isArray(current) ||
+          (current.access !== 'granted' && current.observed !== true)
+        ) {
+          return []
+        }
+        return [{
+          id: `activity:${event.meta.sequence}`,
+          kind: 'evidence-observed' as const,
+          sequence: event.meta.sequence,
+          occurredAtMs: event.meta.occurredAt.caseTimeMs,
+          evidenceId,
+        }]
+      }
+
+      const completed = completedAffordancesBySequence.get(event.meta.sequence)
+      if (!completed) return []
+      return [{
+        id: `activity:${event.meta.sequence}`,
+        kind: 'affordance-completed' as const,
+        sequence: event.meta.sequence,
+        occurredAtMs: completed.completedAtMs,
+        affordanceId: completed.id,
+      }]
+    })
+    .sort((left, right) => left.sequence - right.sequence)
 
   return {
     schema: 'case-runtime/public-v1',
@@ -444,6 +486,7 @@ export function projectCaseState(
       }))
       .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)),
     completedAffordances,
+    activity,
     supportedDeductions: Object.values(privateCatalog.affordances)
       .filter((definition) => (
         definition.intent.kind === 'deduce' && deductionSlots[definition.intent.deductionId] === true

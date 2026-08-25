@@ -576,6 +576,7 @@ describe('generic compiled case runtime', () => {
       risk: 'consequential',
       cost: {clock: 'case-time', milliseconds: 30_000},
       completedAtMs: 30_000,
+      eventSequence: expect.any(Number),
     })
 
     const spentOnce = performAction(h.runtime, h.session, { action: 'preserve', target: 'item' })
@@ -624,7 +625,75 @@ describe('generic compiled case runtime', () => {
       risk: 'consequential',
       cost: {clock: 'case-time', milliseconds: 5_000},
       completedAtMs: 5_000,
+      eventSequence: expect.any(Number),
     })
+  })
+
+  it('projects player-safe evidence, action and deduction activity in engine order', () => {
+    const h = harness()
+    expect(projectCaseState(h.session).activity).toEqual([])
+
+    h.apply(observeEvidence(h.runtime, h.session, 'opening_record'))
+    h.apply(performAction(h.runtime, h.session, { action: 'preserve', target: 'item' }))
+    h.apply(attemptDeduction(h.runtime, h.session, 'hypothesis'))
+
+    const projected = projectCaseState(h.session)
+    const observedEvent = h.session.eventLog.find((event) => (
+      event.type === CASE_EVENTS.evidenceObserved && event.payload.evidenceId === 'opening_record'
+    ))
+    const actionEvent = h.session.eventLog.find((event) => (
+      event.type === CASE_EVENTS.actionPerformed &&
+      event.payload.action === 'preserve' &&
+      event.payload.target === 'item'
+    ))
+    const deductionEvent = h.session.eventLog.find((event) => (
+      event.type === CASE_EVENTS.deductionSupported && event.payload.deductionId === 'hypothesis'
+    ))
+    const action = projected.completedAffordances.find(({id}) => id === 'inspect_item')
+    const deduction = projected.completedAffordances.find(({id}) => id === 'theory_location')
+    if (
+      !observedEvent ||
+      !actionEvent ||
+      !deductionEvent ||
+      action?.eventSequence === undefined ||
+      deduction?.eventSequence === undefined
+    ) {
+      throw new Error('Expected projected activity source events')
+    }
+    expect(action.eventSequence).toBe(actionEvent.meta.sequence)
+    expect(deduction.eventSequence).toBe(deductionEvent.meta.sequence)
+
+    expect(projected.activity).toEqual([
+      {
+        id: `activity:${observedEvent.meta.sequence}`,
+        kind: 'evidence-observed',
+        sequence: observedEvent.meta.sequence,
+        occurredAtMs: observedEvent.meta.occurredAt.caseTimeMs,
+        evidenceId: 'opening_record',
+      },
+      {
+        id: `activity:${action.eventSequence}`,
+        kind: 'affordance-completed',
+        sequence: action.eventSequence,
+        occurredAtMs: 30_000,
+        affordanceId: 'inspect_item',
+      },
+      {
+        id: `activity:${deduction.eventSequence}`,
+        kind: 'affordance-completed',
+        sequence: deduction.eventSequence,
+        occurredAtMs: 35_000,
+        affordanceId: 'theory_location',
+      },
+    ])
+    expect(projected.activity?.map(({sequence}) => sequence)).toEqual(
+      [...(projected.activity ?? [])].map(({sequence}) => sequence).sort((left, right) => left - right),
+    )
+    expect(projected.activity?.filter((entry) => (
+      entry.kind === 'affordance-completed' && entry.affordanceId === 'theory_location'
+    ))).toHaveLength(1)
+    expect(JSON.stringify(projected.activity)).not.toContain(observedEvent.id)
+    expect(JSON.stringify(projected.activity)).not.toContain(observedEvent.meta.commandId)
   })
 
   it('does not project an already-supported deduction from legacy repeatable IR', () => {

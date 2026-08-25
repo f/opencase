@@ -181,7 +181,7 @@ export function caseClockLabel(manifest: ShellPublicCaseManifest, milliseconds: 
   return `${String(Math.floor(currentMinutes / 60)).padStart(2, '0')}:${String(currentMinutes % 60).padStart(2, '0')}`
 }
 
-function caseTimeLabel(manifest: ShellPublicCaseManifest, milliseconds: number): string {
+export function caseTimeLabel(manifest: ShellPublicCaseManifest, milliseconds: number): string {
   const authored = manifest.case.time?.startsAt
   const match = authored?.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/)
   const startSeconds = match

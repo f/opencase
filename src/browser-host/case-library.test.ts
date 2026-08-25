@@ -122,6 +122,49 @@ afterEach(() => {
 })
 
 describe('browser case library', () => {
+  it('does not let one aborted caller poison the shared static index', async () => {
+    const bundle = runtimeBundle()
+    let resolveIndex!: (response: Response) => void
+    let rejectIndex!: (error: unknown) => void
+    const pendingIndex = new Promise<Response>((resolve, reject) => {
+      resolveIndex = resolve
+      rejectIndex = reject
+    })
+    const fetchMock = vi.fn<typeof fetch>((request, init) => {
+      const url = String(request)
+      if (url === indexUrl) {
+        const signal = init?.signal
+        if (signal) {
+          const abort = () => {
+            rejectIndex(signal.reason ?? new DOMException('Aborted', 'AbortError'))
+          }
+          if (signal.aborted) abort()
+          else signal.addEventListener('abort', abort, { once: true })
+        }
+        return pendingIndex
+      }
+      if (url === 'https://game.example/opencase/generated/browser-static.en.json') {
+        return Promise.resolve(remoteJson(url, manifest()))
+      }
+      return Promise.reject(new Error(`Unexpected fetch: ${url}`))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const library = createBrowserCaseLibrary({ database: emptyDatabase(), indexUrl })
+    const cancelled = new AbortController()
+
+    const firstLoad = library.list('en', cancelled.signal)
+    cancelled.abort()
+    const secondLoad = library.list('en')
+    resolveIndex(remoteJson(indexUrl, staticIndex(bundle)))
+
+    await expect(firstLoad).rejects.toMatchObject({ name: 'AbortError' })
+    await expect(secondLoad).resolves.toMatchObject({
+      schema: 'detective-case-catalog/v1',
+      cases: [{ id: caseId, title: 'Static Browser Case' }],
+    })
+    expect(fetchMock.mock.calls.filter(([request]) => String(request) === indexUrl)).toHaveLength(1)
+  })
+
   it('loads Pages-relative index, manifest, runtime, and asset URLs', async () => {
     const bundle = runtimeBundle()
     const fetchMock = vi.fn<typeof fetch>(async (request) => {

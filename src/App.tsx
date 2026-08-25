@@ -51,6 +51,7 @@ import {
 } from './shell/apps'
 import { createCaseBoardViewModel } from './shell/case-board-model'
 import { createCaseBoardPersistence } from './shell/case-board-state'
+import { createCaseChannelActivityMessages } from './shell/case-channel-activity'
 import {
   appendForensicsRequest,
   clearForensicsWorkflow,
@@ -68,6 +69,7 @@ import {
 } from './shell/forensics-workflow'
 import {
   caseClockLabel,
+  caseTimeLabel,
   createManifestWorkspaceModels,
   type ManifestWorkspaceSelection,
   type ShellPublicCaseManifest,
@@ -790,6 +792,7 @@ interface CaseDesktopProps {
   readonly assetSessionId: string
   readonly runEpoch: number
   readonly saveId: string
+  readonly detectiveDisplayName: string
   readonly renderSettings: RenderWorkspaceSettings
   readonly onCommand: (intent: DemoBrowserIntent) => Promise<DemoCommandResponse>
   readonly onRestart: () => Promise<void>
@@ -801,12 +804,14 @@ function CaseDesktop({
   assetSessionId,
   runEpoch,
   saveId,
+  detectiveDisplayName,
   renderSettings,
   onCommand,
   onRestart,
 }: CaseDesktopProps) {
   const uiLocale = useUiLocale()
   const copy = useUiCopy(APP_COPY)
+  const detectiveName = detectiveDisplayName.trim() || copy.detective
   const workflowKey = useMemo(
     () => forensicsWorkflowKey(manifest, assetSessionId, saveId),
     [assetSessionId, manifest, saveId],
@@ -1062,6 +1067,13 @@ function CaseDesktop({
   const phoneModel = useMemo<PhoneViewModel>(() => (
     outgoingPhoneCall ? { ...models.phone, outgoingCall: outgoingPhoneCall } : models.phone
   ), [models.phone, outgoingPhoneCall])
+  const caseChannelMessages = useMemo(() => createCaseChannelActivityMessages(
+    models.inbox.messages,
+    snapshot,
+    detectiveName,
+    uiLocale,
+    (occurredAtMs) => caseTimeLabel(manifest, occurredAtMs),
+  ), [detectiveName, manifest, models.inbox.messages, snapshot, uiLocale])
   const caseBoardKey = useMemo(
     () => caseBoardStateKey(manifest, snapshot.case.digest, saveId),
     [manifest, saveId, snapshot.case.digest],
@@ -1495,9 +1507,14 @@ function CaseDesktop({
   }, [focusApp, forensicsWorkflow.requests])
 
   const inboxModel = useMemo<InboxViewModel>(() => {
+    const latestCaseMessage = caseChannelMessages.at(-1)
     const baseThreads = models.inbox.threads.map((thread) => ({
       ...thread,
       channelId: 'case-desk',
+      ...(latestCaseMessage ? {
+        preview: latestCaseMessage.body,
+        timestampLabel: latestCaseMessage.timestampLabel,
+      } : {}),
     }))
     const baseThreadId = baseThreads[0]?.id
     const selectedThreadId = selection.selectedThreadId ?? baseThreadId ?? FORENSICS_THREAD_ID
@@ -1518,9 +1535,8 @@ function CaseDesktop({
     const forensicsMessages = forensicsWorkflow.requests.flatMap((request) => {
       const requestMessage = {
         id: `${request.id}:request`,
-        author: copy.detective,
+        author: detectiveName,
         roleLabel: copy.investigatorRole,
-        avatarLabel: 'D',
         body: forensicsRequestBody(request, copy),
         timestampLabel: request.requestedLabel,
         direction: 'outgoing' as const,
@@ -1620,11 +1636,11 @@ function CaseDesktop({
         },
       ],
       threads: [...baseThreads, forensicsThread],
-      messages: forensicsSelected ? forensicsMessages : models.inbox.messages,
+      messages: forensicsSelected ? forensicsMessages : caseChannelMessages,
       typingAuthor: forensicsSelected && pendingForensicsRequest ? FORENSICS_LEAD_NAME : undefined,
       sending: forensicsSelected && forensicsBusy,
     }
-  }, [caseChannelName, copy, forensicsWorkflow.requests, models.files.records, models.inbox, pendingForensicsRequest, selection.selectedThreadId, streamingForensicsReply])
+  }, [caseChannelMessages, caseChannelName, copy, detectiveName, forensicsWorkflow.requests, models.files.records, models.inbox, pendingForensicsRequest, selection.selectedThreadId, streamingForensicsReply])
 
   const openAsset = useMemo<AuthorizedAssetViewModel | undefined>(() => {
     if (!openAssetId) return undefined
@@ -2203,10 +2219,16 @@ function BootScreen({ error }: { readonly error?: boolean }) {
 interface CaseExperienceProps {
   readonly manifest: ShellPublicCaseManifest
   readonly saveId: string
+  readonly detectiveDisplayName: string
   readonly renderSettings: RenderWorkspaceSettings
 }
 
-function CaseExperience({ manifest, saveId, renderSettings }: CaseExperienceProps) {
+function CaseExperience({
+  manifest,
+  saveId,
+  detectiveDisplayName,
+  renderSettings,
+}: CaseExperienceProps) {
   const copy = useUiCopy(APP_COPY)
   const copyRef = useRef(copy)
   copyRef.current = copy
@@ -2380,6 +2402,7 @@ function CaseExperience({ manifest, saveId, renderSettings }: CaseExperienceProp
         assetSessionId={assetSessionId}
         runEpoch={runEpoch}
         saveId={saveId}
+        detectiveDisplayName={detectiveDisplayName}
         renderSettings={renderSettings}
         onCommand={command}
         onRestart={restart}
@@ -2553,6 +2576,7 @@ export default function App() {
           key={`${activeProfile.id}:${selected.id}:${selected.version}:${selected.locale}`}
           manifest={selected.manifest}
           saveId={activeProfile.id}
+          detectiveDisplayName={activeProfile.displayName}
           renderSettings={renderSettings}
         />
       )}

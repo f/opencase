@@ -220,6 +220,22 @@ export interface PublicAsyncMessageInteraction {
     | { readonly kind: 'completed-affordance'; readonly ref: string }
 }
 
+export type PublicCaseActivityEntry =
+  | {
+      readonly id: string
+      readonly kind: 'evidence-observed'
+      readonly sequence: number
+      readonly occurredAtMs: number
+      readonly evidenceId: string
+    }
+  | {
+      readonly id: string
+      readonly kind: 'affordance-completed'
+      readonly sequence: number
+      readonly occurredAtMs: number
+      readonly affordanceId: string
+    }
+
 export interface PublicCaseRuntimeState {
   readonly schema: 'case-runtime/public-v1'
   readonly status: 'active' | 'ended'
@@ -258,10 +274,14 @@ export interface PublicCaseRuntimeState {
     readonly resultKey?: string
     readonly risk: RuntimeAffordanceDefinition['risk']
     readonly completedAtMs: number
+    /** Sequence of the accepted domain event that completed this affordance. */
+    readonly eventSequence?: number
     readonly interaction?: PublicAsyncMessageInteraction
     /** Public contact ids listed by this exact accepted command. */
     readonly contactsListed?: readonly string[]
   }[]
+  /** Player-safe milestones in engine event order. */
+  readonly activity?: readonly PublicCaseActivityEntry[]
   /** Supported deductions with copy retained from an explicit public affordance. */
   readonly supportedDeductions: readonly {
     readonly id: string

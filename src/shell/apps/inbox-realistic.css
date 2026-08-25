@@ -554,6 +554,21 @@
   color: #432e08;
 }
 
+.workspace-avatar--tone-1 {
+  background: #b9ddd6;
+  color: #174f47;
+}
+
+.workspace-avatar--tone-2 {
+  background: #d8c8e4;
+  color: #503263;
+}
+
+.workspace-avatar--tone-3 {
+  background: #eac5b3;
+  color: #6b3827;
+}
+
 .workspace-avatar--detective {
   background: #d7e6f2;
   color: #153e5d;

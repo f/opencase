@@ -122,6 +122,12 @@ function initialsFor(name: string, locale: AppLocale) {
   return initials || 'D'
 }
 
+function avatarToneFor(name: string): number {
+  let hash = 0
+  for (const character of name) hash = (hash * 31 + character.codePointAt(0)!) >>> 0
+  return hash % 4
+}
+
 function StreamingText({ body }: { readonly body: string }) {
   let wordOrder = 0
   return (
@@ -151,12 +157,16 @@ function StreamingText({ body }: { readonly body: string }) {
 
 function MessageAvatar({ message }: { readonly message: InboxMessageViewModel }) {
   const locale = useUiLocale()
+  const avatarLabel = message.avatarLabel?.trim() || initialsFor(message.author, locale)
   if (message.direction === 'outgoing') {
-    return <span className="workspace-avatar workspace-avatar--detective" aria-hidden="true">D</span>
+    return <span className="workspace-avatar workspace-avatar--detective" aria-hidden="true">{avatarLabel}</span>
   }
   return (
-    <span className="workspace-avatar workspace-avatar--forensics" aria-hidden="true">
-      {message.avatarLabel?.trim() || initialsFor(message.author, locale)}
+    <span
+      className={`workspace-avatar workspace-avatar--forensics workspace-avatar--tone-${avatarToneFor(message.author)}`}
+      aria-hidden="true"
+    >
+      {avatarLabel}
       <i />
     </span>
   )

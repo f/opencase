@@ -242,6 +242,8 @@ player may currently know or use:
 - currently listed conversations and supported verbs;
 - offered affordances and their safe exact intent;
 - completed public results;
+- an ordered, player-safe activity timeline for observed evidence and completed
+  affordances;
 - granted or observed evidence and observed-only findings;
 - safe asset handles;
 - active deadlines;
@@ -250,6 +252,12 @@ player may currently know or use:
 
 Asset handles contain only `{id, kind, mimeType}`. They never contain a path,
 URL, provider, or credential.
+
+The activity timeline contains only a monotonic public order, case time, and an
+opaque reference to evidence or an affordance that is already present in the
+same projection. It does not expose the engine event log, command payloads, or
+private rules. Clients can use it to rebuild a chronological journal or team
+conversation after restore without maintaining a second gameplay history.
 
 ## Assets
 
