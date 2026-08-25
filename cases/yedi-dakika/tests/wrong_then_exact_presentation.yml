@@ -5,6 +5,7 @@ scenario:
   id: wrong_then_exact_presentation
   perspective: detective
   steps:
+    - detective.act: {action: locate-contact, target: nihan}
     - detective.act: {action: request, from: leyla, topic: lobby-video}
     - detective.observe: lobby_video
     - detective.act: {action: request, from: leyla, topic: camera-sync}

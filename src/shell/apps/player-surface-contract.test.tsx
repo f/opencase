@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
 import { CaseDispatchApp } from './CaseDispatchApp'
+import { CaseBoardApp } from './CaseBoardApp'
 import { CasebookApp } from './CasebookApp'
 import { EvidenceQuestionsRail } from './EvidenceQuestionsRail'
 import { FilesApp } from './FilesApp'
@@ -10,6 +11,7 @@ import { PhoneApp } from './PhoneApp'
 import { WebResearchApp } from './WebResearchApp'
 import type {
   CaseDispatchViewModel,
+  CaseBoardViewModel,
   CasebookViewModel,
   EvidenceQuestionsViewModel,
   FilesViewModel,
@@ -97,6 +99,23 @@ const files: FilesViewModel = {
   }],
 }
 
+const caseBoard: CaseBoardViewModel = {
+  heading: 'Gece Vardiyası',
+  pins: [{
+    id: `person:${INTERNAL_SENTINELS.id}`,
+    kind: 'person',
+    name: 'Deniz Kaya',
+    roleLabel: 'Gece görevlisi',
+  }, {
+    id: `evidence:${INTERNAL_SENTINELS.id}:${INTERNAL_SENTINELS.tool}`,
+    kind: 'evidence',
+    title: 'Teslim tutanağı',
+    sourceLabel: 'Arşiv masası',
+    statusLabel: 'İncelendi',
+    asset: files.records[0]!.assets[0]!,
+  }],
+}
+
 const inbox: InboxViewModel = {
   selectedThreadId: INTERNAL_SENTINELS.id,
   replyDraft: '',
@@ -114,11 +133,11 @@ const inbox: InboxViewModel = {
     body: 'Tutanağı vardiya değişiminden önce masada bıraktım.',
     timestampLabel: '00:12',
     direction: 'incoming',
-    attachment: {
+    attachments: [{
       id: INTERNAL_SENTINELS.tool,
       kind: 'document',
       label: 'Vardiya notu',
-    },
+    }],
   }],
 }
 
@@ -216,6 +235,7 @@ function playerVisibleSurface(markup: string): string {
 
 const renderedSurfaces = {
   casebook: renderToStaticMarkup(<CasebookApp model={casebook} />),
+  caseBoard: renderToStaticMarkup(<CaseBoardApp model={caseBoard} />),
   caseDispatch: renderToStaticMarkup(<CaseDispatchApp model={caseDispatch} />),
   files: renderToStaticMarkup(<FilesApp model={files} />),
   inbox: renderToStaticMarkup(<InboxApp model={inbox} />),

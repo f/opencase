@@ -5,6 +5,9 @@ scenario:
   id: early_accusation_recovery
   perspective: detective
   steps:
+    - detective.act: {action: interview, actor: leyla}
+    - detective.act: {action: locate-contact, target: mert}
+    - detective.act: {action: locate-contact, target: nihan}
     - detective.act: {action: request, from: leyla, topic: lobby-video}
     - detective.observe: lobby_video
 
@@ -12,7 +15,7 @@ scenario:
       expect:
         result: {status: accepted}
         state:
-          clocks: {case-time: 8m}
+          clocks: {case-time: 10m}
           evidence:
             access_log: hidden
             desk_camera: hidden
@@ -39,7 +42,7 @@ scenario:
       expect:
         result: {status: accepted}
         state:
-          clocks: {case-time: 13m}
+          clocks: {case-time: 15m}
 
     - detective.act: {action: request, from: leyla, topic: access-log}
     - detective.act: {action: request, from: leyla, topic: desk-camera}
@@ -71,7 +74,7 @@ scenario:
       expect:
         result: {status: accepted}
         state:
-          clocks: {case-time: 28m}
+          clocks: {case-time: 30m}
           final_conclusion: mediate
           outcome: protected_with_scar
           assessment: {score: 85, max_score: 100}

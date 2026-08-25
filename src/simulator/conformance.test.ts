@@ -30,6 +30,15 @@ assets:
 cast:
   observer: {name: Observer, role: witness, client: true}
   subject: {name: Subject, role: subject}
+conversations:
+  observer:
+    initial: available
+    channels: {request: from}
+    states: {available: {can_talk: true}}
+  subject:
+    initial: available
+    channels: {interview: actor}
+    states: {available: {can_talk: true}}
 affordances:
   inspect_index:
     label: Inspect the index
@@ -119,6 +128,19 @@ function parseScenario(id: string, steps: string) {
 }
 
 describe('detective-perspective case test engine', () => {
+  it('asserts the public contact directory without inspecting runtime slots', () => {
+    const ir = fixtureIr()
+    const scenario = parseScenario(
+      'contact_projection',
+      `    - expect:
+        state:
+          contacts: {observer: listed, subject: listed}`,
+    )
+
+    const result = runDetectiveCaseTest(ir, scenario)
+    expect(result.ok, JSON.stringify(result.failures, null, 2)).toBe(true)
+  })
+
   it('asserts offered and hidden affordances using only the public projection', () => {
     const ir = fixtureIr()
     const scenario = parseScenario(

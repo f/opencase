@@ -13,9 +13,13 @@ scenario:
     - detective.act: {action: request, from: ekin, topic: automation-export}
     - detective.observe: automation_log
 
+    - detective.act: {action: locate-contact, target: leyla}
     - detective.act: {action: interview, actor: leyla}
+    - detective.act: {action: locate-contact, target: selin}
     - detective.act: {action: interview, actor: selin, topic: alibi}
     - detective.observe: livestream
+
+    - detective.act: {action: locate-contact, target: baran}
 
     - detective.act: {action: request, from: ekin, topic: victim-phone}
     - detective.observe: orhan_phone_export
@@ -46,6 +50,7 @@ scenario:
       expect:
         state:
           clocks: {case-time: 56m}
+          contacts: {baran: listed}
           affordances:
             interview_baran_location: hidden
             present_cafe_to_baran: hidden

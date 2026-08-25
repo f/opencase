@@ -87,6 +87,100 @@ function compile(source = SOURCE) {
   })
 }
 
+const CONTACT_SOURCE = `schema: case-source/v0.1
+case:
+  id: demo.contact-fixture
+  version: 0.1.0
+  title: Contact Fixture
+  locale: en
+  duration: 5m
+  mode: elastic
+  final_conclusion: first-write-wins
+  time: {date: "2026-01-01", timezone: UTC, starts_at: "10:00"}
+  synopsis: A synthetic contact-directory fixture.
+use: [investigation@1, artifacts@1, interview@1, contact-directory@1]
+cast:
+  caller: {name: Caller, role: client, client: true}
+  witness:
+    name: Hidden Witness
+    role: witness
+    phone: "+90 555 000 00 01"
+    operator: Anatolia Mobile
+    contact_source: {$text: contacts.witness.source}
+conversations:
+  witness:
+    contact: {initial: hidden}
+    initial: reachable
+    states:
+      reachable: {can_talk: true}
+    channels: {interview: actor}
+affordances:
+  find_witness:
+    label: Find the witness
+    result: The directory lead returned the witness contact.
+    surface: inbox
+    initial: offered
+    action: {action: locate-contact, target: witness}
+    interaction:
+      kind: async-message
+      channel: forensics
+      request: {$text: affordances.find_witness.request}
+      context: {kind: evidence, ref: seed}
+  interview_witness:
+    label: Call the witness
+    surface: phone
+    initial: withdrawn
+    action: {action: interview, actor: witness}
+  test_lead:
+    label: Test the directory lead
+    surface: casebook
+    initial: offered
+    deduction: lead
+places: {site: Test Site}
+things: {item: {type: object, name: Item}}
+truth:
+  events:
+    incident: {at: "10:01", type: item.moved, actor: caller, object: item, place: site}
+  facts: {}
+perspectives: {}
+opening:
+  call: {from: caller, text: Find the witness.}
+  grants: [seed]
+  starts: []
+evidence:
+  seed:
+    tool: document
+    at: start
+    reports: {lead: witness}
+deductions:
+  lead:
+    conclude: {witness: witness, status: identified}
+    prove: {any: [[seed.lead]]}
+flags: []
+reactions:
+  - on: {action: locate-contact, target: witness}
+    once: true
+    do: [{contact: [witness, listed]}, {offer: interview_witness}]
+deadlines: {}
+objectives:
+  solve: {supported: lead}
+outcomes:
+  resolved: {title: Resolved, priority: 100, require: [solve], final_target: witness}
+`
+
+function compileContact(source = CONTACT_SOURCE) {
+  return compileCaseSource(source, {
+    fileName: 'contact-fixture.case.yml',
+    localization: {
+      defaultLocale: 'en',
+      availableKeys: new Set([
+        'affordances.find_witness.request',
+        'contacts.witness.source',
+      ]),
+    },
+  })
+}
+
 describe('public affordance compilation', () => {
   it('compiles an explicit localized command surface without adding it to bootstrap data', () => {
     const result = compile()
@@ -247,5 +341,146 @@ describe('public affordance compilation', () => {
         .replace('{withdraw: inspect_item}', '{offer: inspect_item}'),
     )
     expect(repeatable.ok, repeatable.diagnostics.map(({ message }) => message).join('\n')).toBe(true)
+  })
+
+  it('compiles an authored contact lookup without leaking the hidden contact at bootstrap', () => {
+    const result = compileContact()
+
+    expect(result.ok, result.diagnostics.map(({ message }) => message).join('\n')).toBe(true)
+    expect(result.ir?.private.conversations).toContainEqual(expect.objectContaining({
+      actorId: 'witness',
+      public: true,
+      contactInitial: 'hidden',
+      presentation: {
+        name: 'Hidden Witness',
+        role: 'witness',
+        phone: '+90 555 000 00 01',
+        operator: 'Anatolia Mobile',
+        contactSource: {$text: 'contacts.witness.source'},
+      },
+    }))
+    expect(result.ir?.affordances).toContainEqual(expect.objectContaining({
+      id: 'find_witness',
+      surface: 'inbox',
+      intent: {
+        kind: 'action',
+        action: {kind: 'action', verb: 'locate-contact', target: 'witness'},
+      },
+      interaction: {
+        kind: 'async-message',
+        channel: 'forensics',
+        request: {$text: 'affordances.find_witness.request'},
+        context: {kind: 'evidence', ref: 'seed'},
+      },
+    }))
+    expect(JSON.stringify(result.publicManifest)).not.toContain('Hidden Witness')
+    expect(JSON.stringify(result.publicManifest)).not.toContain('+90 555 000 00 01')
+    expect(JSON.stringify(result.publicManifest)).not.toContain('Anatolia Mobile')
+    expect(JSON.stringify(result.publicManifest)).not.toContain('contacts.witness.source')
+  })
+
+  it('validates async-message context references', () => {
+    const result = compileContact(CONTACT_SOURCE.replace(
+      'context: {kind: evidence, ref: seed}',
+      'context: {kind: evidence, ref: absent}',
+    ))
+
+    expect(result.ok).toBe(false)
+    expect(result.diagnostics).toContainEqual(expect.objectContaining({
+      code: 'E_UNKNOWN_EVIDENCE',
+      path: '/affordances/find_witness/interaction/context/ref',
+    }))
+  })
+
+  it('rejects an initially hidden public contact without a lookup affordance', () => {
+    const result = compileContact(CONTACT_SOURCE.replace(
+      /  find_witness:\n[\s\S]*?      context: \{kind: evidence, ref: seed\}\n/,
+      '',
+    ))
+
+    expect(result.ok).toBe(false)
+    expect(result.diagnostics).toContainEqual(expect.objectContaining({
+      code: 'E_HIDDEN_CONTACT_LOOKUP',
+      path: '/conversations/witness/contact/initial',
+    }))
+  })
+
+  it('rejects a contact lookup without a matching reveal reaction', () => {
+    const result = compileContact(CONTACT_SOURCE.replace(
+      'do: [{contact: [witness, listed]}, {offer: interview_witness}]',
+      'do: [{offer: interview_witness}]',
+    ))
+
+    expect(result.ok).toBe(false)
+    expect(result.diagnostics).toContainEqual(expect.objectContaining({
+      code: 'E_HIDDEN_CONTACT_REVEAL',
+      path: '/affordances/find_witness/action',
+    }))
+  })
+
+  it('rejects a contact lookup that also lists an unrelated actor', () => {
+    const source = CONTACT_SOURCE
+      .replace(
+        '  witness:\n    name: Hidden Witness',
+        '  observer: {name: Other Observer, role: observer}\n  witness:\n    name: Hidden Witness',
+      )
+      .replace(
+        'conversations:\n  witness:',
+        'conversations:\n  observer:\n    contact: {initial: listed}\n    initial: reachable\n    states:\n      reachable: {can_talk: true}\n    channels: {interview: actor}\n  witness:',
+      )
+      .replace(
+        'do: [{contact: [witness, listed]}, {offer: interview_witness}]',
+        'do: [{contact: [witness, listed]}, {contact: [observer, listed]}, {offer: interview_witness}]',
+      )
+    const result = compileContact(source)
+
+    expect(result.ok).toBe(false)
+    expect(result.diagnostics).toContainEqual(expect.objectContaining({
+      code: 'E_CONTACT_LOOKUP_AMBIGUOUS',
+      path: '/affordances/find_witness/action',
+    }))
+  })
+
+  it('rejects a repeatable contact lookup', () => {
+    const result = compileContact(CONTACT_SOURCE.replace(
+      '      context: {kind: evidence, ref: seed}',
+      '      context: {kind: evidence, ref: seed}\n    once: false',
+    ))
+
+    expect(result.ok).toBe(false)
+    expect(result.diagnostics).toContainEqual(expect.objectContaining({
+      code: 'E_CONTACT_LOOKUP_REPEATABLE',
+      path: '/affordances/find_witness/once',
+    }))
+  })
+
+  it('rejects a contact reveal guarded by a case condition', () => {
+    const result = compileContact(
+      CONTACT_SOURCE
+        .replace('flags: []', 'flags: [directory_ready]')
+        .replace(
+          'do: [{contact: [witness, listed]}, {offer: interview_witness}]',
+          'do: [{if-marked: directory_ready, then: [{contact: [witness, listed]}]}, {offer: interview_witness}]',
+        ),
+    )
+
+    expect(result.ok).toBe(false)
+    expect(result.diagnostics).toContainEqual(expect.objectContaining({
+      code: 'E_CONTACT_LOOKUP_CONDITIONAL',
+      path: '/affordances/find_witness/action',
+    }))
+  })
+
+  it('rejects an initially offered phone route to a hidden contact', () => {
+    const result = compileContact(CONTACT_SOURCE.replace(
+      '  interview_witness:\n    label: Call the witness\n    surface: phone\n    initial: withdrawn',
+      '  interview_witness:\n    label: Call the witness\n    surface: phone\n    initial: offered',
+    ))
+
+    expect(result.ok).toBe(false)
+    expect(result.diagnostics).toContainEqual(expect.objectContaining({
+      code: 'E_HIDDEN_CONTACT_PHONE_OFFERED',
+      path: '/affordances/interview_witness/initial',
+    }))
   })
 })

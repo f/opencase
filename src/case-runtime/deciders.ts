@@ -321,6 +321,10 @@ const performAction: CommandDecider = ({ state, command }) => {
       const [actorId, definition] = candidate
       const actorSlots = object(slotObject(state).actors, 'case runtime actors')
       const actorState = object(actorSlots[actorId], `actor state ${actorId}`)
+      const contact = actorState.contact ?? definition.contactInitial
+      if (contact !== 'listed') {
+        return reject('actor-unavailable', 'That actor is not available for this action.')
+      }
       const stateId = nonEmptyString(actorState.conversation, `actor ${actorId} conversation state`)
       const current = definition.states[stateId]
       if (!current) return reject('actor-unavailable', 'That actor is not available for this action.')

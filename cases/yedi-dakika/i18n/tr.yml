@@ -5,15 +5,23 @@ messages:
   case.title: Yedi Dakika
   case.synopsis: >-
     Haber merkezindeki kırmızı röportaj dosyası kaybolur. Lobi kaydı ilk
-    bakışta editörle tartışan fotoğrafçı Mert'i işaret eder; fakat görüntü,
-    yazıcı ve bina kayıtlarının zamanları birbiriyle uyuşmaz. Dosya, saat
-    21:45'te alınacak gizli evrak kutuları arasındadır.
+    bakışta tartışmanın ardından ayrılan bir ziyaretçiyi işaret eder; fakat
+    görüntü, yazıcı ve bina kayıtlarının zamanları birbiriyle uyuşmaz. Dosya,
+    saat 21:45'te alınacak gizli evrak kutuları arasındadır.
   opening.call: >-
-    Kırmızı dosya yok. Mert ücretini alamadığı için benimle tartıştı ve çekip
-    gitti; lobi kamerasında çıkışı görünüyor ama henüz hiçbir kaydı dışarı
-    aktarmadım. Dosyada yayımlanmamış röportajın tek temiz çıktısı var. Mavi
+    Kırmızı dosya yok. Akşam vardiyasında dışarıdan gelen biriyle ödeme
+    yüzünden tartıştım ve o çekip gitti; lobi kamerasında çıkışı görünüyor ama
+    henüz hiçbir kaydı dışarı aktarmadım. Yayın koordinatörü Nihan da hâlâ haber
+    merkezinde. Dosyada yayımlanmamış röportajın tek temiz çıktısı var. Mavi
     gizli evrak kutuları 21:45'te alınacak ve doğruca öğütücüye gidecek. Haber
     merkezi sistemlerine erişimim var; önce hangi kaydı istediğini söyle.
+  cast.leyla.role: Genel Yayın Editörü
+  cast.mert.role: Serbest Fotoğrafçı
+  cast.nihan.role: Yayın Koordinatörü
+  cast.can.role: Gizli Kaynak
+  contacts.leyla.source: Vaka açılış aramasında doğrulandı
+  contacts.mert.source: Adli İnceleme · Açık kaynak ve operatör eşleştirmesi
+  contacts.nihan.source: Adli İnceleme · Kurum personel rehberi
   places.newsroom.name: Haber Merkezi
   places.floor_four.name: Dördüncü kat
   places.lobby.name: Lobi
@@ -22,6 +30,12 @@ messages:
   places.shredding_center.name: Merkez öğütme tesisi
   places.finance_floor.name: Finans katı
   conversations.mert.refusing.reason: Mert suçlandıktan sonra konuşmayı reddediyor.
+  affordances.locate_mert_contact.label: Mert Aksoy'un iletişim bilgisini bul
+  affordances.locate_mert_contact.request: Leyla'nın ilk ifadesinde adı geçen Mert Aksoy'un doğrulanmış iletişim bilgisini bulabilir misin?
+  affordances.locate_mert_contact.result: Mert Aksoy'un numarası açık kaynak kayıtları ve operatör bilgisiyle doğrulandı. Kişiler'e eklendi.
+  affordances.locate_nihan_contact.label: Nihan Yalçın'ın kurum iletişim bilgisini bul
+  affordances.locate_nihan_contact.request: Haber merkezi personel rehberinden Nihan Yalçın'ın doğrulanmış iletişim bilgisini bulabilir misin?
+  affordances.locate_nihan_contact.result: Nihan Yalçın'ın numarası kurum personel rehberinden doğrulandı. Kişiler'e eklendi.
   affordances.interview_leyla.label: Leyla'nın ilk ifadesini al
   affordances.interview_nihan.label: Nihan'a kayıp dosyayı sor
   affordances.interview_mert_location.label: Mert'e tartışmadan sonra nereye gittiğini sor

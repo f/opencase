@@ -5,16 +5,24 @@ messages:
   case.title: Seven Minutes
   case.synopsis: >-
     A red interview file disappears from a newsroom. The lobby recording first
-    points to photographer Mert after an argument with the editor, but the
-    video, printer, and building records disagree about the timing. The file is
-    among confidential boxes due for pickup at 21:45.
+    points to a visitor leaving after an argument, but the video, printer, and
+    building records disagree about the timing. The file is among confidential
+    boxes due for pickup at 21:45.
   opening.call: >-
-    The red file is gone. Mert argued with me over his unpaid fee and walked
-    out; the lobby camera shows him leaving, but I have not exported any record
-    yet. The file contains the only clean copy of an unpublished interview.
-    The blue confidential boxes will be collected at 21:45 and taken straight
-    to the shredder. I can access the newsroom systems; tell me which record
-    you want first.
+    The red file is gone. I argued about payment with someone visiting during
+    the evening shift, and he walked out; the lobby camera shows him leaving,
+    but I have not exported any record yet. Publishing coordinator Nihan is
+    still at the newsroom too. The file contains the only clean copy of an
+    unpublished interview. The blue confidential boxes will be collected at
+    21:45 and taken straight to the shredder. I can access the newsroom
+    systems; tell me which record you want first.
+  cast.leyla.role: Editor-in-Chief
+  cast.mert.role: Freelance Photographer
+  cast.nihan.role: Publishing Coordinator
+  cast.can.role: Confidential Source
+  contacts.leyla.source: Verified during the opening case call
+  contacts.mert.source: Forensics · Open-source and carrier match
+  contacts.nihan.source: Forensics · Staff directory
   places.newsroom.name: Newsroom
   places.floor_four.name: Fourth floor
   places.lobby.name: Lobby
@@ -23,6 +31,12 @@ messages:
   places.shredding_center.name: Central shredding facility
   places.finance_floor.name: Finance floor
   conversations.mert.refusing.reason: Mert refuses to speak after being accused.
+  affordances.locate_mert_contact.label: Find Mert Aksoy's contact details
+  affordances.locate_mert_contact.request: Can you find verified contact details for Mert Aksoy, who was named in Leyla's initial statement?
+  affordances.locate_mert_contact.result: Mert Aksoy's number was verified against open-source records and carrier information. The contact was added to Contacts.
+  affordances.locate_nihan_contact.label: Find Nihan Yalçın in the staff directory
+  affordances.locate_nihan_contact.request: Can you find verified contact details for Nihan Yalçın in the newsroom staff directory?
+  affordances.locate_nihan_contact.result: Nihan Yalçın's number was verified in the staff directory. The contact was added to Contacts.
   affordances.interview_leyla.label: Take Leyla's initial statement
   affordances.interview_nihan.label: Ask Nihan about the missing file
   affordances.interview_mert_location.label: Ask Mert where he went after the argument

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   appendForensicsRequest,
+  createAsyncForensicsRequest,
   createForensicsRequest,
   EMPTY_FORENSICS_WORKFLOW,
   FORENSICS_WORKFLOW_SCHEMA,
@@ -15,6 +16,15 @@ const request = createForensicsRequest({
   evidenceId: 'public-record',
   evidenceTitle: 'Kamera kaydı',
   requestedAtWallMs: 1_000,
+  requestedAtCaseMs: 120_000,
+  requestedLabel: '21:02',
+})
+
+const contactRequest = createAsyncForensicsRequest({
+  affordanceId: 'opaque-lookup',
+  subjectLabel: 'Tanığı bul',
+  requestBody: 'Ece, tanık için iletişim kaydını kontrol eder misin?',
+  requestedAtWallMs: 2_000,
   requestedAtCaseMs: 120_000,
   requestedLabel: '21:02',
 })
@@ -48,6 +58,33 @@ describe('forensics workflow persistence', () => {
     }))
     const retried = appendForensicsRequest(failed, { ...request, id: 'retry' })
     expect(retried.requests.map(({ status }) => status)).toEqual(['failed', 'waiting'])
+  })
+
+  it('persists generic async interactions without treating shell state as contact truth', () => {
+    const state = appendForensicsRequest(EMPTY_FORENSICS_WORKFLOW, contactRequest)
+    expect(parseForensicsWorkflow(state)).toEqual(state)
+    expect(state.requests[0]).toMatchObject({
+      kind: 'async-interaction',
+      affordanceId: 'opaque-lookup',
+      status: 'waiting',
+    })
+    expect(JSON.stringify(state)).not.toContain('listed')
+
+    const duplicate = appendForensicsRequest(state, {
+      ...contactRequest,
+      id: 'duplicate-contact-request',
+    })
+    expect(duplicate).toBe(state)
+  })
+
+  it('rejects malformed async interaction records', () => {
+    expect(parseForensicsWorkflow({
+      schema: FORENSICS_WORKFLOW_SCHEMA,
+      requests: [
+        { ...contactRequest, id: 'missing-body', requestBody: '' },
+        { ...contactRequest, id: 'half-contact', status: 'complete', replyBody: 'Tamam.', revealedActorId: 'witness' },
+      ],
+    }).requests).toEqual([])
   })
 
   it('derives a bounded animation duration from the reply words', () => {

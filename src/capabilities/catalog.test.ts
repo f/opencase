@@ -23,6 +23,7 @@ describe('trusted capability catalog', () => {
       'artifacts@1',
       'casebook@1',
       'comms@1',
+      'contact-directory@1',
       'facility-logistics@1',
       'finance@1',
       'generic-actions@1',

@@ -120,13 +120,22 @@ export interface CompiledAffordance {
   result?: LocalizedText
   risk: 'normal' | 'consequential' | 'terminal'
   confirmation?: LocalizedText
-  surface: 'phone' | 'web' | 'files' | 'casebook'
+  surface: 'phone' | 'web' | 'files' | 'casebook' | 'inbox'
   initial: 'offered' | 'withdrawn'
   intent:
     | { kind: 'action'; action: CompiledAction }
     | { kind: 'deduce'; deductionId: string }
   /** Whether alternate commands in the same routed action family are denied. */
   exclusive: boolean
+  interaction?: {
+    kind: 'async-message'
+    channel: string
+    request: LocalizedText
+    context?:
+      | { kind: 'opening-call' }
+      | { kind: 'evidence'; ref: string }
+      | { kind: 'completed-affordance'; ref: string }
+  }
   cost?: {
     clock: 'case-time'
     milliseconds: number
@@ -216,6 +225,7 @@ export type CompiledEffect =
   | { kind: 'reveal'; path: string }
   | { kind: 'metric-adjust'; metric: string; entityId: string; delta: number }
   | { kind: 'conversation'; actorId: string; stateId: string }
+  | { kind: 'contact'; actorId: string; state: 'hidden' | 'listed' }
   | { kind: 'affordance'; affordanceId: string; operation: 'offer' | 'withdraw' }
   | { kind: 'conditional'; condition: ConditionExpression; effects: CompiledEffect[] }
 
@@ -232,6 +242,18 @@ export interface CompiledReaction {
 export interface CompiledActorConversation {
   actorId: string
   public: boolean
+  contactInitial: 'hidden' | 'listed'
+  presentation: {
+    name?: LocalizedText
+    displayName?: LocalizedText
+    role?: LocalizedText
+    status?: LocalizedText
+    phone?: string
+    operator?: string
+    contactSource?: LocalizedText
+    pronouns?: LocalizedText
+    client?: boolean
+  }
   initialStateId: string
   states: Array<{
     id: string

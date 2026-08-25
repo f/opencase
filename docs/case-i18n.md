@@ -35,6 +35,12 @@ places:
   records_room: {$text: places.records_room.name}
   lobby: {name: {$text: places.lobby.name}, floor: ground}
 
+cast:
+  witness:
+    name: Deniz Kaya
+    role: {$text: cast.witness.role}
+    contact_source: {$text: cast.witness.contact_source}
+
 conversations:
   witness:
     initial: refusing
@@ -55,6 +61,16 @@ affordances:
     surface: phone
     initial: offered
     action: {action: interview, actor: witness}
+  find_witness:
+    label: {$text: affordances.find_witness.label}
+    result: {$text: affordances.find_witness.result}
+    surface: inbox
+    initial: offered
+    action: {action: locate-contact, target: witness}
+    interaction:
+      kind: async-message
+      channel: forensics
+      request: {$text: affordances.find_witness.request}
 
 evidence:
   witness_note:
@@ -105,11 +121,13 @@ The first version deliberately allows references only in:
 - `case.synopsis`;
 - `opening.call.text`;
 - `places.<place-id>` or the `name` / `display_name` field of an object-form place;
+- `cast.<actor-id>.name`, `display_name`, `role`, `status`, `contact_source`, or `pronouns`;
 - `conversations.<actor-id>.states.<state-id>.reason`;
 - `evidence.<evidence-id>.presentation.title`;
 - `evidence.<evidence-id>.presentation.description`;
 - `evidence.<evidence-id>.presentation.findings.<report-field>`;
 - `affordances.<affordance-id>.label`, `result`, or `confirmation`;
+- `affordances.<affordance-id>.interaction.request`;
 - `deadlines.<deadline-id>.label`;
 - `assessment.bands.<index>.label`;
 - `assessment.categories.<category-id>.label`;
@@ -119,9 +137,9 @@ The first version deliberately allows references only in:
 Do not put translation references in evidence reports, deductions, truth,
 actions, IDs, non-display entity fields, asset metadata, or tests. Those values
 can affect rules and proof equality. The compiler rejects such a reference with
-`E_I18N_REFERENCE_CONTEXT`. Place IDs stay stable across locales; only their
-player-facing labels are resolved. Other entity labels and localized asset
-variants are not part of the v0.1 contract yet.
+`E_I18N_REFERENCE_CONTEXT`. Place and cast IDs stay stable across locales;
+only their allowed player-facing presentation fields are resolved. Thing
+labels and localized asset variants are not part of the v0.1 contract yet.
 
 Direct strings remain valid. A direct string is identical in every locale.
 
@@ -139,6 +157,8 @@ messages:
   opening.call: "Please inspect the first record."
   places.records_room.name: "Records room"
   places.lobby.name: "Lobby"
+  cast.witness.role: "Independent witness"
+  cast.witness.contact_source: "Forensics directory response"
   conversations.witness.refusing.reason: "The witness will not speak yet."
   evidence.witness_note.title: "Witness note"
   evidence.witness_note.description: "A signed note found in the archive."
@@ -146,6 +166,7 @@ messages:
   affordances.call_witness.label: "Call the witness"
   affordances.call_witness.result: "The witness answered."
   affordances.call_witness.confirmation: "Call the witness now?"
+  affordances.find_witness.request: "Can you verify the witness's current contact record?"
   deadlines.archive_closes.label: "Archive closes"
   outcomes.solved.title: "Case solved"
   outcomes.solved.body: "The evidence supports your conclusion."

@@ -5,11 +5,14 @@ scenario:
   id: full_solution
   perspective: detective
   steps:
+    - detective.act: {action: interview, actor: leyla}
+    - detective.act: {action: locate-contact, target: mert}
+    - detective.act: {action: locate-contact, target: nihan}
     - detective.act: {action: interview, actor: mert, topic: location}
       expect:
         result: {status: accepted}
         state:
-          clocks: {case-time: 3m}
+          clocks: {case-time: 5m}
           evidence: {mert_receipt: available}
 
     - detective.observe: mert_receipt
@@ -144,7 +147,7 @@ scenario:
       expect:
         result: {status: accepted}
         state:
-          clocks: {case-time: 24m}
+          clocks: {case-time: 26m}
           final_conclusion: mediate
           outcome: all_protected
           assessment: {score: 100, max_score: 100}

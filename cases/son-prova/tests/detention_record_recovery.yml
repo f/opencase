@@ -22,6 +22,7 @@ scenario:
     - detective.act: {action: search, query: "PROD-TAB-03 remote pairing"}
     - detective.observe: support_mail
 
+    - detective.act: {action: locate-contact, target: selin}
     - detective.act: {action: interview, actor: selin, topic: alibi}
     - detective.observe: livestream
     - detective.act: {action: search, query: "interview publication history"}
@@ -46,11 +47,13 @@ scenario:
             selin_financial_motive: supported
           evidence: {cafe_video: hidden}
 
+    - detective.act: {action: locate-contact, target: baran}
     - detective.advance: {clock: case-time, by: 22m}
       expect:
         result: {status: accepted}
         state:
           clocks: {case-time: 55m}
+          contacts: {baran: listed}
           affordances:
             interview_baran_location: hidden
             request_baran_custody_packet: offered

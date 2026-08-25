@@ -1,0 +1,84 @@
+schema: case-test/v0.1
+
+case: {id: official.son-prova, version: 0.4.1}
+
+scenario:
+  id: contact_discovery
+  perspective: detective
+  description: The opening call names three people, but each phone contact appears only after a directory lookup.
+  steps:
+    - expect:
+        state:
+          clocks: {case-time: 0s}
+          contacts:
+            ekin: listed
+            orhan: hidden
+            leyla: hidden
+            baran: hidden
+            selin: hidden
+          affordances:
+            locate_baran_contact: offered
+            locate_selin_contact: offered
+            locate_leyla_contact: offered
+            interview_baran_location: hidden
+            interview_selin_alibi: hidden
+            interview_leyla: hidden
+
+    - detective.act: {action: interview, actor: baran, topic: location}
+      expect:
+        result: {status: denied, code: affordance-unavailable}
+        state:
+          clocks: {case-time: 0s}
+          contacts: {baran: hidden}
+
+    - detective.act: {action: locate-contact, target: baran}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 0s}
+          contacts: {baran: listed}
+          affordances:
+            locate_baran_contact: hidden
+            interview_baran_location: offered
+    - detective.act: {action: interview, actor: baran, topic: location}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 4m}
+          contacts: {baran: listed, selin: hidden}
+          affordances: {locate_selin_contact: offered}
+          evidence: {cafe_video: available}
+
+    - detective.act: {action: locate-contact, target: selin}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 4m}
+          contacts: {selin: listed}
+          affordances:
+            locate_selin_contact: hidden
+            interview_selin_alibi: offered
+    - detective.act: {action: interview, actor: selin, topic: alibi}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 8m}
+          contacts: {selin: listed, leyla: hidden}
+          affordances: {locate_leyla_contact: offered}
+          evidence: {livestream: available}
+
+    - detective.act: {action: locate-contact, target: leyla}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 8m}
+          contacts: {leyla: listed}
+          affordances:
+            locate_leyla_contact: hidden
+            interview_leyla: offered
+    - detective.act: {action: interview, actor: leyla}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 11m}
+          contacts: {leyla: listed}

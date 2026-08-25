@@ -102,6 +102,10 @@ A robust case-authoring skill should require the AI to:
   obtain;
 - declare every visible player move as a localized `affordances` entry and
   never ask a client to infer UI controls from private unlocks or reactions;
+- keep non-caller Phone contacts hidden until authored story copy names them,
+  then provide a localized one-shot Inbox lookup, an unconditional exact
+  listing reaction, and a `state.contacts` scenario proving both its context
+  note and contact path cannot be stranded;
 - put every exact route argument, including `topic`, `query`, `tone`,
   `evidence`, and `ref`, in the public affordance command;
 - keep action affordances exclusive by default so incomplete or altered

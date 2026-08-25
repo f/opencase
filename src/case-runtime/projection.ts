@@ -204,6 +204,69 @@ function presentedAffordanceConfirmation(
     : { confirmationKey: confirmation.$text }
 }
 
+function presentedAffordanceInteraction(
+  interaction: CaseRuntimeCatalog['affordances'][string]['interaction'],
+  presentation?: CasePresentationCatalog,
+): { interaction?: NonNullable<PublicCaseRuntimeState['affordances'][number]['interaction']> } {
+  if (!interaction) return {}
+  const request = typeof interaction.request === 'string'
+    ? { request: interaction.request }
+    : presentation?.messages[interaction.request.$text] !== undefined
+      ? { request: presentation.messages[interaction.request.$text] }
+      : { requestKey: interaction.request.$text }
+  return {
+    interaction: {
+      kind: interaction.kind,
+      channel: interaction.channel,
+      ...request,
+      ...(interaction.context ? { context: interaction.context } : {}),
+    },
+  }
+}
+
+function presentedActorText(
+  text: CaseRuntimeCatalog['actors'][string]['presentation']['name'],
+  valueName: 'name' | 'displayName' | 'role' | 'status' | 'contactSource' | 'pronouns',
+  keyName:
+    | 'nameKey'
+    | 'displayNameKey'
+    | 'roleKey'
+    | 'statusKey'
+    | 'contactSourceKey'
+    | 'pronounsKey',
+  presentation?: CasePresentationCatalog,
+): Record<string, string> {
+  if (text === undefined) return {}
+  if (typeof text === 'string') return { [valueName]: text }
+  const translated = presentation?.messages[text.$text]
+  return translated !== undefined
+    ? { [valueName]: translated }
+    : { [keyName]: text.$text }
+}
+
+function presentedActor(
+  definition: CaseRuntimeCatalog['actors'][string],
+  presentation?: CasePresentationCatalog,
+): Omit<PublicCaseRuntimeState['actors'][number], 'id' | 'conversation'> {
+  const actor = definition.presentation
+  return {
+    ...presentedActorText(actor.name, 'name', 'nameKey', presentation),
+    ...presentedActorText(actor.displayName, 'displayName', 'displayNameKey', presentation),
+    ...presentedActorText(actor.role, 'role', 'roleKey', presentation),
+    ...presentedActorText(actor.status, 'status', 'statusKey', presentation),
+    ...(actor.phone !== undefined ? { phone: actor.phone } : {}),
+    ...(actor.operator !== undefined ? { operator: actor.operator } : {}),
+    ...presentedActorText(
+      actor.contactSource,
+      'contactSource',
+      'contactSourceKey',
+      presentation,
+    ),
+    ...presentedActorText(actor.pronouns, 'pronouns', 'pronounsKey', presentation),
+    ...(actor.client !== undefined ? { client: actor.client } : {}),
+  }
+}
+
 function presentedEvidenceText(
   text: NonNullable<CaseRuntimeCatalog['evidence'][string]['presentation']>['title'] | undefined,
   valueName: 'title' | 'description' | 'text',
@@ -284,6 +347,16 @@ export function projectCaseState(
         : undefined
     if (!match) return []
     const [id, definition] = match
+    const contactsListed = session.eventLog
+      .filter((candidate) => (
+        candidate.meta.commandId === event.meta.commandId &&
+        candidate.type === CASE_EVENTS.contactChanged &&
+        candidate.payload.state === 'listed' &&
+        typeof candidate.payload.actorId === 'string'
+      ))
+      .map((candidate) => String(candidate.payload.actorId))
+      .filter((actorId, index, all) => all.indexOf(actorId) === index)
+      .sort()
     return [{
       id,
       surface: definition.surface,
@@ -293,6 +366,8 @@ export function projectCaseState(
       ...presentedAffordanceResult(definition.result, presentation),
       risk: definition.risk,
       completedAtMs: event.meta.occurredAt.caseTimeMs + (definition.cost?.milliseconds ?? 0),
+      ...presentedAffordanceInteraction(definition.interaction, presentation),
+      ...(contactsListed.length > 0 ? { contactsListed } : {}),
     }]
   })
 
@@ -354,6 +429,7 @@ export function projectCaseState(
         ...presentedAffordanceLabel(definition.label, presentation),
         risk: definition.risk,
         ...presentedAffordanceConfirmation(definition.confirmation, presentation),
+        ...presentedAffordanceInteraction(definition.interaction, presentation),
       }))
       .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)),
     completedAffordances,
@@ -372,7 +448,15 @@ export function projectCaseState(
       })
       .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)),
     actors: Object.entries(privateCatalog.actors)
-      .filter(([, definition]) => definition.public)
+      .filter(([id, definition]) => {
+        if (!definition.public) return false
+        const actorState = object(actorSlots[id], `actor state ${id}`)
+        const contact = actorState.contact ?? definition.contactInitial
+        if (contact !== 'hidden' && contact !== 'listed') {
+          throw new Error(`Unknown contact state ${String(contact)} for actor ${id}`)
+        }
+        return contact === 'listed'
+      })
       .map(([id, definition]) => {
         const actorState = object(actorSlots[id], `actor state ${id}`)
         const stateId = typeof actorState.conversation === 'string'
@@ -382,6 +466,7 @@ export function projectCaseState(
         if (!current) throw new Error(`Unknown conversation state ${stateId} for actor ${id}`)
         return {
           id,
+          ...presentedActor(definition, presentation),
           conversation: {
             state: stateId,
             canTalk: current.canTalk,

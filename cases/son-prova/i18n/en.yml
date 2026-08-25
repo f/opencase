@@ -10,16 +10,32 @@ messages:
   opening.call: >-
     Orhan Demir died after falling through the stage hatch during rehearsal.
     Police plan to detain stage manager Baran after fifty-five investigation
-    minutes, and Orhan's production workspace is queued for deletion. I can
-    release the scene report and automation export; choose what to request and
-    whom to question before the records and witnesses disappear.
+    minutes, and Orhan's production workspace is queued for deletion. Lead actor
+    Leyla and producer Selin are still at the theatre; Selin plans to leave within
+    the hour. I can release the scene report and automation export; choose what
+    to request and whom to question before the records and witnesses disappear.
+  cast.ekin.role: Theatre manager
+  cast.orhan.role: Artistic director
+  cast.leyla.role: Lead actor
+  cast.baran.role: Stage manager
+  cast.selin.role: Producer
+  contacts.ekin.source: Opening case call
+  contacts.leyla.source: Production contact list
+  contacts.baran.source: Theatre staff directory
+  contacts.selin.source: Production contact list
   affordances.request_scene_report.label: Request the stage-hatch scene report from Ekin
   affordances.request_automation_export.label: Request the stage automation export from Ekin
   affordances.request_victim_phone.label: Request Orhan's phone extraction from Ekin
+  affordances.locate_baran_contact.label: Find Baran Kılıç in the staff directory
+  affordances.locate_baran_contact.request: Can you find Baran Kılıç in the theatre staff directory? He is the stage manager.
   affordances.interview_baran_location.label: Ask Baran where he was when the hatch opened
   affordances.request_baran_custody_packet.label: Request Baran's police intake packet from Ekin
+  affordances.locate_selin_contact.label: Find Selin Aksoy's production contact
+  affordances.locate_selin_contact.request: Can you find Selin Aksoy's production contact? She is listed as the producer.
   affordances.interview_selin_alibi.label: Ask Selin to explain her on-air alibi
   affordances.request_livestream_archive.label: Request Selin's broadcast archive from Ekin
+  affordances.locate_leyla_contact.label: Find Leyla Aras's production contact
+  affordances.locate_leyla_contact.request: Can you find Leyla Aras in the production contact list? She is the lead actor.
   affordances.interview_leyla.label: Take Leyla's first statement
   affordances.request_security_export.label: Request the theatre security export from Ekin
   affordances.search_remote_pairing.label: Search support archives for PROD-TAB-03 remote pairing
@@ -49,10 +65,13 @@ messages:
   affordances.request_scene_report.result: Ekin sent the scene report and a photo of the removed safety pin to Files.
   affordances.request_automation_export.result: The stage automation export is ready to inspect in Files.
   affordances.request_victim_phone.result: Orhan's phone extraction is ready. Its messages can now be inspected.
+  affordances.locate_baran_contact.result: The staff directory record was verified. Baran Kılıç was added to Contacts.
   affordances.interview_baran_location.result: Baran says he was at the café across the street when the hatch opened.
   affordances.request_baran_custody_packet.result: Ekin obtained the police intake packet. It includes the café recording officers used to verify Baran's location.
+  affordances.locate_selin_contact.result: The production contact was verified. Selin Aksoy was added to Contacts.
   affordances.interview_selin_alibi.result: Selin says she was live on air from 21:05 to 21:17.
   affordances.request_livestream_archive.result: Selin's broadcast archive is ready to inspect.
+  affordances.locate_leyla_contact.result: The production contact was verified. Leyla Aras was added to Contacts.
   affordances.interview_leyla.result: Leyla admits arguing with Orhan, but says she stayed at stage left during the fall.
   affordances.request_security_export.result: The theatre exit and backstage access records are ready to inspect.
   affordances.search_remote_pairing.result: A support email about remote stage control was found.

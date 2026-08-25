@@ -17,7 +17,7 @@ case:
 
 use: [investigation@1, comms@1, artifacts@1, virtual-web@1,
       casebook@1, interview@1, media-forensics@1,
-      access-control@1, facility-logistics@1]
+      access-control@1, facility-logistics@1, contact-directory@1]
 
 authoring:
   evidence_source_policy: implicit-per-evidence
@@ -33,18 +33,29 @@ assets:
       sha256: 9ce5fcd65c8a0da77db229a05fb12e44efd30583de4bd34a72fde9cdfc8c03c4
 
 cast:
-  leyla: {name: Leyla Erdem, role: genel-yayın-editörü, client: true}
-  mert: {name: Mert Aksoy, role: serbest-fotoğrafçı}
-  nihan: {name: Nihan Yalçın, role: yayın-koordinatörü}
-  can: {name: Can Koral, role: gizli-kaynak, protected: true}
+  leyla:
+    {name: Leyla Erdem, role: {$text: cast.leyla.role}, client: true,
+     phone: "+90 555 000 21 10", operator: Marmara Mobile,
+     contact_source: {$text: contacts.leyla.source}}
+  mert:
+    {name: Mert Aksoy, role: {$text: cast.mert.role},
+     phone: "+90 555 000 20 57", operator: Kent Mobil,
+     contact_source: {$text: contacts.mert.source}}
+  nihan:
+    {name: Nihan Yalçın, role: {$text: cast.nihan.role},
+     phone: "+90 555 000 21 03", operator: Marmara Mobile,
+     contact_source: {$text: contacts.nihan.source}}
+  can: {name: Can Koral, role: {$text: cast.can.role}, protected: true}
 
 conversations:
   leyla:
+    contact: {initial: listed}
     initial: available
     channels: {interview: actor, request: from}
     states:
       available: {can_talk: true}
   mert:
+    contact: {initial: hidden}
     initial: available
     channels: {interview: actor, apologize: target}
     allow_while_unavailable: [apologize]
@@ -54,11 +65,13 @@ conversations:
         can_talk: false
         reason: {$text: conversations.mert.refusing.reason}
   nihan:
+    contact: {initial: hidden}
     initial: available
     channels: {interview: actor, present: target}
     states:
       available: {can_talk: true}
   can:
+    contact: {initial: hidden}
     initial: unavailable
     channels: {interview: actor}
     states:
@@ -67,6 +80,30 @@ conversations:
 # Public, case-authored actions. The shell shows only offered affordances; their
 # exact commands and case-time costs are interpreted by the generic runtime.
 affordances:
+  locate_mert_contact:
+    label: {$text: affordances.locate_mert_contact.label}
+    result: {$text: affordances.locate_mert_contact.result}
+    surface: inbox
+    initial: withdrawn
+    action: {action: locate-contact, target: mert}
+    interaction:
+      kind: async-message
+      channel: forensics
+      request: {$text: affordances.locate_mert_contact.request}
+      context: {kind: completed-affordance, ref: interview_leyla}
+    once: true
+  locate_nihan_contact:
+    label: {$text: affordances.locate_nihan_contact.label}
+    result: {$text: affordances.locate_nihan_contact.result}
+    surface: inbox
+    initial: offered
+    action: {action: locate-contact, target: nihan}
+    interaction:
+      kind: async-message
+      channel: forensics
+      request: {$text: affordances.locate_nihan_contact.request}
+      context: {kind: opening-call}
+    once: true
   interview_leyla:
     label: {$text: affordances.interview_leyla.label}
     result: {$text: affordances.interview_leyla.result}
@@ -79,7 +116,7 @@ affordances:
     label: {$text: affordances.interview_nihan.label}
     result: {$text: affordances.interview_nihan.result}
     surface: phone
-    initial: offered
+    initial: withdrawn
     action: {action: interview, actor: nihan}
     cost: {clock: case-time, by: 3m}
     once: true
@@ -87,7 +124,7 @@ affordances:
     label: {$text: affordances.interview_mert_location.label}
     result: {$text: affordances.interview_mert_location.result}
     surface: phone
-    initial: offered
+    initial: withdrawn
     action: {action: interview, actor: mert, topic: location}
     cost: {clock: case-time, by: 3m}
     once: true
@@ -600,6 +637,21 @@ flags: [mert_accused, mert_apology, nihan_confessed, file_recovered,
         wrong_box, deadline_expired]
 
 reactions:
+  - id: mert-mentioned-by-leyla
+    on: {action: interview, actor: leyla}
+    once: true
+    do: [{offer: locate_mert_contact}]
+
+  - id: mert-contact-located
+    on: {action: locate-contact, target: mert}
+    once: true
+    do: [{contact: [mert, listed]}, {offer: interview_mert_location}]
+
+  - id: nihan-contact-located
+    on: {action: locate-contact, target: nihan}
+    once: true
+    do: [{contact: [nihan, listed]}, {offer: interview_nihan}]
+
   # Free-form searches and presentations cost time whether or not they reveal
   # a clue. Exact offered actions therefore cannot make failed attempts free.
   - id: search-time-cost

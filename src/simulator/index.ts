@@ -1,4 +1,5 @@
 export * from './case-test-documents'
+export * from './contact-discovery-audit'
 export * from './detective-runner'
 export * from './determinism'
 export * from './errors'

@@ -248,6 +248,8 @@ cast:`,
     expect(ir.private.conversations).toContainEqual({
       actorId: 'suspect',
       public: true,
+      contactInitial: 'listed',
+      presentation: { name: 'Suspect', role: 'suspect' },
       initialStateId: 'refusing',
       states: [
         { id: 'reachable', canTalk: true },

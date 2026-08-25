@@ -89,14 +89,20 @@ const FORBIDDEN_PUBLIC_KEYS = new Set([
   'ref',
 ])
 
-const PUBLIC_CAST_FIELDS = new Set([
-  'name',
-  'role',
-  'status',
-  'client',
-  'display_name',
-  'pronouns',
-])
+const PUBLIC_CAST_PRESENTATION_FIELDS = [
+  ['name', 'name'],
+  ['role', 'role'],
+  ['status', 'status'],
+  ['client', 'client'],
+  ['display_name', 'displayName'],
+  ['phone', 'phone'],
+  ['operator', 'operator'],
+  ['contact_source', 'contactSource'],
+  ['pronouns', 'pronouns'],
+] as const satisfies ReadonlyArray<readonly [
+  string,
+  keyof CompiledActorConversation['presentation'],
+]>
 
 const PUBLIC_PLACE_FIELDS = new Set(['name', 'display_name'])
 
@@ -175,6 +181,36 @@ function localizedText(value: unknown): LocalizedText {
     : String(value)
 }
 
+function optionalLocalizedText(value: unknown): LocalizedText | undefined {
+  return typeof value === 'string' || (isRecord(value) && typeof value.$text === 'string')
+    ? localizedText(value)
+    : undefined
+}
+
+function compiledActorPresentation(
+  authoredActor: unknown,
+): CompiledActorConversation['presentation'] {
+  if (typeof authoredActor === 'string') return { name: authoredActor }
+  const actor = isRecord(authoredActor) ? authoredActor : {}
+  const name = optionalLocalizedText(actor.name)
+  const displayName = optionalLocalizedText(actor.display_name)
+  const role = optionalLocalizedText(actor.role)
+  const status = optionalLocalizedText(actor.status)
+  const contactSource = optionalLocalizedText(actor.contact_source)
+  const pronouns = optionalLocalizedText(actor.pronouns)
+  return {
+    ...(name !== undefined ? { name } : {}),
+    ...(displayName !== undefined ? { displayName } : {}),
+    ...(role !== undefined ? { role } : {}),
+    ...(status !== undefined ? { status } : {}),
+    ...(typeof actor.phone === 'string' ? { phone: actor.phone } : {}),
+    ...(typeof actor.operator === 'string' ? { operator: actor.operator } : {}),
+    ...(contactSource !== undefined ? { contactSource } : {}),
+    ...(pronouns !== undefined ? { pronouns } : {}),
+    ...(typeof actor.client === 'boolean' ? { client: actor.client } : {}),
+  }
+}
+
 function isLocalizedTextReference(value: unknown): value is { $text: string } {
   return isRecord(value) && Object.keys(value).length === 1 && typeof value.$text === 'string'
 }
@@ -185,30 +221,44 @@ function isLocalizedTextReference(value: unknown): value is { $text: string } {
  * Protected/private people are omitted and public people are reduced to a
  * deliberately small presentation allow-list.
  */
-function buildPublicCast(value: unknown): JsonRecord {
+function initialContactState(conversations: unknown, actorId: string): 'hidden' | 'listed' {
+  if (!isRecord(conversations)) return 'listed'
+  const conversation = conversations[actorId]
+  if (!isRecord(conversation) || !isRecord(conversation.contact)) return 'listed'
+  return conversation.contact.initial === 'hidden' ? 'hidden' : 'listed'
+}
+
+function isPrivateAuthoredEntity(entry: unknown): boolean {
+  if (!isRecord(entry)) return false
+  return (
+    entry.protected === true ||
+    entry.hidden === true ||
+    entry.public === false ||
+    entry.visibility === 'private' ||
+    entry.visibility === 'hidden'
+  )
+}
+
+function buildPublicCast(value: unknown, conversations: unknown): JsonRecord {
   if (!isRecord(value)) return {}
   const result: Record<string, JsonValue> = {}
   for (const [id, entry] of Object.entries(value).sort(([left], [right]) =>
     compareCanonicalStrings(left, right),
   )) {
+    if (initialContactState(conversations, id) === 'hidden') continue
     if (typeof entry === 'string') {
       result[id] = entry
       continue
     }
     if (!isRecord(entry)) continue
-    if (
-      entry.protected === true ||
-      entry.hidden === true ||
-      entry.public === false ||
-      entry.visibility === 'private' ||
-      entry.visibility === 'hidden'
-    ) {
-      continue
-    }
+    if (isPrivateAuthoredEntity(entry)) continue
+    const presentation = compiledActorPresentation(entry)
     const publicEntry: Record<string, JsonValue> = {}
-    for (const field of [...PUBLIC_CAST_FIELDS].sort(compareCanonicalStrings)) {
-      const fieldValue = entry[field]
-      if (fieldValue !== undefined) publicEntry[field] = toJson(fieldValue)
+    for (const [sourceField, compiledField] of [...PUBLIC_CAST_PRESENTATION_FIELDS].sort(
+      ([left], [right]) => compareCanonicalStrings(left, right),
+    )) {
+      const fieldValue = presentation[compiledField]
+      if (fieldValue !== undefined) publicEntry[sourceField] = toJson(fieldValue)
     }
     result[id] = publicEntry
   }
@@ -405,6 +455,18 @@ function isTranslatablePath(path: Path): boolean {
   }
   if (path.length === 3 && path[0] === 'affordances') {
     return path[2] === 'label' || path[2] === 'result' || path[2] === 'confirmation'
+  }
+  if (
+    path.length === 4 &&
+    path[0] === 'affordances' &&
+    path[2] === 'interaction'
+  ) {
+    return path[3] === 'request'
+  }
+  if (path.length === 3 && path[0] === 'cast') {
+    return ['name', 'display_name', 'role', 'status', 'contact_source', 'pronouns'].includes(
+      String(path[2]),
+    )
   }
   if (path.length === 3 && path[0] === 'deadlines') return path[2] === 'label'
   if (path.length === 4 && path[0] === 'evidence' && path[2] === 'presentation') {
@@ -1214,6 +1276,13 @@ function compileEffect(effect: AnyRecord): CompiledEffect {
       stateId: String(effect.conversation[1]),
     }
   }
+  if (Array.isArray(effect.contact)) {
+    return {
+      kind: 'contact',
+      actorId: String(effect.contact[0]),
+      state: effect.contact[1] as 'hidden' | 'listed',
+    }
+  }
   if (typeof effect.offer === 'string') {
     return { kind: 'affordance', affordanceId: effect.offer, operation: 'offer' }
   }
@@ -1282,16 +1351,12 @@ function buildConversations(source: AnyRecord): CompiledActorConversation[] {
   const cast = isRecord(source.cast) ? source.cast : {}
   return mapEntries(source.conversations)
     .map(([actorId, definition]): CompiledActorConversation => {
-      const actor = isRecord(cast[actorId]) ? cast[actorId] as AnyRecord : {}
-      const hidden =
-        actor.protected === true ||
-        actor.hidden === true ||
-        actor.public === false ||
-        actor.visibility === 'private' ||
-        actor.visibility === 'hidden'
+      const authoredActor = cast[actorId]
       return {
         actorId,
-        public: !hidden,
+        public: !isPrivateAuthoredEntity(authoredActor),
+        contactInitial: initialContactState(source.conversations, actorId),
+        presentation: compiledActorPresentation(authoredActor),
         initialStateId: String(definition.initial),
         states: mapEntries(definition.states).map(([id, state]) => ({
           id,
@@ -1330,6 +1395,21 @@ function buildAffordances(source: AnyRecord): CompiledAffordance[] {
           ? {kind: 'action' as const, action: compileAction(String(action.action), action)}
           : {kind: 'deduce' as const, deductionId: String(definition.deduction)},
         exclusive: definition.exclusive !== false,
+        ...(isRecord(definition.interaction) ? {
+          interaction: {
+            kind: 'async-message' as const,
+            channel: String(definition.interaction.channel),
+            request: localizedText(definition.interaction.request),
+            ...(isRecord(definition.interaction.context) ? {
+              context: definition.interaction.context.kind === 'opening-call'
+                ? { kind: 'opening-call' as const }
+                : {
+                    kind: definition.interaction.context.kind as 'evidence' | 'completed-affordance',
+                    ref: String(definition.interaction.context.ref),
+                  },
+            } : {}),
+          },
+        } : {}),
         ...(isRecord(definition.cost) ? {
           cost: {
             clock: 'case-time' as const,
@@ -1670,6 +1750,19 @@ function validateCapabilityVocabulary(
             effectPath.concat(operator),
           )
         }
+      } else if (operator === 'contact') {
+        if (
+          !Array.isArray(operand) ||
+          operand.length !== 2 ||
+          typeof operand[0] !== 'string' ||
+          !['hidden', 'listed'].includes(String(operand[1]))
+        ) {
+          collector.error(
+            'E_EFFECT_SHAPE',
+            'contact requires [actor, hidden|listed].',
+            effectPath.concat(operator),
+          )
+        }
       } else if (operator === 'spend') {
         if (
           !Array.isArray(operand) ||
@@ -1707,6 +1800,35 @@ function validateCapabilityVocabulary(
           base.concat('cost', 'by'),
         )
       }
+    }
+    const interaction = isRecord(affordance.interaction) ? affordance.interaction : undefined
+    if (affordance.surface === 'inbox' && !interaction) {
+      collector.error(
+        'E_AFFORDANCE_INTERACTION',
+        'Inbox affordances require an async-message interaction.',
+        base.concat('interaction'),
+      )
+    }
+    if (interaction && affordance.surface !== 'inbox') {
+      collector.error(
+        'E_AFFORDANCE_INTERACTION',
+        'Async-message interactions must use the inbox surface.',
+        base.concat('surface'),
+      )
+    }
+    if (interaction && !isRecord(affordance.action)) {
+      collector.error(
+        'E_AFFORDANCE_INTERACTION',
+        'Async-message interactions require an action affordance.',
+        base.concat('action'),
+      )
+    }
+    if (interaction && affordance.result === undefined) {
+      collector.error(
+        'E_AFFORDANCE_INTERACTION',
+        'Async-message interactions require result copy for the completed reply.',
+        base.concat('result'),
+      )
     }
     if (!isRecord(affordance.action)) continue
     validateVerb(affordance.action.action, base.concat('action', 'action'))
@@ -1747,7 +1869,7 @@ function validateCapabilityVocabulary(
 
   for (const [actorId, conversation] of mapEntries(source.conversations)) {
     const base: Path = ['conversations', actorId]
-    const allowedKeys = new Set(['initial', 'channels', 'allow_while_unavailable', 'states'])
+    const allowedKeys = new Set(['contact', 'initial', 'channels', 'allow_while_unavailable', 'states'])
     for (const key of Object.keys(conversation)) {
       if (!allowedKeys.has(key)) {
         collector.error('E_CONVERSATION_SHAPE', `Unknown conversation field '${key}'.`, base.concat(key))
@@ -1759,6 +1881,19 @@ function validateCapabilityVocabulary(
         'conversation.initial must be a state ID.',
         base.concat('initial'),
       )
+    }
+    if (conversation.contact !== undefined) {
+      if (
+        !isRecord(conversation.contact) ||
+        Object.keys(conversation.contact).length !== 1 ||
+        !['hidden', 'listed'].includes(String(conversation.contact.initial))
+      ) {
+        collector.error(
+          'E_CONVERSATION_CONTACT',
+          'conversation.contact requires exactly initial: hidden or initial: listed.',
+          base.concat('contact'),
+        )
+      }
     }
     if (!isRecord(conversation.states) || Object.keys(conversation.states).length === 0) {
       collector.error('E_CONVERSATION_SHAPE', 'conversation.states must be a non-empty map.', base.concat('states'))
@@ -2026,6 +2161,137 @@ function validateEmittedEventCycles(source: AnyRecord, collector: DiagnosticColl
   for (const event of [...edges.keys()].sort(compareCanonicalStrings)) visit(event, [])
 }
 
+function contactEffects(
+  effects: unknown,
+  conditional = false,
+): Array<{ actorId: string; state: 'hidden' | 'listed'; conditional: boolean }> {
+  if (!Array.isArray(effects)) return []
+  return effects.flatMap((effect) => {
+    if (!isRecord(effect)) return []
+    const direct = (
+      Array.isArray(effect.contact) &&
+      typeof effect.contact[0] === 'string' &&
+      (effect.contact[1] === 'hidden' || effect.contact[1] === 'listed')
+    )
+      ? [{ actorId: effect.contact[0], state: effect.contact[1], conditional }]
+      : []
+    return [...direct, ...contactEffects(effect.then, true)]
+  })
+}
+
+/**
+ * An initially hidden public contact must have a complete authored directory
+ * route. This intentionally validates only the structural contract: the case
+ * suite audit proves that the authored context note and offered lookup are
+ * simultaneously reachable before the contact is listed.
+ */
+function validateHiddenContactRoutes(source: AnyRecord, collector: DiagnosticCollector): void {
+  const cast = isRecord(source.cast) ? source.cast : {}
+  const authoredAffordances = mapEntries(source.affordances)
+  const reactions = Array.isArray(source.reactions) ? source.reactions.filter(isRecord) : []
+
+  for (const [actorId, conversation] of mapEntries(source.conversations)) {
+    if (!Object.hasOwn(cast, actorId) || isPrivateAuthoredEntity(cast[actorId])) continue
+    if (initialContactState(source.conversations, actorId) !== 'hidden') continue
+
+    const lookupAffordances = authoredAffordances.filter(([, affordance]) => {
+      const action = isRecord(affordance.action) ? affordance.action : undefined
+      const interaction = isRecord(affordance.interaction)
+        ? affordance.interaction
+        : undefined
+      return (
+        affordance.surface === 'inbox' &&
+        interaction?.kind === 'async-message' &&
+        action?.action === 'locate-contact' &&
+        action.target === actorId
+      )
+    })
+
+    if (lookupAffordances.length === 0) {
+      collector.error(
+        'E_HIDDEN_CONTACT_LOOKUP',
+        `Initially hidden public contact '${actorId}' requires an inbox async-message locate-contact affordance.`,
+        ['conversations', actorId, 'contact', 'initial'],
+      )
+    } else {
+      const routeChecks = lookupAffordances.map(([affordanceId, affordance]) => {
+        const action = affordance.action as AnyRecord
+        const expectedTrigger = compileAction('locate-contact', action)
+        const matchingReactions = reactions.filter((reaction) => {
+          if (!isRecord(reaction.on) || reaction.on.action !== 'locate-contact') return false
+          const actualTrigger = compileAction('locate-contact', reaction.on)
+          return hashCanonical(actualTrigger) === hashCanonical(expectedTrigger)
+        })
+        const listedEffects = matchingReactions
+          .flatMap((reaction) => contactEffects(reaction.do, reaction.when !== undefined))
+          .filter(({ state }) => state === 'listed')
+        const targetEffects = listedEffects.filter(({ actorId: listedActorId }) => listedActorId === actorId)
+        return {
+          affordanceId,
+          repeatable: affordance.once === false,
+          revealsTarget: targetEffects.some(({ conditional }) => !conditional),
+          conditionalTarget: targetEffects.some(({ conditional }) => conditional),
+          unrelatedActorIds: [...new Set(
+            listedEffects
+              .map(({ actorId: listedActorId }) => listedActorId)
+              .filter((id) => id !== actorId),
+          )].sort(),
+        }
+      })
+      const hasTargetEffect = routeChecks.some(({ revealsTarget, conditionalTarget }) => (
+        revealsTarget || conditionalTarget
+      ))
+      if (!hasTargetEffect) {
+        collector.error(
+          'E_HIDDEN_CONTACT_REVEAL',
+          `Contact lookup for '${actorId}' requires an exact action reaction that sets contact [${actorId}, listed].`,
+          ['affordances', lookupAffordances[0]![0], 'action'],
+        )
+      }
+      for (const route of routeChecks) {
+        if (route.repeatable) {
+          collector.error(
+            'E_CONTACT_LOOKUP_REPEATABLE',
+            `Contact lookup for '${actorId}' must be one-shot; omit 'once' or set it to true.`,
+            ['affordances', route.affordanceId, 'once'],
+          )
+        }
+        if (!route.revealsTarget && route.conditionalTarget) {
+          collector.error(
+            'E_CONTACT_LOOKUP_CONDITIONAL',
+            `Contact lookup for '${actorId}' must list its target unconditionally after acceptance.`,
+            ['affordances', route.affordanceId, 'action'],
+          )
+        }
+        if (!route.revealsTarget || route.unrelatedActorIds.length === 0) continue
+        collector.error(
+          'E_CONTACT_LOOKUP_AMBIGUOUS',
+          `Contact lookup for '${actorId}' also lists unrelated contacts (${route.unrelatedActorIds.join(', ')}); one lookup must reveal only its authored target.`,
+          ['affordances', route.affordanceId, 'action'],
+        )
+      }
+    }
+
+    const channels = isRecord(conversation.channels) ? conversation.channels : {}
+    for (const [affordanceId, affordance] of authoredAffordances) {
+      if (affordance.surface !== 'phone' || affordance.initial !== 'offered') continue
+      const action = isRecord(affordance.action) ? affordance.action : undefined
+      if (!action || typeof action.action !== 'string') continue
+      const actorField = channels[action.action]
+      if (
+        (actorField === 'actor' || actorField === 'target' || actorField === 'from') &&
+        action[actorField] === actorId
+      ) {
+        collector.error(
+          'E_HIDDEN_CONTACT_PHONE_OFFERED',
+          `Phone conversation affordance '${affordanceId}' targets initially hidden contact '${actorId}' and must not start offered.`,
+          ['affordances', affordanceId, 'initial'],
+        )
+      }
+    }
+  }
+}
+
 function validateCrossReferences(source: AnyRecord, collector: DiagnosticCollector): void {
   const assets = new Set(Object.keys(isRecord(source.assets) ? source.assets : {}))
   const cast = new Set(Object.keys(isRecord(source.cast) ? source.cast : {}))
@@ -2126,6 +2392,35 @@ function validateCrossReferences(source: AnyRecord, collector: DiagnosticCollect
         )
       }
     }
+    if (isRecord(affordance.interaction) && isRecord(affordance.interaction.context)) {
+      const context = affordance.interaction.context
+      if (context.kind === 'evidence') {
+        assertKnown(
+          collector,
+          context.ref,
+          evidence,
+          'E_UNKNOWN_EVIDENCE',
+          'evidence',
+          ['affordances', affordanceId, 'interaction', 'context', 'ref'],
+        )
+      } else if (context.kind === 'completed-affordance') {
+        assertKnown(
+          collector,
+          context.ref,
+          affordances,
+          'E_UNKNOWN_AFFORDANCE',
+          'affordance',
+          ['affordances', affordanceId, 'interaction', 'context', 'ref'],
+        )
+        if (context.ref === affordanceId) {
+          collector.error(
+            'E_AFFORDANCE_INTERACTION_CONTEXT',
+            'An async-message affordance cannot use itself as completed context.',
+            ['affordances', affordanceId, 'interaction', 'context', 'ref'],
+          )
+        }
+      }
+    }
   }
 
   for (const [actorId, conversation] of mapEntries(source.conversations)) {
@@ -2173,6 +2468,16 @@ function validateCrossReferences(source: AnyRecord, collector: DiagnosticCollect
         'actor',
         ['opening', 'call', 'from'],
       )
+      if (
+        typeof source.opening.call.from === 'string' &&
+        initialContactState(source.conversations, source.opening.call.from) === 'hidden'
+      ) {
+        collector.error(
+          'E_OPENING_CONTACT_HIDDEN',
+          'The opening caller must be initially listed.',
+          ['conversations', source.opening.call.from, 'contact', 'initial'],
+        )
+      }
     }
     for (const [index, id] of stringList(source.opening.grants).entries()) {
       assertKnown(collector, id, evidence, 'E_UNKNOWN_EVIDENCE', 'evidence', ['opening', 'grants', index])
@@ -2491,6 +2796,16 @@ function validateCrossReferences(source: AnyRecord, collector: DiagnosticCollect
             effectPath.concat('conversation', 1),
           )
         }
+      }
+      if (Array.isArray(effect.contact)) {
+        assertKnown(
+          collector,
+          effect.contact[0],
+          cast,
+          'E_UNKNOWN_ACTOR',
+          'actor',
+          effectPath.concat('contact', 0),
+        )
       }
       for (const key of ['mark', 'unmark', 'if-marked']) {
         if (effect[key] !== undefined) {
@@ -2919,6 +3234,7 @@ export function compileCaseSource(sourceText: string, options: CompileOptions = 
   validateAssessment(source, collector)
   validateEmittedEventCycles(source, collector)
   validateCrossReferences(source, collector)
+  validateHiddenContactRoutes(source, collector)
   if (collector.diagnostics.some((diagnostic) => diagnostic.severity === 'error')) {
     return { ok: false, diagnostics: collector.diagnostics }
   }
@@ -3014,7 +3330,7 @@ export function compileCaseSource(sourceText: string, options: CompileOptions = 
   const manifestWithoutIntegrity = canonicalize({
     schema: 'case-public/v0.2' as const,
     case: identity,
-    cast: buildPublicCast(source.cast),
+    cast: buildPublicCast(source.cast, source.conversations),
     places: buildPublicPlaces(source.places),
     assets: openingPublicAssets,
     opening: {

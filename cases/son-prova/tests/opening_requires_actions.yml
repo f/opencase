@@ -10,6 +10,12 @@ scenario:
     - expect:
         state:
           clocks: {case-time: 0s}
+          contacts:
+            ekin: listed
+            orhan: hidden
+            leyla: hidden
+            baran: hidden
+            selin: hidden
           evidence:
             threat_message: hidden
             automation_log: hidden
@@ -20,8 +26,12 @@ scenario:
             request_scene_report: offered
             request_automation_export: offered
             request_victim_phone: hidden
-            interview_baran_location: offered
-            interview_selin_alibi: offered
+            locate_baran_contact: offered
+            locate_selin_contact: offered
+            locate_leyla_contact: offered
+            interview_baran_location: hidden
+            interview_selin_alibi: hidden
+            interview_leyla: hidden
             search_remote_pairing: hidden
 
     - detective.observe: safety_report

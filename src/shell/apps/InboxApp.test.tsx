@@ -95,12 +95,12 @@ describe('InboxApp workspace', () => {
         body: 'Kaydı aldım.',
         timestampLabel: '14:34',
         direction: 'incoming',
-        attachment: {
+        attachments: [{
           id: 'camera-export',
           kind: 'video',
           label: 'Kamera dışa aktarımı',
           deliveryUrl: '/assets/camera.mp4',
-        },
+        }],
       }],
     }
 
@@ -117,5 +117,60 @@ describe('InboxApp workspace', () => {
     expect(html).toContain('Eki aç')
     expect(html).toContain('#forensics kanalına mesaj gönder')
     expect(html).toContain('aria-label="Gönder"')
+  })
+
+  it('renders image evidence as a Slack-style attachment that opens the viewer', () => {
+    const model: InboxViewModel = {
+      ...forensicsModel,
+      messages: [{
+        id: 'image-attachment',
+        author: 'Ece Aydın',
+        body: 'Kamera görüntüsünü de inceleme sonucuna ekledim.',
+        timestampLabel: '14:35',
+        direction: 'incoming',
+        attachments: [{
+          id: 'lobby-camera-still',
+          kind: 'image',
+          label: 'Lobi kamera kaydı',
+          description: 'Lobi kamerasından alınan doğrulanmış kare.',
+          deliveryUrl: '/assets/lobby-camera-still.png',
+        }],
+      }],
+    }
+
+    const html = renderToStaticMarkup(
+      <InboxApp model={model} onOpenAttachment={() => undefined} />,
+    )
+
+    expect(html).toContain('class="workspace-image-attachment"')
+    expect(html).toContain('src="/assets/lobby-camera-still.png"')
+    expect(html).toContain('alt="Lobi kamerasından alınan doğrulanmış kare."')
+    expect(html).toContain('Görsel eki · İnceleme kaydı')
+    expect(html).toContain('aria-label="Eki aç: Lobi kamera kaydı"')
+    expect(html).toContain('aria-haspopup="dialog"')
+  })
+
+  it('does not reveal attachments before a streamed reply finishes', () => {
+    const model: InboxViewModel = {
+      ...forensicsModel,
+      messages: [{
+        id: 'streaming-image',
+        author: 'Ece Aydın',
+        body: 'Görüntüyü kontrol ediyorum.',
+        timestampLabel: '14:36',
+        direction: 'incoming',
+        streaming: true,
+        attachments: [{
+          id: 'hidden-until-complete',
+          kind: 'image',
+          label: 'Henüz gösterilmemeli',
+          deliveryUrl: '/assets/hidden.png',
+        }],
+      }],
+    }
+
+    const html = renderToStaticMarkup(<InboxApp model={model} />)
+    expect(html).not.toContain('workspace-image-attachment')
+    expect(html).not.toContain('/assets/hidden.png')
   })
 })

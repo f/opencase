@@ -7,6 +7,8 @@ scenario:
   description: Optional interviews, a false accusation, and unfocused searches consume enough time for the pickup to happen.
   steps:
     - detective.act: {action: interview, actor: leyla}
+    - detective.act: {action: locate-contact, target: mert}
+    - detective.act: {action: locate-contact, target: nihan}
     - detective.act: {action: interview, actor: nihan}
     - detective.act: {action: interview, actor: mert, topic: location}
       expect:

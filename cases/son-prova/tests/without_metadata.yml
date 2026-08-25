@@ -9,12 +9,14 @@ scenario:
   steps:
     - expect:
         state:
+          contacts: {selin: hidden}
           evidence:
             livestream: hidden
             livestream_metadata: hidden
             livestream_history: hidden
           affordances:
-            interview_selin_alibi: offered
+            locate_selin_contact: offered
+            interview_selin_alibi: hidden
             search_livestream_history: hidden
             deduce_selin_alibi_false: hidden
           unknown_observations: [livestream_metadata.recorded_at]
@@ -26,6 +28,15 @@ scenario:
           clocks: {case-time: 0s}
           evidence: {livestream_history: hidden}
 
+    - detective.act: {action: locate-contact, target: selin}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 0s}
+          contacts: {selin: listed}
+          affordances:
+            locate_selin_contact: hidden
+            interview_selin_alibi: offered
     - detective.act: {action: interview, actor: selin, topic: alibi}
       expect:
         result: {status: accepted}

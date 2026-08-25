@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import casebookIcon from 'lucide-static/icons/notebook-pen.svg'
+import caseBoardIcon from 'lucide-static/icons/network.svg'
 import evidenceIcon from 'lucide-static/icons/file-search.svg'
 import filesIcon from 'lucide-static/icons/folder-open.svg'
 import inboxIcon from 'lucide-static/icons/messages-square.svg'
@@ -20,6 +21,7 @@ import {
 } from './shell'
 import {
   AssetViewerDialog,
+  CaseBoardApp,
   CaseDispatchApp,
   CasebookApp,
   EvidenceQuestionsRail,
@@ -28,11 +30,17 @@ import {
   PhoneApp,
   type AuthorizedAssetViewModel,
   type InboxViewModel,
+  type PhoneOpenContactRequest,
+  type PhoneOutgoingCallViewModel,
+  type PhoneViewModel,
   WebResearchApp,
 } from './shell/apps'
+import { createCaseBoardViewModel } from './shell/case-board-model'
+import { createCaseBoardPersistence } from './shell/case-board-state'
 import {
   appendForensicsRequest,
   clearForensicsWorkflow,
+  createAsyncForensicsRequest,
   createForensicsRequest,
   FORENSICS_LEAD_NAME,
   FORENSICS_LEAD_ROLE,
@@ -89,8 +97,18 @@ function desktopLayoutKey(manifest: ShellPublicCaseManifest): string {
   return `karanlik-oda:${manifest.case.id}:${manifest.case.version}:${PRIMARY_DEMO_SAVE_ID}:desktop-layout`
 }
 
-function forensicsWorkflowKey(manifest: ShellPublicCaseManifest): string {
-  return `karanlik-oda:${manifest.case.id}:${manifest.case.version}:${PRIMARY_DEMO_SAVE_ID}:forensics-workflow`
+function forensicsWorkflowKey(
+  manifest: ShellPublicCaseManifest,
+  assetSessionId: string,
+): string {
+  return `karanlik-oda:${manifest.case.id}:${manifest.case.version}:${PRIMARY_DEMO_SAVE_ID}:${assetSessionId}:forensics-workflow`
+}
+
+function caseBoardStateKey(
+  manifest: ShellPublicCaseManifest,
+  caseDigest: string,
+): string {
+  return `karanlik-oda:${manifest.case.id}:${manifest.case.version}:${caseDigest}:${PRIMARY_DEMO_SAVE_ID}:case-board`
 }
 
 function browserLocalStorage(): Storage | undefined {
@@ -133,6 +151,13 @@ function completedForensicsReply(
   snapshot: PublicCaseRuntimeState,
   request: ForensicsRequestRecord,
 ): string | undefined {
+  if (request.kind === 'async-interaction') {
+    return snapshot.completedAffordances
+      .find(({ id }) => id === request.affordanceId)
+      ?.result
+      ?.trim()
+      .slice(0, 12_000)
+  }
   const evidence = snapshot.evidence.find(({ id }) => id === request.evidenceId)
   if (!evidence?.observed) return undefined
 
@@ -146,13 +171,99 @@ function completedForensicsReply(
 }
 
 function forensicsRequestBody(request: ForensicsRequestRecord): string {
+  if (request.kind === 'async-interaction') return request.requestBody
   return `${FORENSICS_LEAD_NAME}, “${request.evidenceTitle}” kaydını incelemeye alır mısın? Görünen içeriği ve önemli ayrıntıları kontrol et.`
+}
+
+function forensicsRequestSubject(request: ForensicsRequestRecord): string {
+  return request.kind === 'async-interaction' ? request.subjectLabel : request.evidenceTitle
+}
+
+function revealedActor(
+  snapshot: PublicCaseRuntimeState,
+  request: ForensicsRequestRecord,
+): { readonly id: string; readonly name: string } | undefined {
+  if (request.kind !== 'async-interaction') return undefined
+  const completed = snapshot.completedAffordances.find(({ id }) => id === request.affordanceId)
+  const listedByCommand = completed?.contactsListed ?? []
+  if (listedByCommand.length !== 1) return undefined
+  const actor = snapshot.actors.find(({ id }) => id === listedByCommand[0])
+  if (!actor) return undefined
+  return {
+    id: actor.id,
+    name: actor.displayName?.trim() || actor.name?.trim() || 'Yeni kişi',
+  }
+}
+
+function completeForensicsRecord(
+  request: ForensicsRequestRecord,
+  snapshot: PublicCaseRuntimeState,
+  replyBody: string,
+  replyLabel: string,
+): ForensicsRequestRecord {
+  if (request.kind === 'evidence-review') {
+    return { ...request, status: 'complete', replyBody, replyLabel }
+  }
+  const actor = revealedActor(snapshot, request)
+  return {
+    ...request,
+    status: 'complete',
+    replyBody,
+    replyLabel,
+    ...(actor ? { revealedActorId: actor.id, revealedActorName: actor.name } : {}),
+  }
 }
 
 type IntentExecution =
   | { readonly kind: 'busy' }
   | { readonly kind: 'failed' }
   | { readonly kind: 'response'; readonly response: DemoCommandResponse }
+
+type PublicAffordance = PublicCaseRuntimeState['affordances'][number]
+type DemoActionIntent = Extract<DemoBrowserIntent, { readonly kind: 'action' }>
+type PhoneCallResultMatch =
+  | { readonly affordanceId: string }
+  | { readonly action: DemoActionIntent }
+
+export const OUTGOING_CALL_DIAL_MS = 900
+export const OUTGOING_CALL_SPEAK_MS = 2_400
+export const OUTGOING_CALL_END_MS = 320
+
+const ACTION_FIELDS = [
+  'action',
+  'target',
+  'actor',
+  'from',
+  'topic',
+  'evidence',
+  'tone',
+  'query',
+  'ref',
+] as const
+
+function sameAction(
+  completed: Extract<PublicAffordance['intent'], { readonly kind: 'action' }>['action'],
+  requested: DemoActionIntent,
+): boolean {
+  return ACTION_FIELDS.every((field) => completed[field] === requested[field])
+}
+
+function outgoingCallDurations(): {
+  readonly dialMs: number
+  readonly speakMs: number
+  readonly endMs: number
+} {
+  const reduceMotion = typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  return reduceMotion
+    ? { dialMs: 80, speakMs: 240, endMs: 80 }
+    : {
+        dialMs: OUTGOING_CALL_DIAL_MS,
+        speakMs: OUTGOING_CALL_SPEAK_MS,
+        endMs: OUTGOING_CALL_END_MS,
+      }
+}
 
 function playerCommandError(code: string): string {
   const messages: Record<string, string> = {
@@ -169,6 +280,42 @@ function playerCommandError(code: string): string {
     'case-ended': 'Bu vaka kapandı. Yeni bir hamle yapılamaz.',
   }
   return messages[code] ?? 'Bu hamle şu anda yapılamıyor.'
+}
+
+function outgoingCallOutcome(
+  execution: IntentExecution,
+  completedBefore: number,
+  match: PhoneCallResultMatch,
+): { readonly successful: boolean; readonly result: string } {
+  if (execution.kind === 'busy') {
+    return { successful: false, result: 'Hat şu anda başka bir işlemle meşgul. Biraz sonra tekrar ara.' }
+  }
+  if (execution.kind === 'failed') {
+    return { successful: false, result: 'Arama tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.' }
+  }
+  if (!execution.response.ok) {
+    return {
+      successful: false,
+      result: playerCommandError(execution.response.error.code),
+    }
+  }
+  const matchingResults = execution.response.snapshot.completedAffordances
+    .slice(completedBefore)
+    .filter((completed) => (
+      completed.surface === 'phone'
+      && Boolean(completed.result?.trim())
+      && ('affordanceId' in match
+        ? completed.id === match.affordanceId
+        : completed.intent.kind === 'action' && sameAction(completed.intent.action, match.action))
+    ))
+  const latestPhoneResult = matchingResults
+    .at(-1)
+    ?.result
+    ?.trim()
+  return {
+    successful: true,
+    result: latestPhoneResult || 'Görüşme tamamlandı. Yeni bilgiler vaka notlarına işlendi.',
+  }
 }
 
 function localizedManifestUrl(
@@ -224,7 +371,10 @@ function CaseDesktop({
   onCommand,
   onRestart,
 }: CaseDesktopProps) {
-  const workflowKey = useMemo(() => forensicsWorkflowKey(manifest), [manifest])
+  const workflowKey = useMemo(
+    () => forensicsWorkflowKey(manifest, assetSessionId),
+    [assetSessionId, manifest],
+  )
   const [selection, setSelection] = useState<ManifestWorkspaceSelection>({
     query: '',
     replyDraft: '',
@@ -236,6 +386,16 @@ function CaseDesktop({
     readonly requestId: string
     readonly endsAtWallMs: number
   }>()
+  const [seenContactIds, setSeenContactIds] = useState<readonly string[]>([])
+  const [phoneOpenContactRequest, setPhoneOpenContactRequest] = useState<PhoneOpenContactRequest>()
+  const phoneOpenNonceRef = useRef(0)
+  const [outgoingPhoneCall, setOutgoingPhoneCall] = useState<PhoneOutgoingCallViewModel>()
+  const outgoingPhoneCallRef = useRef<PhoneOutgoingCallViewModel | undefined>(undefined)
+  const outgoingPhoneCallSessionRef = useRef(0)
+  const outgoingPhoneCallTimersRef = useRef(new Map<number, () => void>())
+  const outgoingPhoneCallCommandStartedRef = useRef(false)
+  const pendingPhoneFollowUpAppRef = useRef<string | undefined>(undefined)
+  const pendingPhoneFollowUpNoticeRef = useRef<string | undefined>(undefined)
   const [commandBusy, setCommandBusy] = useState(false)
   const commandBusyRef = useRef(false)
   const forensicsInFlightRef = useRef(new Set<string>())
@@ -268,17 +428,71 @@ function CaseDesktop({
         : []
     )),
   ))
+  const knownContactActionAffordancesRef = useRef(new Set(
+    snapshot.affordances.flatMap((affordance) => (
+      affordance.surface === 'inbox' && affordance.interaction?.kind === 'async-message'
+        ? [affordance.id]
+        : []
+    )),
+  ))
   const focusApp = useCallback((appId: string) => {
     focusNonceRef.current += 1
     setFocusRequest({ appId, nonce: focusNonceRef.current })
   }, [])
 
+  const updateOutgoingPhoneCall = useCallback((next: PhoneOutgoingCallViewModel | undefined) => {
+    outgoingPhoneCallRef.current = next
+    setOutgoingPhoneCall(next)
+  }, [])
+
+  const waitForOutgoingCall = useCallback((milliseconds: number): Promise<void> => (
+    new Promise((resolve) => {
+      const finish = () => {
+        outgoingPhoneCallTimersRef.current.delete(timer)
+        resolve()
+      }
+      const timer = window.setTimeout(finish, milliseconds)
+      outgoingPhoneCallTimersRef.current.set(timer, finish)
+    })
+  ), [])
+
+  const cancelOutgoingPhoneCall = useCallback(() => {
+    outgoingPhoneCallSessionRef.current += 1
+    for (const [timer, finish] of outgoingPhoneCallTimersRef.current) {
+      window.clearTimeout(timer)
+      finish()
+    }
+    outgoingPhoneCallTimersRef.current.clear()
+    if (outgoingPhoneCallRef.current && !outgoingPhoneCallCommandStartedRef.current) {
+      commandBusyRef.current = false
+      setCommandBusy(false)
+    }
+    outgoingPhoneCallCommandStartedRef.current = false
+    pendingPhoneFollowUpAppRef.current = undefined
+    pendingPhoneFollowUpNoticeRef.current = undefined
+    updateOutgoingPhoneCall(undefined)
+  }, [updateOutgoingPhoneCall])
+
   useEffect(() => {
     desktopMountedRef.current = true
     return () => {
       desktopMountedRef.current = false
+      outgoingPhoneCallSessionRef.current += 1
+      for (const [timer, finish] of outgoingPhoneCallTimersRef.current) {
+        window.clearTimeout(timer)
+        finish()
+      }
+      outgoingPhoneCallTimersRef.current.clear()
     }
   }, [])
+
+  const phoneRunKey = `${manifest.case.id}:${runEpoch}`
+  const previousPhoneRunKeyRef = useRef(phoneRunKey)
+  useEffect(() => {
+    if (previousPhoneRunKeyRef.current === phoneRunKey) return
+    previousPhoneRunKeyRef.current = phoneRunKey
+    cancelOutgoingPhoneCall()
+  }, [cancelOutgoingPhoneCall, phoneRunKey])
 
   useEffect(() => {
     writeForensicsWorkflow(browserLocalStorage(), workflowKey, forensicsWorkflow)
@@ -295,12 +509,16 @@ function CaseDesktop({
       selectedEvidenceId: added[0].id,
       selectedRecordId: added[0].id,
     }))
-    setCommandNotice(
-      added.length === 1
-        ? `${added[0].title ?? 'Yeni kanıt'} Finder'a eklendi.`
-        : `${added.length} yeni kanıt Finder'a eklendi.`,
-    )
-    focusApp('files')
+    const notice = added.length === 1
+      ? `${added[0].title ?? 'Yeni kanıt'} Finder'a eklendi.`
+      : `${added.length} yeni kanıt Finder'a eklendi.`
+    if (outgoingPhoneCallRef.current) {
+      pendingPhoneFollowUpAppRef.current = 'files'
+      pendingPhoneFollowUpNoticeRef.current = notice
+    } else {
+      setCommandNotice(notice)
+      focusApp('files')
+    }
   }, [focusApp, snapshot.evidence])
 
   useEffect(() => {
@@ -314,12 +532,43 @@ function CaseDesktop({
     knownDispatchAffordancesRef.current = currentIds
     if (added.length === 0) return
 
-    setCommandNotice(
-      added.length === 1
-        ? 'Dosya İşlemleri’nde yeni bir onay bekliyor.'
-        : `Dosya İşlemleri’nde ${added.length} yeni onay bekliyor.`,
-    )
-    focusApp('case-dispatch')
+    const notice = added.length === 1
+      ? 'Dosya İşlemleri’nde yeni bir onay bekliyor.'
+      : `Dosya İşlemleri’nde ${added.length} yeni onay bekliyor.`
+    if (outgoingPhoneCallRef.current) {
+      pendingPhoneFollowUpAppRef.current = 'case-dispatch'
+      pendingPhoneFollowUpNoticeRef.current = notice
+    } else {
+      setCommandNotice(notice)
+      focusApp('case-dispatch')
+    }
+  }, [focusApp, snapshot.affordances])
+
+  useEffect(() => {
+    const current = snapshot.affordances.flatMap((affordance) => (
+      affordance.surface === 'inbox' && affordance.interaction?.kind === 'async-message'
+        ? [affordance]
+        : []
+    ))
+    const currentIds = new Set(current.map(({ id }) => id))
+    const added = current.filter(({ id }) => !knownContactActionAffordancesRef.current.has(id))
+    knownContactActionAffordancesRef.current = currentIds
+    if (added.length === 0) return
+
+    setSelection((currentSelection) => ({
+      ...currentSelection,
+      selectedEntryId: undefined,
+    }))
+    const notice = added.length === 1
+      ? 'Vaka Notları’nda yeni bir kişi araştırması hazır.'
+      : `Vaka Notları’nda ${added.length} yeni kişi araştırması hazır.`
+    if (outgoingPhoneCallRef.current) {
+      pendingPhoneFollowUpAppRef.current = 'casebook'
+      pendingPhoneFollowUpNoticeRef.current = notice
+    } else {
+      setCommandNotice(notice)
+      focusApp('casebook')
+    }
   }, [focusApp, snapshot.affordances])
 
   useEffect(() => {
@@ -330,10 +579,31 @@ function CaseDesktop({
     }
   }, [snapshot.outcome?.id])
 
+  const contactActionStatuses = useMemo(() => {
+    const statuses: Record<string, 'pending' | 'completed'> = {}
+    for (const request of forensicsWorkflow.requests) {
+      if (request.kind !== 'async-interaction') continue
+      if (request.status === 'waiting') statuses[request.affordanceId] = 'pending'
+      if (request.status === 'complete') statuses[request.affordanceId] = 'completed'
+    }
+    return statuses
+  }, [forensicsWorkflow.requests])
+  const newContactIds = useMemo(() => forensicsWorkflow.requests.flatMap((request) => (
+    request.kind === 'async-interaction'
+    && request.status === 'complete'
+    && request.revealedActorId
+    && !seenContactIds.includes(request.revealedActorId)
+      ? [request.revealedActorId]
+      : []
+  )), [forensicsWorkflow.requests, seenContactIds])
   const models = useMemo(
     () => createManifestWorkspaceModels(
       manifest,
-      selection,
+      {
+        ...selection,
+        contactActionStatuses,
+        newContactIds,
+      },
       snapshot,
       (asset) => createDemoAssetUrl({
         caseId: snapshot.case.id,
@@ -344,18 +614,23 @@ function CaseDesktop({
         caseDigest: snapshot.case.digest,
       }, asset.id),
     ),
-    [assetSessionId, manifest, selection, snapshot],
+    [assetSessionId, contactActionStatuses, manifest, newContactIds, selection, snapshot],
   )
-  const openAsset = useMemo<AuthorizedAssetViewModel | undefined>(() => {
-    if (!openAssetId) return undefined
-    for (const record of models.files.records) {
-      const asset = record.assets.find(({ id }) => id === openAssetId)
-      if (asset) return asset
-    }
-    return models.inbox.messages
-      .map(({ attachment }) => attachment)
-      .find((attachment): attachment is AuthorizedAssetViewModel => attachment?.id === openAssetId)
-  }, [models.files.records, models.inbox.messages, openAssetId])
+  const phoneModel = useMemo<PhoneViewModel>(() => (
+    outgoingPhoneCall ? { ...models.phone, outgoingCall: outgoingPhoneCall } : models.phone
+  ), [models.phone, outgoingPhoneCall])
+  const caseBoardKey = useMemo(
+    () => caseBoardStateKey(manifest, snapshot.case.digest),
+    [manifest, snapshot.case.digest],
+  )
+  const caseBoardPersistence = useMemo(
+    () => createCaseBoardPersistence(caseBoardKey),
+    [caseBoardKey],
+  )
+  const caseBoardModel = useMemo(
+    () => createCaseBoardViewModel(manifest.case.title, models.phone, models.files),
+    [manifest.case.title, models.files, models.phone],
+  )
   const layoutPersistence = useMemo(
     () => createLocalStorageLayoutPersistence(desktopLayoutKey(manifest)),
     [manifest.case.id, manifest.case.version],
@@ -364,52 +639,65 @@ function CaseDesktop({
     key: Key,
     value: ManifestWorkspaceSelection[Key],
   ) => setSelection((current) => ({ ...current, [key]: value }))
-  const executeIntent = useCallback(async (intent: DemoBrowserIntent): Promise<IntentExecution> => {
-    if (commandBusyRef.current) return { kind: 'busy' }
-    commandBusyRef.current = true
-    setCommandBusy(true)
+  const executeIntent = useCallback(async (
+    intent: DemoBrowserIntent,
+    options: {
+      readonly silent?: boolean
+      readonly outgoingCallSessionId?: number
+    } = {},
+  ): Promise<IntentExecution> => {
+    const ownsOutgoingCallReservation = options.outgoingCallSessionId !== undefined
+      && outgoingPhoneCallRef.current?.sessionId === options.outgoingCallSessionId
+    if (commandBusyRef.current && !ownsOutgoingCallReservation) return { kind: 'busy' }
+    if (!commandBusyRef.current) {
+      commandBusyRef.current = true
+      setCommandBusy(true)
+    }
     setCommandNotice(undefined)
     try {
       const result = await onCommand(intent)
       if (!result.ok) {
-        setCommandNotice(playerCommandError(result.error.code))
+        if (!options.silent) setCommandNotice(playerCommandError(result.error.code))
         return { kind: 'response', response: result }
       }
-      if (intent.kind === 'observe') {
-        const title = snapshot.evidence.find(({ id }) => id === intent.evidenceId)?.title
-        setCommandNotice(`${title ?? 'Kanıt'} incelendi. Bulgular Vaka Notları'na eklendi.`)
-      } else if (intent.kind === 'deduce') {
-        setCommandNotice('Çıkarım kanıtlarla doğrulandı.')
-      } else {
-        setCommandNotice('İşlem tamamlandı. Yeni bilgiler Vaka Notları’na işlendi.')
+      if (!options.silent) {
+        if (intent.kind === 'observe') {
+          const title = snapshot.evidence.find(({ id }) => id === intent.evidenceId)?.title
+          setCommandNotice(`${title ?? 'Kanıt'} incelendi. Bulgular Vaka Notları'na eklendi.`)
+        } else if (intent.kind === 'deduce') {
+          setCommandNotice('Çıkarım kanıtlarla doğrulandı.')
+        } else {
+          setCommandNotice('İşlem tamamlandı. Yeni bilgiler Vaka Notları’na işlendi.')
+        }
       }
       return { kind: 'response', response: result }
     } catch {
-      setCommandNotice('İşlem tamamlanamadı. Tekrar deneyin.')
+      if (!options.silent) setCommandNotice('İşlem tamamlanamadı. Tekrar deneyin.')
       return { kind: 'failed' }
     } finally {
       commandBusyRef.current = false
-      setCommandBusy(false)
+      if (desktopMountedRef.current) setCommandBusy(false)
     }
   }, [onCommand, snapshot.evidence])
-  const dispatchIntent = useCallback(async (intent: DemoBrowserIntent): Promise<boolean> => {
-    const execution = await executeIntent(intent)
-    return execution.kind === 'response' && execution.response.ok
-  }, [executeIntent])
-  const dispatchAffordance = useCallback(async (affordanceId: string): Promise<boolean> => {
+  const executeAffordance = useCallback(async (affordanceId: string): Promise<IntentExecution> => {
     const affordance = snapshot.affordances.find(({ id }) => id === affordanceId)
     if (!affordance) {
       setCommandNotice('Bu hamle artık kullanılabilir değil.')
-      return false
+      return { kind: 'failed' }
     }
-    const accepted = await (affordance.intent.kind === 'deduce'
-      ? dispatchIntent(affordance.intent)
-      : dispatchIntent({ kind: 'action', ...affordance.intent.action }))
-    if (accepted && affordance.surface === 'casebook' && affordance.intent.kind === 'action') {
+    return affordance.intent.kind === 'deduce'
+      ? executeIntent(affordance.intent)
+      : executeIntent({ kind: 'action', ...affordance.intent.action })
+  }, [executeIntent, snapshot.affordances])
+  const dispatchAffordance = useCallback(async (affordanceId: string): Promise<boolean> => {
+    const affordance = snapshot.affordances.find(({ id }) => id === affordanceId)
+    const execution = await executeAffordance(affordanceId)
+    const accepted = execution.kind === 'response' && execution.response.ok
+    if (accepted && affordance?.surface === 'casebook' && affordance.intent.kind === 'action') {
       setCommandNotice('İşlem iletildi. Sonuç vaka dosyasına kaydedildi.')
     }
     return accepted
-  }, [dispatchIntent, snapshot.affordances])
+  }, [executeAffordance, snapshot.affordances])
   const requestAffordance = useCallback(async (affordanceId: string): Promise<boolean> => {
     const affordance = snapshot.affordances.find(({ id }) => id === affordanceId)
     if (!affordance) {
@@ -423,25 +711,145 @@ function CaseDesktop({
     return dispatchAffordance(affordanceId)
   }, [dispatchAffordance, snapshot.affordances])
 
+  const startOutgoingPhoneCall = useCallback((
+    contactId: string,
+    actionLabel: string,
+    resultMatch: PhoneCallResultMatch,
+    execute: (sessionId: number) => Promise<IntentExecution>,
+  ) => {
+    if (outgoingPhoneCallRef.current) {
+      setCommandNotice('Önce devam eden görüşmeyi tamamla.')
+      return
+    }
+    if (commandBusyRef.current) {
+      setCommandNotice('Hat şu anda başka bir işlemle meşgul. Biraz sonra tekrar ara.')
+      return
+    }
+    const contact = models.phone.contacts.find(({ id }) => id === contactId)
+    if (!contact) {
+      setCommandNotice('Bu kişi artık telefon rehberinde görünmüyor.')
+      return
+    }
+
+    const sessionId = outgoingPhoneCallSessionRef.current + 1
+    outgoingPhoneCallSessionRef.current = sessionId
+    outgoingPhoneCallCommandStartedRef.current = false
+    pendingPhoneFollowUpAppRef.current = undefined
+    pendingPhoneFollowUpNoticeRef.current = undefined
+    const initialCall: PhoneOutgoingCallViewModel = {
+      sessionId,
+      phase: 'dialing',
+      contactId,
+      contactName: contact.name,
+      ...(contact.roleLabel ? { roleLabel: contact.roleLabel } : {}),
+      actionLabel,
+    }
+    commandBusyRef.current = true
+    setCommandBusy(true)
+    updateOutgoingPhoneCall(initialCall)
+    setSelection((current) => ({ ...current, selectedContactId: contactId }))
+    setCommandNotice(undefined)
+    focusApp('phone')
+
+    const { dialMs, speakMs, endMs } = outgoingCallDurations()
+    const completedBefore = snapshot.completedAffordances.length
+    void (async () => {
+      await waitForOutgoingCall(dialMs)
+      if (outgoingPhoneCallSessionRef.current !== sessionId) return
+      updateOutgoingPhoneCall({ ...initialCall, phase: 'speaking' })
+
+      outgoingPhoneCallCommandStartedRef.current = true
+      const executionPromise = execute(sessionId).finally(() => {
+        if (outgoingPhoneCallSessionRef.current === sessionId) {
+          outgoingPhoneCallCommandStartedRef.current = false
+        }
+      })
+      const [, execution] = await Promise.all([
+        waitForOutgoingCall(speakMs),
+        executionPromise,
+      ])
+      if (outgoingPhoneCallSessionRef.current !== sessionId) return
+      const outcome = outgoingCallOutcome(execution, completedBefore, resultMatch)
+      updateOutgoingPhoneCall({
+        ...initialCall,
+        phase: 'ending',
+        ...outcome,
+      })
+
+      await waitForOutgoingCall(endMs)
+      if (outgoingPhoneCallSessionRef.current !== sessionId) return
+      updateOutgoingPhoneCall({
+        ...initialCall,
+        phase: 'result',
+        ...outcome,
+      })
+    })()
+  }, [focusApp, models.phone.contacts, snapshot.completedAffordances.length, updateOutgoingPhoneCall, waitForOutgoingCall])
+
+  const startPhoneAffordance = useCallback((affordance: PublicAffordance): boolean => {
+    if (affordance.surface !== 'phone' || affordance.intent.kind !== 'action') return false
+    const actionIntent = affordance.intent.action
+    const contactId = actionIntent.actor ?? actionIntent.from ?? actionIntent.target
+    if (!contactId || !models.phone.contacts.some(({ id }) => id === contactId)) return false
+
+    startOutgoingPhoneCall(
+      contactId,
+      affordance.label?.trim() || 'Görüşme',
+      { affordanceId: affordance.id },
+      (sessionId) => executeIntent(
+        { kind: 'action', ...actionIntent },
+        { silent: true, outgoingCallSessionId: sessionId },
+      ),
+    )
+    return true
+  }, [executeIntent, models.phone.contacts, startOutgoingPhoneCall])
+
+  const dismissOutgoingPhoneCall = useCallback(() => {
+    const completedCall = outgoingPhoneCallRef.current
+    if (completedCall?.phase !== 'result') return
+    outgoingPhoneCallSessionRef.current += 1
+    updateOutgoingPhoneCall(undefined)
+    const followUpApp = pendingPhoneFollowUpAppRef.current
+    const followUpNotice = pendingPhoneFollowUpNoticeRef.current
+    pendingPhoneFollowUpAppRef.current = undefined
+    pendingPhoneFollowUpNoticeRef.current = undefined
+    if (followUpNotice) setCommandNotice(followUpNotice)
+    if (followUpApp) {
+      focusApp(followUpApp)
+    } else {
+      phoneOpenNonceRef.current += 1
+      setPhoneOpenContactRequest({
+        contactId: completedCall.contactId,
+        nonce: phoneOpenNonceRef.current,
+      })
+    }
+  }, [focusApp, updateOutgoingPhoneCall])
+
   useEffect(() => {
     const evidenceIds = new Set(snapshot.evidence.map(({ id }) => id))
     const replyLabel = caseClockLabel(manifest, snapshot.clocks.caseTimeMs)
     setForensicsWorkflow((current) => {
       let changed = false
       const requests = current.requests.flatMap((request) => {
-        if (!evidenceIds.has(request.evidenceId)) {
+        if (request.kind === 'evidence-review' && !evidenceIds.has(request.evidenceId)) {
           changed = true
           return []
         }
         const replyBody = completedForensicsReply(snapshot, request)
-        if (!replyBody || (request.status === 'complete' && request.replyBody)) return [request]
+        if (!replyBody) return [request]
+        const actor = revealedActor(snapshot, request)
+        if (
+          request.status === 'complete'
+          && request.replyBody
+          && (request.kind === 'evidence-review' || request.revealedActorId || !actor)
+        ) return [request]
         changed = true
-        return [{
-          ...request,
-          status: 'complete' as const,
+        return [completeForensicsRecord(
+          request,
+          snapshot,
           replyBody,
-          replyLabel: request.replyLabel ?? replyLabel,
-        }]
+          request.replyLabel ?? replyLabel,
+        )]
       })
       return changed ? { ...current, requests } : current
     })
@@ -465,7 +873,10 @@ function CaseDesktop({
       }
 
       forensicsInFlightRef.current.add(request.id)
-      void executeIntent({ kind: 'observe', evidenceId: request.evidenceId })
+      const executionPromise = request.kind === 'evidence-review'
+        ? executeIntent({ kind: 'observe', evidenceId: request.evidenceId })
+        : executeAffordance(request.affordanceId)
+      void executionPromise
         .then((execution) => {
           if (!desktopMountedRef.current) return
           if (execution.kind === 'busy') {
@@ -474,28 +885,34 @@ function CaseDesktop({
           }
 
           const response = execution.kind === 'response' ? execution.response : undefined
-          const replyBody = response ? completedForensicsReply(response.snapshot, request) : undefined
-          const alreadyObserved = response && !response.ok
+          const responseSnapshot = response?.snapshot ?? snapshot
+          const replyBody = completedForensicsReply(responseSnapshot, request)
+          const alreadyResolved = request.kind === 'evidence-review' && response && !response.ok
             ? response.error.code === 'evidence-already-observed' && Boolean(replyBody)
-            : false
+            : request.kind === 'async-interaction' && Boolean(replyBody)
 
-          if (response && (response.ok || alreadyObserved) && replyBody) {
-            const replyLabel = caseClockLabel(manifest, response.snapshot.clocks.caseTimeMs)
-            setForensicsWorkflow((current) => updateForensicsRequest(current, request.id, (item) => ({
-              ...item,
-              status: 'complete',
-              replyBody,
-              replyLabel,
-            })))
+          if ((response?.ok || alreadyResolved) && replyBody) {
+            const replyLabel = caseClockLabel(manifest, responseSnapshot.clocks.caseTimeMs)
+            setForensicsWorkflow((current) => updateForensicsRequest(
+              current,
+              request.id,
+              (item) => completeForensicsRecord(item, responseSnapshot, replyBody, replyLabel),
+            ))
             setStreamingForensicsReply({
               requestId: request.id,
               endsAtWallMs: Date.now() + forensicsReplyDurationMs(replyBody),
             })
-            setCommandNotice(`${request.evidenceTitle} incelemesi tamamlandı. ${FORENSICS_LEAD_NAME} bulguları paylaştı.`)
+            setCommandNotice(
+              request.kind === 'evidence-review'
+                ? `${request.evidenceTitle} incelemesi tamamlandı. ${FORENSICS_LEAD_NAME} bulguları paylaştı.`
+                : `${request.subjectLabel} tamamlandı. ${FORENSICS_LEAD_NAME} doğrulanmış kaydı paylaştı.`,
+            )
             return
           }
 
-          const failureBody = 'İncelemeyi tamamlayamadım. Kaydı yeniden gönderebilir misin?'
+          const failureBody = request.kind === 'evidence-review'
+            ? 'İncelemeyi tamamlayamadım. Kaydı yeniden gönderebilir misin?'
+            : 'İletişim kaydını doğrulayamadım. İsteği yeniden gönderebilir misin?'
           setForensicsWorkflow((current) => updateForensicsRequest(current, request.id, (item) => ({
             ...item,
             status: 'failed',
@@ -519,7 +936,7 @@ function CaseDesktop({
     return () => {
       if (retryTimer !== undefined) window.clearTimeout(retryTimer)
     }
-  }, [executeIntent, manifest, pendingForensicsRequest, snapshot.clocks.caseTimeMs])
+  }, [executeAffordance, executeIntent, manifest, pendingForensicsRequest, snapshot])
 
   useEffect(() => {
     if (!streamingForensicsReply) return
@@ -563,6 +980,59 @@ function CaseDesktop({
     setCommandNotice(`${record.title} inceleme için ${FORENSICS_LEAD_NAME}'a gönderildi.`)
   }, [focusApp, manifest, models.files.records, pendingForensicsRequest, snapshot.clocks.caseTimeMs, streamingForensicsReply])
 
+  const requestAsyncForensicsAction = useCallback((affordanceId: string) => {
+    const affordance = snapshot.affordances.find(({ id }) => id === affordanceId)
+    const interaction = affordance?.interaction
+    if (
+      !affordance
+      || affordance.surface !== 'inbox'
+      || interaction?.kind !== 'async-message'
+      || !interaction.request?.trim()
+    ) {
+      setCommandNotice('Bu araştırma isteği artık kullanılamıyor.')
+      return
+    }
+
+    setSelection((current) => ({ ...current, selectedThreadId: FORENSICS_THREAD_ID }))
+    focusApp('inbox')
+    if (pendingForensicsRequest || streamingForensicsReply) {
+      setCommandNotice(`${FORENSICS_LEAD_NAME} mevcut isteği tamamlıyor.`)
+      return
+    }
+
+    const requestedAtWallMs = Date.now()
+    const subjectLabel = affordance.label?.trim() || 'İletişim kaydını bul'
+    const request = createAsyncForensicsRequest({
+      affordanceId,
+      subjectLabel,
+      requestBody: interaction.request.trim(),
+      requestedAtWallMs,
+      requestedAtCaseMs: snapshot.clocks.caseTimeMs,
+      requestedLabel: caseClockLabel(manifest, snapshot.clocks.caseTimeMs),
+    })
+    setForensicsWorkflow((current) => appendForensicsRequest(current, request))
+    setCommandNotice(`${subjectLabel} isteği ${FORENSICS_LEAD_NAME}'a gönderildi.`)
+  }, [focusApp, manifest, pendingForensicsRequest, snapshot, streamingForensicsReply])
+
+  const openDiscoveredContact = useCallback((requestId: string) => {
+    const request = forensicsWorkflow.requests.find(({ id }) => id === requestId)
+    if (
+      request?.kind !== 'async-interaction'
+      || request.status !== 'complete'
+      || !request.revealedActorId
+    ) return
+    setSeenContactIds((current) => (
+      current.includes(request.revealedActorId!) ? current : [...current, request.revealedActorId!]
+    ))
+    setSelection((current) => ({ ...current, selectedContactId: request.revealedActorId }))
+    phoneOpenNonceRef.current += 1
+    setPhoneOpenContactRequest({
+      contactId: request.revealedActorId,
+      nonce: phoneOpenNonceRef.current,
+    })
+    focusApp('phone')
+  }, [focusApp, forensicsWorkflow.requests])
+
   const inboxModel = useMemo<InboxViewModel>(() => {
     const baseThreads = models.inbox.threads.map((thread) => ({
       ...thread,
@@ -578,7 +1048,7 @@ function CaseDesktop({
       id: FORENSICS_THREAD_ID,
       channelId: 'forensics',
       sender: FORENSICS_LEAD_NAME,
-      subject: 'Adli inceleme',
+      subject: latestRequest ? forensicsRequestSubject(latestRequest) : 'Adli inceleme',
       preview,
       timestampLabel: latestRequest?.replyLabel ?? latestRequest?.requestedLabel ?? 'Şimdi',
       unread: !forensicsSelected && latestRequest?.status === 'complete',
@@ -595,7 +1065,12 @@ function CaseDesktop({
         direction: 'outgoing' as const,
       }
       if (!request.replyBody) return [requestMessage]
-      return [requestMessage, {
+      const streaming = streamingForensicsReply?.requestId === request.id
+      const reviewedRecord = request.kind === 'evidence-review'
+        ? models.files.records.find(({ id }) => id === request.evidenceId)
+        : undefined
+      const reviewedImages = reviewedRecord?.assets.filter(({ kind }) => kind === 'image') ?? []
+      const replyMessage = {
         id: `${request.id}:reply`,
         author: FORENSICS_LEAD_NAME,
         roleLabel: FORENSICS_LEAD_ROLE,
@@ -603,7 +1078,34 @@ function CaseDesktop({
         body: request.replyBody,
         timestampLabel: request.replyLabel ?? request.requestedLabel,
         direction: 'incoming' as const,
-        streaming: streamingForensicsReply?.requestId === request.id,
+        streaming,
+        ...(reviewedImages.length > 0 ? {
+          attachments: reviewedImages.map((image) => ({
+            ...image,
+            label: request.kind === 'evidence-review' ? request.evidenceTitle : image.label,
+            ...(reviewedRecord?.summary || image.description
+              ? { description: reviewedRecord?.summary || image.description }
+              : {}),
+          })),
+        } : {}),
+      }
+      if (
+        streaming
+        || request.kind !== 'async-interaction'
+        || !request.revealedActorId
+        || !request.revealedActorName
+      ) return [requestMessage, replyMessage]
+      return [requestMessage, replyMessage, {
+        id: `${request.id}:contact-added`,
+        author: 'Sistem',
+        body: `${request.revealedActorName} Kişiler’e eklendi.`,
+        timestampLabel: request.replyLabel ?? request.requestedLabel,
+        direction: 'system' as const,
+        cta: {
+          id: request.id,
+          label: `${request.revealedActorName} kişisini iPhone’da aç`,
+          accessibleLabel: `${request.revealedActorName} kişi kartını iPhone’da aç`,
+        },
       }]
     })
     return {
@@ -627,7 +1129,7 @@ function CaseDesktop({
           id: 'forensics',
           label: 'forensics',
           threadId: FORENSICS_THREAD_ID,
-          topic: 'Dijital ve fiziksel kanıt incelemeleri',
+          topic: 'Kanıt incelemeleri ve doğrulanmış iletişim kayıtları',
           ...(!forensicsSelected && latestRequest?.status === 'complete' ? { unreadCount: 1 } : {}),
         },
         {
@@ -659,7 +1161,24 @@ function CaseDesktop({
       messages: forensicsSelected ? forensicsMessages : models.inbox.messages,
       typingAuthor: forensicsSelected && pendingForensicsRequest ? FORENSICS_LEAD_NAME : undefined,
     }
-  }, [caseChannelName, forensicsWorkflow.requests, models.inbox, pendingForensicsRequest, selection.selectedThreadId, streamingForensicsReply])
+  }, [caseChannelName, forensicsWorkflow.requests, models.files.records, models.inbox, pendingForensicsRequest, selection.selectedThreadId, streamingForensicsReply])
+
+  const openAsset = useMemo<AuthorizedAssetViewModel | undefined>(() => {
+    if (!openAssetId) return undefined
+    const messageAsset = inboxModel.messages
+      .flatMap(({ attachments }) => attachments ?? [])
+      .find(({ id }) => id === openAssetId)
+    if (messageAsset) return messageAsset
+    const boardAsset = caseBoardModel.pins.flatMap((pin) => (
+      pin.kind === 'evidence' ? [pin.asset] : []
+    )).find(({ id }) => id === openAssetId)
+    if (boardAsset) return boardAsset
+    for (const record of models.files.records) {
+      const asset = record.assets.find(({ id }) => id === openAssetId)
+      if (asset) return asset
+    }
+    return undefined
+  }, [caseBoardModel.pins, inboxModel.messages, models.files.records, openAssetId])
 
   const apps = useMemo<readonly ShellAppDefinition[]>(() => [
     {
@@ -680,6 +1199,7 @@ function CaseDesktop({
             void requestAffordance(affordance.id)
           }}
           onOpenLead={(surface) => focusApp(surface)}
+          onContactAction={requestAsyncForensicsAction}
           busy={commandBusy}
           onSelectEntry={(id) => select('selectedEntryId', id)}
           onOpenEvidence={(id) => {
@@ -692,6 +1212,9 @@ function CaseDesktop({
           }}
         />
       ),
+      badge: models.casebook.contactActions?.filter(({ status }) => (
+        status === undefined || status === 'ready'
+      )).length || undefined,
       initialBounds: { x: 285, y: 44, width: 880, height: 676 },
       initialZIndex: 100,
       defaultActive: false,
@@ -701,6 +1224,26 @@ function CaseDesktop({
       startMenu: true,
       taskbarPinned: true,
       windowClassName: 'detective-window--casebook',
+    },
+    {
+      id: 'case-board',
+      title: 'Vaka Panosu',
+      icon: { type: 'image', src: caseBoardIcon },
+      content: (
+        <CaseBoardApp
+          key={caseBoardKey}
+          model={caseBoardModel}
+          persistence={caseBoardPersistence}
+          onOpenAsset={setOpenAssetId}
+        />
+      ),
+      initialBounds: { x: 145, y: 52, width: 940, height: 650 },
+      minSize: { width: 760, height: 520 },
+      defaultOpen: false,
+      desktopShortcut: true,
+      startMenu: true,
+      taskbarPinned: true,
+      windowClassName: 'detective-window--case-board',
     },
     {
       id: 'case-dispatch',
@@ -732,6 +1275,7 @@ function CaseDesktop({
           onSelectThread={(id) => select('selectedThreadId', id)}
           onReplyDraftChange={(value) => select('replyDraft', value)}
           onOpenAttachment={setOpenAssetId}
+          onMessageCta={openDiscoveredContact}
         />
       ),
       badge: pendingForensicsRequest ? 1 : undefined,
@@ -749,32 +1293,46 @@ function CaseDesktop({
       icon: { type: 'image', src: phoneIcon },
       content: (
         <PhoneApp
-          model={models.phone}
+          model={phoneModel}
+          openContactRequest={phoneOpenContactRequest}
           onSelectContact={(id) => select('selectedContactId', id)}
           onAction={(actorId, action, actorField) => {
-            void dispatchIntent({
+            const actionLabel = models.phone.contacts
+              .find(({ id }) => id === actorId)
+              ?.actions
+              ?.find((candidate) => (
+                candidate.action === action && candidate.actorField === actorField
+              ))
+              ?.label ?? 'Görüşme'
+            const intent = {
               kind: 'action',
               action,
               [actorField]: actorId,
-            } as DemoBrowserIntent).then((accepted) => {
-              if (accepted && action === 'interview') select('activeCallContactId', actorId)
-            })
+            } as DemoActionIntent
+            startOutgoingPhoneCall(
+              actorId,
+              actionLabel,
+              { action: intent },
+              (sessionId) => executeIntent(intent, {
+                silent: true,
+                outgoingCallSessionId: sessionId,
+              }),
+            )
           }}
           onAffordance={(id) => {
             const affordance = snapshot.affordances.find((candidate) => candidate.id === id)
-            void requestAffordance(id).then((accepted) => {
-              if (!accepted || affordance?.intent.kind !== 'action') return
-              if (affordance.intent.action.action !== 'interview') return
-              const contactId = affordance.intent.action.actor
-                ?? affordance.intent.action.from
-                ?? affordance.intent.action.target
-              if (contactId && snapshot.actors.some(({ id: actorId }) => actorId === contactId)) {
-                select('activeCallContactId', contactId)
-              }
-            })
+            if (
+              affordance?.risk === 'normal'
+              && !affordance.confirmation
+              && startPhoneAffordance(affordance)
+            ) {
+              return
+            }
+            void requestAffordance(id)
           }}
           busy={commandBusy}
           onEndCall={() => select('activeCallContactId', undefined)}
+          onDismissOutgoingCall={dismissOutgoingPhoneCall}
         />
       ),
       initialBounds: { x: 42, y: 150, width: 560, height: 540 },
@@ -786,7 +1344,7 @@ function CaseDesktop({
       desktopShortcut: true,
       startMenu: true,
       taskbarPinned: true,
-      badge: snapshot.affordances.filter(({ surface }) => surface === 'phone').length,
+      badge: newContactIds.length || models.phone.affordances?.length || undefined,
     },
     {
       id: 'files',
@@ -876,7 +1434,7 @@ function CaseDesktop({
       startMenu: true,
       taskbarPinned: false,
     },
-  ], [commandBusy, dispatchIntent, focusApp, forensicsBusy, inboxModel, models, requestAffordance, requestForensicsReview, snapshot.affordances, snapshot.actors, snapshot.evidence])
+  ], [caseBoardKey, caseBoardModel, caseBoardPersistence, commandBusy, dismissOutgoingPhoneCall, executeIntent, focusApp, forensicsBusy, inboxModel, models, newContactIds.length, openDiscoveredContact, phoneModel, phoneOpenContactRequest, requestAffordance, requestAsyncForensicsAction, requestForensicsReview, snapshot.affordances, snapshot.evidence, startOutgoingPhoneCall, startPhoneAffordance])
 
   const pendingAffordance = pendingAffordanceId
     ? snapshot.affordances.find(({ id }) => id === pendingAffordanceId)
@@ -1000,9 +1558,9 @@ function CaseDesktop({
               className="is-danger"
               disabled={commandBusy}
               onClick={() => {
-                const id = pendingAffordance.id
+                const affordance = pendingAffordance
                 setPendingAffordanceId(undefined)
-                void dispatchAffordance(id)
+                if (!startPhoneAffordance(affordance)) void dispatchAffordance(affordance.id)
               }}
             >
               {pendingIsDispatch
@@ -1295,6 +1853,9 @@ function CaseExperience({ manifest, cases, onSelectCase }: CaseExperienceProps) 
       const started = await demoSessionClient.start(sessionRef)
       if (!started.snapshot) throw new Error('Missing case state.')
       if (!started.assetSessionId) throw new Error('Missing asset session.')
+      createCaseBoardPersistence(
+        caseBoardStateKey(manifest, started.snapshot.case.digest),
+      ).clear()
       setSnapshot(started.snapshot)
       setAssetSessionId(started.assetSessionId)
       setRunEpoch((current) => current + 1)
@@ -1304,7 +1865,7 @@ function CaseExperience({ manifest, cases, onSelectCase }: CaseExperienceProps) 
     } finally {
       setBusy(false)
     }
-  }, [sessionRef])
+  }, [manifest, sessionRef])
 
   const command = useCallback(async (intent: DemoBrowserIntent): Promise<DemoCommandResponse> => {
     const result = await demoSessionClient.command(sessionRef, intent)
@@ -1323,7 +1884,17 @@ function CaseExperience({ manifest, cases, onSelectCase }: CaseExperienceProps) 
     try {
       await demoSessionClient.restart(sessionRef)
       createLocalStorageLayoutPersistence(desktopLayoutKey(manifest)).clear?.()
-      clearForensicsWorkflow(browserLocalStorage(), forensicsWorkflowKey(manifest))
+      if (snapshot) {
+        createCaseBoardPersistence(
+          caseBoardStateKey(manifest, snapshot.case.digest),
+        ).clear()
+      }
+      if (assetSessionId) {
+        clearForensicsWorkflow(
+          browserLocalStorage(),
+          forensicsWorkflowKey(manifest, assetSessionId),
+        )
+      }
       setSnapshot(undefined)
       setAssetSessionId(undefined)
       setRunEpoch((current) => current + 1)
@@ -1334,7 +1905,7 @@ function CaseExperience({ manifest, cases, onSelectCase }: CaseExperienceProps) 
     } finally {
       setBusy(false)
     }
-  }, [manifest, sessionRef, snapshot])
+  }, [assetSessionId, manifest, sessionRef, snapshot])
 
   if (phase === 'checking' || phase === 'restarting') return <BootScreen />
   if (phase === 'active' && snapshot && assetSessionId) {

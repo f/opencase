@@ -14,7 +14,7 @@ evaluated only against the sanitized player projection.
 
 This repository remains **engine-first**, but now includes a working
 macOS-inspired detective desktop: draggable and resizable application
-windows, menu bar, Dock, casebook, inbox, phone, files, research, and
+windows, menu bar, Dock, casebook, case board, inbox, phone, files, research, and
 case-scoped layout persistence. The static browser build consumes sanitized
 public manifests only. A trusted host connects those presentation components
 to `CaseSessionController` for authoritative commands and `kernel-save@1`
@@ -166,6 +166,7 @@ This includes:
 - cross-references between entities, evidence, observations, deductions,
   affordances, reactions, objectives, outcomes, and schedules;
 - unlock reachability and deadline timing;
+- hidden-contact lookup structure, reveal reactions, and premature phone offers;
 - template expansion and emitted-event cycle checks;
 - asset source, media type, extension, integrity, and visibility checks;
 - a final audit that rejects private data in the public manifest.
@@ -204,6 +205,28 @@ private URLs, or provider references.
 `npm run generate:public` discovers kebab-case directories below `cases/`,
 builds them in a staging directory, rejects duplicate case IDs, and atomically
 replaces `public/generated/` only after the entire set succeeds.
+
+### Contact discovery is case state
+
+Phone contacts are not a static copy of `cast`. A case may start a public
+conversation actor with `contact: {initial: hidden}`, mention that person in
+localized story copy, and offer an Inbox `locate-contact` affordance anchored
+to the note containing the mention. The desktop sends the authored request to
+Forensics; only the accepted runtime action and its `{contact: [actor, listed]}`
+reaction make the contact public and persist it in the case save.
+
+The accepted command also projects its exact public contact delta. The app
+uses that opaque completion result to label the Forensics reply and Phone CTA;
+it does not inspect case action fields or infer the person from array order.
+Cosmetic chat history is scoped to the host's opaque run ID, while contact
+visibility itself remains authoritative runtime state.
+
+The compiler rejects a hidden callable actor with no complete lookup/reveal
+route, a repeatable or conditional lookup, a lookup that reveals another
+person, or an initially offered Phone action. Case scenarios then assert the
+visible note anchor and actual `hidden -> listed` progression with
+`state.contacts`. The shell stores only pending chat animation and unread
+badges; it cannot reveal a contact by editing local UI state.
 
 ## Truth, knowledge, and assertions
 
@@ -547,11 +570,16 @@ This boundary deliberately assigns different state to different owners:
 | --- | --- |
 | Engine controller | Case clocks, observations, deductions, actor conversation states, schedules, conclusion, private capability state, event log |
 | Application host | Save location, autosave policy, encryption or account sync |
-| Detective shell | Open windows, bounds, focus order, minimized state, active tool, selected locale |
+| Detective shell | Open windows, bounds, focus order, minimized state, active tool, selected locale, case-board card positions and player-drawn links |
 
 Moving, minimizing, or reopening a desktop window must therefore never create
 a case event or change save bytes. Conversely, the shell must not keep a
 parallel evidence list or deduction state that can drift from the projection.
+The Vaka Panosu follows the same rule: its person and photo cards are rebuilt
+from the current public Phone and Finder models. Its separate sidecar stores
+only opaque card IDs, normalized coordinates, and connection endpoints. It
+never stores names, findings, authored asset locators, delivery URLs, or engine
+commands, and stale IDs are removed when they are no longer public.
 If a fully local build uses browser `localStorage`, it stores only the opaque
 serialized save string through this adapter—not projections, mutable evidence
 arrays, or private runtime objects. A hosted build that must protect hidden

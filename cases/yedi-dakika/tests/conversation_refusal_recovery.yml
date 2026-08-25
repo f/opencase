@@ -6,6 +6,8 @@ scenario:
   perspective: detective
   description: A false accusation closes Mert's lead until evidence supports an apology.
   steps:
+    - detective.act: {action: interview, actor: leyla}
+    - detective.act: {action: locate-contact, target: mert}
     - detective.act: {action: request, from: leyla, topic: lobby-video}
     - detective.observe: lobby_video
 
@@ -13,7 +15,7 @@ scenario:
       expect:
         result: {status: accepted}
         state:
-          clocks: {case-time: 8m}
+          clocks: {case-time: 10m}
           evidence:
             mert_receipt: hidden
             access_log: hidden
@@ -26,7 +28,7 @@ scenario:
       expect:
         result: {status: denied, code: affordance-unavailable}
         state:
-          clocks: {case-time: 8m}
+          clocks: {case-time: 10m}
           evidence: {mert_receipt: hidden}
 
     - detective.act: {action: request, from: leyla, topic: camera-sync}
@@ -48,7 +50,7 @@ scenario:
       expect:
         result: {status: accepted}
         state:
-          clocks: {case-time: 13m}
+          clocks: {case-time: 15m}
           affordances:
             apologize_mert: hidden
             interview_mert_location: offered
@@ -57,5 +59,5 @@ scenario:
       expect:
         result: {status: accepted}
         state:
-          clocks: {case-time: 16m}
+          clocks: {case-time: 18m}
           evidence: {mert_receipt: available}

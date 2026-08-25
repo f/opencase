@@ -61,6 +61,7 @@ scenario:
             search_production_audit: offered
             deduce_death_not_accident: offered
 
+    - detective.act: {action: locate-contact, target: baran}
     - detective.act: {action: interview, actor: baran, topic: location}
       expect:
         result: {status: accepted}
@@ -82,6 +83,7 @@ scenario:
           evidence: {support_mail: available}
     - detective.observe: support_mail
 
+    - detective.act: {action: locate-contact, target: selin}
     - detective.act: {action: interview, actor: selin, topic: alibi}
       expect:
         result: {status: accepted}

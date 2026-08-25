@@ -541,6 +541,22 @@ function effectToRules(
           event: { type: CASE_EVENTS.routeProgressed, capability: INVESTIGATION_CAPABILITY },
         },
       ]
+    case 'contact':
+      return [
+        {
+          type: 'state.write',
+          path: `${CASE_SLOT}.actors.${safeStateSegment(effect.actorId, 'actor')}.contact`,
+          value: effect.state,
+        },
+        {
+          type: 'event.emit',
+          event: {
+            type: CASE_EVENTS.contactChanged,
+            capability: INVESTIGATION_CAPABILITY,
+            payload: { actorId: effect.actorId, state: effect.state },
+          },
+        },
+      ]
     case 'affordance':
       return [
         {
@@ -619,6 +635,8 @@ function buildActorCatalog(
       conversation.actorId,
       {
         public: conversation.public,
+        contactInitial: conversation.contactInitial,
+        presentation: conversation.presentation,
         initialState: conversation.initialStateId,
         states: Object.fromEntries(
           conversation.states.map((state) => [
@@ -662,6 +680,16 @@ function buildAffordanceCatalog(
           ? {kind: 'action' as const, action: runtimeAction(affordance.intent.action)}
           : {kind: 'deduce' as const, deductionId: affordance.intent.deductionId},
         exclusive: affordance.exclusive,
+        ...(affordance.interaction ? {
+          interaction: {
+            kind: affordance.interaction.kind,
+            channel: affordance.interaction.channel,
+            request: affordance.interaction.request,
+            ...(affordance.interaction.context
+              ? { context: affordance.interaction.context }
+              : {}),
+          },
+        } : {}),
         ...(affordance.cost ? { cost: affordance.cost } : {}),
         once: affordance.once,
       },
@@ -885,7 +913,7 @@ function initialSlots(ir: CompiledCaseIR, routes: RouteTokens): JsonObject {
       actors: Object.fromEntries(
         Object.entries(actors).map(([id, actor]) => [
           id,
-          { conversation: actor.initialState },
+          { conversation: actor.initialState, contact: actor.contactInitial },
         ]),
       ),
       affordances: Object.fromEntries(

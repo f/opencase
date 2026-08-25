@@ -30,6 +30,7 @@ scenario:
     - detective.observe: backstage_access
     - detective.observe: stage_left_log
 
+    - detective.act: {action: locate-contact, target: baran}
     - detective.act: {action: interview, actor: baran, topic: location}
     - detective.observe: cafe_video
       expect:

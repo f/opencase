@@ -14,10 +14,8 @@ const MAX_BODY_LENGTH = 12_000
 
 export type ForensicsRequestStatus = 'waiting' | 'complete' | 'failed'
 
-export interface ForensicsRequestRecord {
+interface ForensicsRequestBase {
   readonly id: string
-  readonly evidenceId: string
-  readonly evidenceTitle: string
   readonly requestedAtWallMs: number
   readonly requestedAtCaseMs: number
   readonly requestedLabel: string
@@ -25,6 +23,33 @@ export interface ForensicsRequestRecord {
   readonly replyBody?: string
   readonly replyLabel?: string
 }
+
+export interface EvidenceForensicsRequestRecord extends ForensicsRequestBase {
+  readonly kind: 'evidence-review'
+  readonly evidenceId: string
+  readonly evidenceTitle: string
+}
+
+/**
+ * Presentation state for a case-authored asynchronous inbox interaction.
+ *
+ * The affordance id is deliberately opaque to the shell. The runtime remains
+ * the only authority that can accept the action and reveal a contact. A
+ * completed runtime affordance carries the exact public contact delta used to
+ * reconcile an interrupted animation after a reload.
+ */
+export interface AsyncForensicsRequestRecord extends ForensicsRequestBase {
+  readonly kind: 'async-interaction'
+  readonly affordanceId: string
+  readonly subjectLabel: string
+  readonly requestBody: string
+  readonly revealedActorId?: string
+  readonly revealedActorName?: string
+}
+
+export type ForensicsRequestRecord =
+  | EvidenceForensicsRequestRecord
+  | AsyncForensicsRequestRecord
 
 export interface ForensicsWorkflowState {
   readonly schema: typeof FORENSICS_WORKFLOW_SCHEMA
@@ -44,8 +69,6 @@ function parseRequest(value: unknown): ForensicsRequestRecord | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
   const candidate = value as Record<string, unknown>
   if (!isBoundedString(candidate.id, MAX_ID_LENGTH)) return undefined
-  if (!isBoundedString(candidate.evidenceId, MAX_ID_LENGTH)) return undefined
-  if (!isBoundedString(candidate.evidenceTitle, MAX_TITLE_LENGTH)) return undefined
   if (!isBoundedString(candidate.requestedLabel, 32)) return undefined
   if (
     typeof candidate.requestedAtWallMs !== 'number'
@@ -67,16 +90,51 @@ function parseRequest(value: unknown): ForensicsRequestRecord | undefined {
   }
   if (candidate.status !== 'waiting' && candidate.replyBody === undefined) return undefined
 
-  return {
+  const common = {
     id: candidate.id,
-    evidenceId: candidate.evidenceId,
-    evidenceTitle: candidate.evidenceTitle,
     requestedAtWallMs: candidate.requestedAtWallMs,
     requestedAtCaseMs: candidate.requestedAtCaseMs,
     requestedLabel: candidate.requestedLabel,
     status: candidate.status as ForensicsRequestStatus,
     ...(candidate.replyBody ? { replyBody: candidate.replyBody } : {}),
     ...(candidate.replyLabel ? { replyLabel: candidate.replyLabel } : {}),
+  }
+
+  // Requests written before async interactions existed did not carry `kind`.
+  if (candidate.kind === undefined || candidate.kind === 'evidence-review') {
+    if (!isBoundedString(candidate.evidenceId, MAX_ID_LENGTH)) return undefined
+    if (!isBoundedString(candidate.evidenceTitle, MAX_TITLE_LENGTH)) return undefined
+    return {
+      ...common,
+      kind: 'evidence-review',
+      evidenceId: candidate.evidenceId,
+      evidenceTitle: candidate.evidenceTitle,
+    }
+  }
+
+  if (candidate.kind !== 'async-interaction') return undefined
+  if (!isBoundedString(candidate.affordanceId, MAX_ID_LENGTH)) return undefined
+  if (!isBoundedString(candidate.subjectLabel, MAX_TITLE_LENGTH)) return undefined
+  if (!isBoundedString(candidate.requestBody, MAX_BODY_LENGTH)) return undefined
+  if (
+    candidate.revealedActorId !== undefined
+    && !isBoundedString(candidate.revealedActorId, MAX_ID_LENGTH)
+  ) return undefined
+  if (
+    candidate.revealedActorName !== undefined
+    && !isBoundedString(candidate.revealedActorName, MAX_TITLE_LENGTH)
+  ) return undefined
+  if ((candidate.revealedActorId === undefined) !== (candidate.revealedActorName === undefined)) {
+    return undefined
+  }
+  return {
+    ...common,
+    kind: 'async-interaction',
+    affordanceId: candidate.affordanceId,
+    subjectLabel: candidate.subjectLabel,
+    requestBody: candidate.requestBody,
+    ...(candidate.revealedActorId ? { revealedActorId: candidate.revealedActorId } : {}),
+    ...(candidate.revealedActorName ? { revealedActorName: candidate.revealedActorName } : {}),
   }
 }
 
@@ -138,11 +196,33 @@ export function createForensicsRequest(input: {
   readonly requestedAtWallMs: number
   readonly requestedAtCaseMs: number
   readonly requestedLabel: string
-}): ForensicsRequestRecord {
+}): EvidenceForensicsRequestRecord {
   return {
     id: `${input.requestedAtWallMs}:${input.evidenceId}`,
+    kind: 'evidence-review',
     evidenceId: input.evidenceId,
     evidenceTitle: input.evidenceTitle,
+    requestedAtWallMs: input.requestedAtWallMs,
+    requestedAtCaseMs: input.requestedAtCaseMs,
+    requestedLabel: input.requestedLabel,
+    status: 'waiting',
+  }
+}
+
+export function createAsyncForensicsRequest(input: {
+  readonly affordanceId: string
+  readonly subjectLabel: string
+  readonly requestBody: string
+  readonly requestedAtWallMs: number
+  readonly requestedAtCaseMs: number
+  readonly requestedLabel: string
+}): AsyncForensicsRequestRecord {
+  return {
+    id: `${input.requestedAtWallMs}:${input.affordanceId}`,
+    kind: 'async-interaction',
+    affordanceId: input.affordanceId,
+    subjectLabel: input.subjectLabel,
+    requestBody: input.requestBody,
     requestedAtWallMs: input.requestedAtWallMs,
     requestedAtCaseMs: input.requestedAtCaseMs,
     requestedLabel: input.requestedLabel,
@@ -155,7 +235,15 @@ export function appendForensicsRequest(
   request: ForensicsRequestRecord,
 ): ForensicsWorkflowState {
   const duplicate = state.requests.find((candidate) => (
-    candidate.evidenceId === request.evidenceId && candidate.status === 'waiting'
+    candidate.kind === request.kind
+    && candidate.status === 'waiting'
+    && (
+      candidate.kind === 'evidence-review' && request.kind === 'evidence-review'
+        ? candidate.evidenceId === request.evidenceId
+        : candidate.kind === 'async-interaction' && request.kind === 'async-interaction'
+          ? candidate.affordanceId === request.affordanceId
+          : false
+    )
   ))
   if (duplicate) return state
   return {

@@ -14,12 +14,14 @@ Lucide SVG assets rather than drawn emoji or case-owned media.
 
 ## State boundary
 
-There are two independent save concerns:
+There are three independent save concerns:
 
 1. The case runtime owns authoritative play state: its event log, clocks,
    observations, deductions, decisions, and outcome.
 2. The host UI may ask the shell to remember layout preferences: window bounds,
    z-order, open/minimized state, and the focused window.
+3. A shell app may keep detective-authored cosmetic work, such as the Vaka
+   Panosu card positions and red-string links, in its own schema-tagged sidecar.
 
 The shell snapshot is explicitly named `detective-desktop-layout/v1`. It cannot
 load a runtime save and contains no slot for gameplay data. The host can scope
@@ -69,6 +71,35 @@ command, case definition, or private target identifier.
 adapter implements it with `removeItem`. It never deletes an engine save and is
 safe to use for “reset window layout” independently of gameplay.
 
+## Case board
+
+`CaseBoardApp` is a shell organizer, not a gameplay capability. Its visible
+person cards are composed from `PhoneViewModel.contacts`, which already contains
+only currently listed actors. Its evidence cards are composed from
+`FilesViewModel.records` and only include image assets with a current
+host-authorized delivery or thumbnail URL. It does not read a manifest, case
+YAML, compiled IR, runtime catalog, hidden cast, or authored asset source.
+
+The detective can drag cards, move a focused card with the arrow keys, select
+two tacks in sequence to add or remove a red-string connection, click a string
+to remove it, and open an evidence photo in the existing secure asset viewer. These
+gestures never dispatch a case command and therefore cannot advance a clock,
+unlock evidence, list a contact, affect scoring, or change a conclusion.
+
+Board presentation state uses `detective-case-board/v1` and is stored beside,
+not inside, the authoritative save. The adapter accepts only:
+
+- opaque card IDs and normalized `{x, y}` coordinates;
+- canonical, non-self, de-duplicated pairs of card IDs.
+
+The parser bounds and sanitizes browser data. Every load and render reconciles
+stored IDs against the current public card palette, so stale storage cannot
+recreate a hidden contact or inaccessible photo. Names, roles, evidence text,
+findings, asset handles, delivery URLs, and whole view models are never copied
+into the sidecar. The local demo scopes the key to the case ID, version, kernel
+digest, and save slot. A restored save keeps the detective's board, while a true
+restart clears that exact board sidecar with the engine save and desktop layout.
+
 ## Phone onboarding and restart
 
 The ringing phone is a pre-session host view, not a shell or kernel primitive.
@@ -88,7 +119,8 @@ A true restart must reset both owners without conflating them:
    which delegates to `CaseSaveStorage.delete` for the exact save ID, case ID,
    case version, and kernel digest;
 3. call `layoutPersistence.clear?.()` for the exact per-session layout key and
-   clear other non-authoritative per-session UI selection; and
+   clear the exact case-board sidecar plus other non-authoritative per-session
+   UI selection; and
 4. return to the ringing-phone view, creating and persisting a new controller
    only after the next acceptance.
 

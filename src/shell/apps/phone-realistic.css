@@ -613,11 +613,70 @@ button:hover > .iphone-app-glyph {
   text-align: left;
 }
 
+.iphone-contacts-screen .iphone-list li > button {
+  min-height: 68px;
+}
+
+.iphone-contacts-screen .iphone-list li.is-new {
+  background: linear-gradient(90deg, rgba(35, 126, 109, 0.09), rgba(35, 126, 109, 0.025) 65%, transparent);
+  animation: iphone-contact-added 420ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
 .iphone-list li > button:hover { background: rgba(118, 118, 128, 0.07); }
 
 .iphone-list li > button > span:nth-child(2) {
   display: grid;
   min-width: 0;
+}
+
+.iphone-contact-row__copy {
+  gap: 1px;
+}
+
+.iphone-contact-row__headline {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.iphone-contact-row__headline strong {
+  min-width: 0;
+}
+
+.iphone-contact-row__headline b {
+  flex: 0 0 auto;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: #dff1e9;
+  color: #176851;
+  font-size: 0.46rem;
+  font-weight: 720;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.iphone-contact-row__metadata {
+  display: flex !important;
+  min-width: 0;
+  align-items: center;
+  gap: 0;
+  overflow: hidden;
+  color: #6f7076;
+  font-size: 0.49rem;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.iphone-contact-row__metadata > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.iphone-contact-row__metadata > span + span::before {
+  margin: 0 4px;
+  color: #b0b1b5;
+  content: "·";
 }
 
 .iphone-list strong,
@@ -716,6 +775,12 @@ button:hover > .iphone-app-glyph {
   line-height: 1;
 }
 
+.iphone-contact-hero h2:focus-visible {
+  outline: 3px solid rgba(0, 122, 255, 0.3);
+  outline-offset: 5px;
+  border-radius: 4px;
+}
+
 .iphone-contact-hero p {
   margin: 5px 0 0;
   color: var(--iphone-secondary);
@@ -729,6 +794,55 @@ button:hover > .iphone-app-glyph {
   margin-top: 8px;
   color: var(--iphone-secondary);
   font-size: 0.61rem;
+}
+
+.iphone-contact-metadata {
+  display: grid;
+  margin: 0 12px 10px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 0 0 0.5px rgba(60, 60, 67, 0.08);
+}
+
+.iphone-contact-metadata > div {
+  position: relative;
+  display: grid;
+  min-height: 38px;
+  grid-template-columns: minmax(70px, 0.8fr) minmax(0, 1.6fr);
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+}
+
+.iphone-contact-metadata > div + div::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 12px;
+  height: 0.5px;
+  background: var(--iphone-separator);
+  content: "";
+}
+
+.iphone-contact-metadata dt,
+.iphone-contact-metadata dd {
+  min-width: 0;
+  margin: 0;
+  font-size: 0.61rem;
+}
+
+.iphone-contact-metadata dt {
+  color: var(--iphone-secondary);
+}
+
+.iphone-contact-metadata dd {
+  overflow: hidden;
+  color: var(--iphone-label);
+  font-weight: 560;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .iphone-contact-quick-actions {
@@ -1255,6 +1369,244 @@ button:hover > .iphone-app-glyph {
   font-variant-numeric: tabular-nums;
 }
 
+.iphone-outgoing-call {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.iphone-outgoing-call.is-dialing .iphone-call-avatar::before,
+.iphone-outgoing-call.is-dialing .iphone-call-avatar::after {
+  display: block;
+}
+
+.iphone-outgoing-call__role {
+  margin-top: 7px;
+  color: rgba(236, 242, 239, 0.7);
+  font-size: 0.67rem;
+}
+
+.iphone-outgoing-call h2:focus {
+  outline: none;
+}
+
+.iphone-outgoing-call__network {
+  margin: 7px 0 0;
+  color: rgba(142, 208, 189, 0.78);
+  font-size: 0.54rem;
+  letter-spacing: 0.04em;
+}
+
+.iphone-speaking-visualizer {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 9px;
+  margin: 22px 0 11px;
+}
+
+.iphone-speaking-visualizer > span {
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+  gap: 4px;
+}
+
+.iphone-speaking-visualizer > span b {
+  display: grid;
+  width: 31px;
+  height: 31px;
+  place-items: center;
+  border: 1px solid rgba(226, 211, 169, 0.34);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.09);
+  color: #e8d9ac;
+  font-size: 0.63rem;
+  font-weight: 700;
+}
+
+.iphone-speaking-visualizer > span small {
+  max-width: 48px;
+  overflow: hidden;
+  color: rgba(238, 243, 240, 0.68);
+  font-size: 0.46rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iphone-speaking-visualizer > div {
+  display: flex;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(3, 13, 17, 0.22);
+}
+
+.iphone-speaking-visualizer > div i {
+  width: 2px;
+  height: 9px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #d7bf7b, #74c2af);
+  animation: iphone-speaking-level 620ms ease-in-out infinite alternate;
+}
+
+.iphone-speaking-visualizer > div i:nth-child(3n) { animation-delay: -180ms; }
+.iphone-speaking-visualizer > div i:nth-child(4n) { animation-delay: -390ms; }
+.iphone-speaking-visualizer > div i:nth-child(5n) { animation-delay: -520ms; }
+
+.iphone-speaking-visualizer.is-ending > div i {
+  height: 3px;
+  opacity: 0.48;
+  animation-play-state: paused;
+  transition: height 240ms ease, opacity 240ms ease;
+}
+
+.iphone-outgoing-call.is-ending .iphone-call-avatar,
+.iphone-outgoing-call.is-ending .iphone-call-kicker,
+.iphone-outgoing-call.is-ending h2,
+.iphone-outgoing-call.is-ending .iphone-outgoing-call__role,
+.iphone-outgoing-call.is-ending .iphone-outgoing-call__network {
+  opacity: 0.5;
+  transform: scale(0.98);
+  transition: opacity 240ms ease, transform 240ms ease;
+}
+
+.iphone-auto-hangup {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  margin-top: auto;
+  color: rgba(239, 243, 241, 0.64);
+}
+
+.iphone-auto-hangup > span {
+  position: relative;
+  display: block;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255, 129, 122, 0.3);
+  border-radius: 50%;
+  background: rgba(255, 69, 58, 0.16);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.iphone-auto-hangup > span img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) saturate(100%) invert(54%) sepia(87%) saturate(3035%) hue-rotate(327deg) brightness(108%);
+  transform: translate(-50%, -50%);
+}
+
+.iphone-outgoing-call.is-ending .iphone-auto-hangup > span {
+  animation: iphone-auto-hangup 320ms ease-in both;
+}
+
+.iphone-auto-hangup small {
+  font-size: 0.5rem;
+}
+
+.iphone-call-result__seal {
+  display: grid;
+  width: 66px;
+  height: 66px;
+  margin-top: 4px;
+  place-items: center;
+  border: 1px solid rgba(137, 216, 193, 0.34);
+  border-radius: 50%;
+  background: rgba(89, 189, 161, 0.14);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28), inset 0 1px rgba(255, 255, 255, 0.08);
+  animation: iphone-call-result-in 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.iphone-call-result__seal img {
+  width: 30px;
+  height: 30px;
+  filter: brightness(0) saturate(100%) invert(80%) sepia(21%) saturate(717%) hue-rotate(111deg) brightness(93%);
+}
+
+.iphone-outgoing-call--result.is-failed .iphone-call-result__seal {
+  border-color: rgba(255, 129, 122, 0.32);
+  background: rgba(255, 69, 58, 0.12);
+}
+
+.iphone-outgoing-call--result.is-failed .iphone-call-result__seal img {
+  filter: brightness(0) saturate(100%) invert(55%) sepia(75%) saturate(2273%) hue-rotate(326deg) brightness(107%);
+}
+
+.iphone-call-result {
+  width: 100%;
+  min-height: 0;
+  max-height: 36%;
+  flex: 0 1 auto;
+  margin: 20px 0 13px;
+  padding: 0 15px 14px;
+  overflow: auto;
+  border: 1px solid rgba(224, 204, 151, 0.22);
+  border-radius: 19px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035)),
+    rgba(3, 14, 18, 0.52);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.055), 0 16px 34px rgba(0, 0, 0, 0.16);
+  text-align: left;
+  scrollbar-width: none;
+}
+
+.iphone-call-result::-webkit-scrollbar { display: none; }
+
+.iphone-call-result header {
+  display: grid;
+  gap: 4px;
+  padding: 13px 0 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.085);
+}
+
+.iphone-call-result header span {
+  color: #8ed0bd;
+  font-size: 0.5rem;
+  font-weight: 720;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.iphone-call-result header strong {
+  color: #f1e8cd;
+  font-size: 0.72rem;
+  font-weight: 630;
+  line-height: 1.25;
+}
+
+.iphone-call-result .phone-transcript__reply {
+  margin-top: 12px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.iphone-call-result__done {
+  width: 100%;
+  min-height: 44px;
+  margin-top: auto;
+  border: 1px solid rgba(135, 214, 191, 0.28);
+  border-radius: 13px;
+  background: rgba(117, 200, 177, 0.14);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.06);
+  color: #dff4ed !important;
+  cursor: pointer;
+  font-size: 0.69rem;
+  font-weight: 680;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.iphone-call-result__done:not(:disabled):hover {
+  background: rgba(117, 200, 177, 0.22);
+  transform: translateY(-1px);
+}
+
 .iphone-live-controls {
   display: grid;
   width: 100%;
@@ -1368,12 +1720,32 @@ button:hover > .iphone-app-glyph {
   to { height: 31px; opacity: 1; }
 }
 
+@keyframes iphone-speaking-level {
+  from { height: 4px; opacity: 0.4; }
+  to { height: 34px; opacity: 1; }
+}
+
+@keyframes iphone-call-result-in {
+  from { opacity: 0; transform: scale(0.76); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes iphone-auto-hangup {
+  from { opacity: 1; transform: rotate(0deg) scale(1); }
+  to { opacity: 0.35; transform: rotate(18deg) scale(0.82); }
+}
+
 @keyframes phone-transcript-word {
   to {
     opacity: 1;
     filter: blur(0);
     transform: translateY(0);
   }
+}
+
+@keyframes iphone-contact-added {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @container (max-width: 340px) {
@@ -1400,5 +1772,12 @@ button:hover > .iphone-app-glyph {
     filter: none;
     transform: none;
     animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .iphone-contact-row__headline b,
+  .iphone-contact-metadata {
+    border: 1px solid ButtonText;
   }
 }

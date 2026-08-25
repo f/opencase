@@ -94,6 +94,15 @@ const definitions: CapabilityManifestDefinition[] = [
     assetProviders: [],
   },
   {
+    specifier: 'contact-directory@1',
+    kind: 'capability',
+    tools: [],
+    verbs: ['locate-contact'],
+    templates: [],
+    rerouteProviders: [],
+    assetProviders: [],
+  },
+  {
     specifier: 'artifacts@1',
     kind: 'capability',
     tools: ['document', 'image', 'log'],

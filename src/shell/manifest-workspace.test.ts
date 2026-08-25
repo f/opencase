@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { PublicCaseRuntimeState } from '../case-runtime'
+import { createCaseBoardViewModel } from './case-board-model'
 import {
   createManifestWorkspaceModels,
   type ShellPublicCaseManifest,
@@ -138,6 +139,165 @@ const runtime: PublicCaseRuntimeState = {
 }
 
 describe('manifest workspace projection adapter', () => {
+  it('keeps an undiscovered actor out of Phone and anchors its authored lookup to the mention note', () => {
+    const callerOnlyManifest: ShellPublicCaseManifest = {
+      ...manifest,
+      cast: { caller: manifest.cast.caller },
+    }
+    const discoveryRuntime: PublicCaseRuntimeState = {
+      ...runtime,
+      actors: [{
+        id: 'caller',
+        name: 'Case Caller',
+        role: 'Client',
+        conversation: {
+          state: 'available',
+          canTalk: true,
+          channels: [],
+        },
+      }],
+      affordances: [{
+        id: 'find-hidden-witness',
+        surface: 'inbox',
+        risk: 'normal',
+        label: 'Tanığı bul',
+        intent: {
+          kind: 'action',
+          action: { action: 'locate-contact', target: 'hidden-witness' },
+        },
+        interaction: {
+          kind: 'async-message',
+          channel: 'forensics',
+          request: 'Tanığın güncel iletişim kaydını doğrular mısın?',
+          context: { kind: 'opening-call' },
+        },
+      }, {
+        id: 'premature-hidden-call',
+        surface: 'phone',
+        risk: 'normal',
+        label: 'Tanığı ara',
+        intent: {
+          kind: 'action',
+          action: { action: 'interview', actor: 'hidden-witness' },
+        },
+      }],
+    }
+
+    const models = createManifestWorkspaceModels(
+      callerOnlyManifest,
+      { query: '', replyDraft: '', selectedEntryId: 'opening-call' },
+      discoveryRuntime,
+    )
+
+    expect(models.phone.contacts.map(({ id }) => id)).toEqual(['caller'])
+    expect(models.phone.affordances).toEqual([])
+    expect(models.casebook.contactActions).toEqual([{
+      affordanceId: 'find-hidden-witness',
+      label: 'Tanığı bul',
+      description: 'Tanığın güncel iletişim kaydını doğrular mısın?',
+      destinationLabel: '#forensics',
+      status: 'ready',
+    }])
+    expect(JSON.stringify(models.phone)).not.toContain('hidden-witness')
+    expect(JSON.stringify(createCaseBoardViewModel('Fixture', models.phone, models.files)))
+      .not.toContain('hidden-witness')
+  })
+
+  it('selects the completed statement note that owns a newly offered contact lookup', () => {
+    const contextualRuntime: PublicCaseRuntimeState = {
+      ...runtime,
+      completedAffordances: [{
+        id: 'take-caller-statement',
+        surface: 'phone',
+        risk: 'normal',
+        intent: { kind: 'action', action: { action: 'interview', actor: 'caller' } },
+        label: 'İlk ifadeyi al',
+        result: 'Arayan kişi, görüşülmesi gereken yeni bir tanığın adını verdi.',
+        completedAtMs: 120_000,
+      }],
+      affordances: [{
+        id: 'find-mentioned-witness',
+        surface: 'inbox',
+        risk: 'normal',
+        label: 'Tanığın iletişim bilgisini bul',
+        intent: {
+          kind: 'action',
+          action: { action: 'locate-contact', target: 'mentioned-witness' },
+        },
+        interaction: {
+          kind: 'async-message',
+          channel: 'forensics',
+          request: 'İfadede adı geçen tanığın doğrulanmış iletişim bilgisini bulur musun?',
+          context: { kind: 'completed-affordance', ref: 'take-caller-statement' },
+        },
+      }, {
+        id: 'find-opening-contact',
+        surface: 'inbox',
+        risk: 'normal',
+        label: 'Açılışta adı geçen kişiyi bul',
+        intent: {
+          kind: 'action',
+          action: { action: 'locate-contact', target: 'opening-contact' },
+        },
+        interaction: {
+          kind: 'async-message',
+          channel: 'forensics',
+          request: 'Açılışta adı geçen kişinin kaydını bulur musun?',
+          context: { kind: 'opening-call' },
+        },
+      }],
+    }
+
+    const models = createManifestWorkspaceModels(
+      manifest,
+      { query: '', replyDraft: '' },
+      contextualRuntime,
+    )
+
+    expect(models.casebook.selectedEntryId).toBe(
+      'action-note-take-caller-statement-120000-0',
+    )
+    expect(models.casebook.contactActions).toEqual([expect.objectContaining({
+      affordanceId: 'find-mentioned-witness',
+      status: 'ready',
+    })])
+  })
+
+  it('uses only the newly listed actor projection for realistic Phone metadata', () => {
+    const listedRuntime: PublicCaseRuntimeState = {
+      ...runtime,
+      actors: [{
+        id: 'new-witness',
+        name: 'Deniz Kaya',
+        role: 'Bağımsız tanık',
+        phone: '+90 555 010 20 30',
+        operator: 'Anadolu Mobil',
+        contactSource: 'Adli inceleme dizini',
+        conversation: {
+          state: 'available',
+          canTalk: true,
+          channels: [],
+        },
+      }],
+      affordances: [],
+    }
+    const models = createManifestWorkspaceModels(
+      { ...manifest, cast: { caller: manifest.cast.caller } },
+      { query: '', replyDraft: '', newContactIds: ['new-witness'] },
+      listedRuntime,
+    )
+
+    expect(models.phone.contacts).toEqual([expect.objectContaining({
+      id: 'new-witness',
+      name: 'Deniz Kaya',
+      roleLabel: 'Bağımsız tanık',
+      phoneNumber: '+90 555 010 20 30',
+      operatorLabel: 'Anadolu Mobil',
+      sourceLabel: 'Adli inceleme dizini',
+      newlyAdded: true,
+    })])
+  })
+
   it('keeps recovery actions available while an actor refuses ordinary contact', () => {
     const models = createManifestWorkspaceModels(
       manifest,
@@ -359,6 +519,16 @@ describe('manifest workspace projection adapter', () => {
       },
     ])
     expect(models.files.records[1]?.assets).toEqual([])
+    expect(createCaseBoardViewModel('Fixture', models.phone, models.files).pins)
+      .toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'evidence',
+          title: 'Açılış notu',
+          asset: expect.objectContaining({ id: 'scene-photo' }),
+        }),
+      ]))
+    expect(JSON.stringify(createCaseBoardViewModel('Fixture', models.phone, models.files)))
+      .not.toContain('witness-audio')
     expect(JSON.stringify(models.files)).not.toContain('/cases/')
     expect(JSON.stringify(models.files)).not.toContain('https://')
   })

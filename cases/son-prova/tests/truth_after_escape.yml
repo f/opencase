@@ -7,11 +7,13 @@ scenario:
   perspective: detective
   description: Let Selin escape, then retrieve the surviving broadcast archive and prove the truth without speaking to her.
   steps:
+    - detective.act: {action: locate-contact, target: selin}
     - detective.advance: {clock: wall, by: 60m}
       expect:
         result: {status: accepted}
         state:
           clocks: {wall: 60m, case-time: 0s}
+          contacts: {selin: listed}
           evidence:
             audit_draft: hidden
             workspace_admin_log: available
@@ -45,6 +47,7 @@ scenario:
     - detective.observe: orhan_phone_export
     - detective.observe: positioning_message
 
+    - detective.act: {action: locate-contact, target: baran}
     - detective.act: {action: interview, actor: baran, topic: location}
     - detective.observe: cafe_video
     - detective.act: {action: search, query: "PROD-TAB-03 remote pairing"}

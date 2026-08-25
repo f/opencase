@@ -1,8 +1,9 @@
-import { type CSSProperties, useId, useState } from 'react'
+import { type CSSProperties, type RefObject, useEffect, useId, useRef, useState } from 'react'
 import arrowRightIcon from 'lucide-static/icons/arrow-right.svg'
 import batteryMediumIcon from 'lucide-static/icons/battery-medium.svg'
 import chevronLeftIcon from 'lucide-static/icons/chevron-left.svg'
 import chevronRightIcon from 'lucide-static/icons/chevron-right.svg'
+import circleCheckIcon from 'lucide-static/icons/circle-check-big.svg'
 import clockIcon from 'lucide-static/icons/clock-3.svg'
 import contactIcon from 'lucide-static/icons/contact-round.svg'
 import fileCheckIcon from 'lucide-static/icons/file-check-2.svg'
@@ -25,7 +26,13 @@ import wifiIcon from 'lucide-static/icons/wifi.svg'
 
 import dedektifPhoneWallpaper from '../../assets/shell/dedektif-phone-wallpaper.png'
 import './phone-realistic.css'
-import type { AffordanceViewModel, PhoneContactViewModel, PhoneViewModel } from './types'
+import type {
+  AffordanceViewModel,
+  PhoneContactViewModel,
+  PhoneOpenContactRequest,
+  PhoneOutgoingCallViewModel,
+  PhoneViewModel,
+} from './types'
 
 export interface PhoneLabels {
   readonly title: string
@@ -50,6 +57,20 @@ export interface PhoneLabels {
   readonly beginCase: string
   readonly briefing: string
   readonly noActions: string
+  readonly phoneNumber: string
+  readonly operator: string
+  readonly source: string
+  readonly newlyAdded: string
+  readonly dialing: string
+  readonly speaking: string
+  readonly ending: string
+  readonly callEnded: string
+  readonly callResult: string
+  readonly closeResult: string
+  readonly secureLine: string
+  readonly resultFallback: string
+  readonly detective: string
+  readonly autoComplete: string
 }
 
 const DEFAULT_LABELS: PhoneLabels = {
@@ -75,6 +96,20 @@ const DEFAULT_LABELS: PhoneLabels = {
   beginCase: 'Vakayı kabul et',
   briefing: 'Çağrı notu',
   noActions: 'Şu anda yapılabilecek bir şey yok.',
+  phoneNumber: 'Telefon',
+  operator: 'Operatör',
+  source: 'Kaynak',
+  newlyAdded: 'Yeni eklendi',
+  dialing: 'Aranıyor…',
+  speaking: 'Görüşme sürüyor',
+  ending: 'Arama sonlandırılıyor',
+  callEnded: 'Arama sona erdi',
+  callResult: 'Görüşme notu',
+  closeResult: 'Tamam',
+  secureLine: 'Marmara · güvenli hat',
+  resultFallback: 'Görüşme tamamlandı. Yeni bilgiler vaka notlarına işlendi.',
+  detective: 'Dedektif',
+  autoComplete: 'Görüşme otomatik tamamlanacak',
 }
 
 export interface PhoneAppProps {
@@ -89,9 +124,12 @@ export interface PhoneAppProps {
   readonly onMessage?: (contactId: string) => void
   readonly onAffordance?: (affordanceId: string) => void
   readonly onEndCall?: () => void
+  readonly onDismissOutgoingCall?: () => void
   readonly onAnswerIncoming?: () => void
   readonly onDeclineIncoming?: () => void
   readonly onAcceptBriefing?: () => void
+  /** Explicit host request to open and focus a contact. Change nonce to repeat it. */
+  readonly openContactRequest?: PhoneOpenContactRequest
   readonly busy?: boolean
 }
 
@@ -298,6 +336,94 @@ function HomeScreen({ actions, contact, busy, onAction, onNavigate, onOpenContac
   )
 }
 
+function OutgoingCallScreen({
+  call,
+  labels,
+  headingRef,
+  onDismiss,
+}: {
+  readonly call: PhoneOutgoingCallViewModel
+  readonly labels: PhoneLabels
+  readonly headingRef: RefObject<HTMLHeadingElement | null>
+  readonly onDismiss?: () => void
+}) {
+  const phaseLabel = call.phase === 'dialing'
+    ? labels.dialing
+    : call.phase === 'speaking'
+      ? labels.speaking
+      : call.phase === 'ending'
+        ? labels.ending
+        : labels.callEnded
+  const result = call.result?.trim() || labels.resultFallback
+
+  if (call.phase === 'result') {
+    return (
+      <main
+        className={`iphone-active-call iphone-outgoing-call iphone-outgoing-call--result ${call.successful === false ? 'is-failed' : 'is-successful'}`}
+        data-call-phase="result"
+      >
+        <span className="detective-sr-only" role="status" aria-live="polite">{phaseLabel}</span>
+        <div className="iphone-call-result__seal" aria-hidden="true">
+          <Icon src={call.successful === false ? phoneMissedIcon : circleCheckIcon} />
+        </div>
+        <p className="iphone-call-kicker">{labels.callEnded}</p>
+        <h2 ref={headingRef} tabIndex={-1}>{call.contactName}</h2>
+        {call.roleLabel ? <small className="iphone-outgoing-call__role">{call.roleLabel}</small> : null}
+        <article className="iphone-call-result">
+          <header>
+            <span>{labels.callResult}</span>
+            <strong>{call.actionLabel}</strong>
+          </header>
+          <TranscriptReply line={result} />
+        </article>
+        <button
+          type="button"
+          className="iphone-call-result__done"
+          onClick={onDismiss}
+          disabled={!onDismiss}
+        >
+          {labels.closeResult}
+        </button>
+      </main>
+    )
+  }
+
+  return (
+    <main
+      className={`iphone-active-call iphone-outgoing-call is-${call.phase}`}
+      data-call-phase={call.phase}
+    >
+      <span className="detective-sr-only" role="status" aria-live="polite">{phaseLabel}</span>
+      <div className="iphone-call-avatar">
+        <ContactAvatar contact={{ name: call.contactName }} large />
+      </div>
+      <p className="iphone-call-kicker">{phaseLabel}</p>
+      <h2 ref={headingRef} tabIndex={-1}>{call.contactName}</h2>
+      {call.roleLabel ? <small className="iphone-outgoing-call__role">{call.roleLabel}</small> : null}
+      <p className="iphone-outgoing-call__network">{labels.secureLine}</p>
+
+      {call.phase === 'dialing' ? (
+        <div className="iphone-ringing" aria-hidden="true">
+          {Array.from({ length: 18 }, (_, index) => <i key={index} />)}
+        </div>
+      ) : (
+        <div className={`iphone-speaking-visualizer ${call.phase === 'ending' ? 'is-ending' : ''}`} aria-hidden="true">
+          <span><b>D</b><small>{labels.detective}</small></span>
+          <div>{Array.from({ length: 22 }, (_, index) => <i key={index} />)}</div>
+          <span><b>{call.contactName.slice(0, 1).toLocaleUpperCase('tr')}</b><small>{call.contactName.split(' ')[0]}</small></span>
+        </div>
+      )}
+
+      {call.phase !== 'dialing' ? (
+        <div className="iphone-auto-hangup">
+          <span aria-hidden="true"><Icon src={phoneOffIcon} /></span>
+          <small>{call.phase === 'ending' ? labels.ending : labels.autoComplete}</small>
+        </div>
+      ) : null}
+    </main>
+  )
+}
+
 export function PhoneApp({
   model,
   labels: labelOverrides,
@@ -306,18 +432,27 @@ export function PhoneApp({
   onMessage,
   onAffordance,
   onEndCall,
+  onDismissOutgoingCall,
   onAnswerIncoming,
   onDeclineIncoming,
   onAcceptBriefing,
+  openContactRequest,
   busy = false,
 }: PhoneAppProps) {
   const contactsTitleId = useId()
   const recentsTitleId = useId()
+  const contactHeadingRef = useRef<HTMLHeadingElement>(null)
+  const outgoingHeadingRef = useRef<HTMLHeadingElement>(null)
+  const handledOpenRequestRef = useRef<string | undefined>(undefined)
+  const pendingContactFocusRef = useRef<string | undefined>(undefined)
   const [screen, setScreen] = useState<PhoneScreen>('home')
+  const [openedContactId, setOpenedContactId] = useState<string>()
   const [contactQuery, setContactQuery] = useState('')
   const [recentFilter, setRecentFilter] = useState<RecentFilter>('all')
   const labels = { ...DEFAULT_LABELS, ...labelOverrides }
-  const selectedContact = model.contacts.find(({ id }) => id === model.selectedContactId) ?? model.contacts[0]
+  const selectedContact = model.contacts.find(({ id }) => id === openedContactId)
+    ?? model.contacts.find(({ id }) => id === model.selectedContactId)
+    ?? model.contacts[0]
   const contacts = model.contacts.filter((contact) => (
     `${contact.name} ${contact.roleLabel ?? ''}`.toLocaleLowerCase('tr')
       .includes(contactQuery.trim().toLocaleLowerCase('tr'))
@@ -331,6 +466,7 @@ export function PhoneApp({
     missed: labels.missed,
   } as const
   const openContact = (contactId: string) => {
+    setOpenedContactId(contactId)
     onSelectContact?.(contactId)
     setScreen('contact')
   }
@@ -344,13 +480,55 @@ export function PhoneApp({
       onAction?.(contact.id, action.action, action.actorField)
     }
   }
-  const inCall = Boolean(model.incomingCall || model.activeCall)
+  const inCall = Boolean(model.outgoingCall || model.incomingCall || model.activeCall)
+
+  useEffect(() => {
+    if (!model.selectedContactId) return
+    setOpenedContactId(model.selectedContactId)
+  }, [model.selectedContactId])
+
+  useEffect(() => {
+    if (!openContactRequest || inCall) return
+    const requestKey = `${String(openContactRequest.nonce)}:${openContactRequest.contactId}`
+    if (handledOpenRequestRef.current === requestKey) return
+    if (!model.contacts.some(({ id }) => id === openContactRequest.contactId)) return
+
+    handledOpenRequestRef.current = requestKey
+    pendingContactFocusRef.current = openContactRequest.contactId
+    setContactQuery('')
+    setOpenedContactId(openContactRequest.contactId)
+    onSelectContact?.(openContactRequest.contactId)
+    setScreen('contact')
+  }, [inCall, model.contacts, onSelectContact, openContactRequest])
+
+  useEffect(() => {
+    if (
+      screen !== 'contact'
+      || !selectedContact
+      || pendingContactFocusRef.current !== selectedContact.id
+    ) return
+    pendingContactFocusRef.current = undefined
+    contactHeadingRef.current?.focus()
+  }, [screen, selectedContact])
+
+  useEffect(() => {
+    if (!model.outgoingCall) return
+    if (model.outgoingCall.phase !== 'dialing' && model.outgoingCall.phase !== 'result') return
+    outgoingHeadingRef.current?.focus()
+  }, [model.outgoingCall?.phase, model.outgoingCall?.sessionId])
 
   return (
     <section className={`phone-realistic ${inCall ? 'phone-realistic--in-call' : ''}`} aria-label={labels.title}>
       <StatusBar light={inCall || screen === 'home'} />
 
-      {model.incomingCall ? (
+      {model.outgoingCall ? (
+        <OutgoingCallScreen
+          call={model.outgoingCall}
+          labels={labels}
+          headingRef={outgoingHeadingRef}
+          onDismiss={onDismissOutgoingCall}
+        />
+      ) : model.incomingCall ? (
         <main className={`iphone-incoming iphone-incoming--${model.incomingCall.phase}`} aria-live="assertive">
           <div className="iphone-call-avatar">
             <ContactAvatar contact={{ name: model.incomingCall.contactName }} large />
@@ -479,12 +657,22 @@ export function PhoneApp({
             ) : (
               <ul>
                 {contacts.map((contact) => (
-                  <li key={contact.id}>
+                  <li key={contact.id} className={contact.newlyAdded ? 'is-new' : undefined}>
                     <button type="button" onClick={() => openContact(contact.id)}>
                       <ContactAvatar contact={contact} />
-                      <span>
-                        <strong>{contact.name}</strong>
-                        <small>{contact.roleLabel}</small>
+                      <span className="iphone-contact-row__copy">
+                        <span className="iphone-contact-row__headline">
+                          <strong>{contact.name}</strong>
+                          {contact.newlyAdded ? <b>{labels.newlyAdded}</b> : null}
+                        </span>
+                        {contact.roleLabel ? <small>{contact.roleLabel}</small> : null}
+                        {contact.phoneNumber || contact.operatorLabel || contact.sourceLabel ? (
+                          <span className="iphone-contact-row__metadata">
+                            {contact.phoneNumber ? <span>{contact.phoneNumber}</span> : null}
+                            {contact.operatorLabel ? <span>{contact.operatorLabel}</span> : null}
+                            {contact.sourceLabel ? <span>{contact.sourceLabel}</span> : null}
+                          </span>
+                        ) : null}
                       </span>
                       <i className={`iphone-presence ${contact.available ? 'is-online' : ''}`} aria-hidden="true" />
                       <Icon className="iphone-chevron" src={chevronRightIcon} />
@@ -502,12 +690,25 @@ export function PhoneApp({
           </header>
           <section className="iphone-contact-hero">
             <ContactAvatar contact={selectedContact} large />
-            <h2>{selectedContact.name}</h2>
+            <h2 ref={contactHeadingRef} tabIndex={-1}>{selectedContact.name}</h2>
             <p>{selectedContact.roleLabel}</p>
             <span className={`iphone-contact-presence ${selectedContact.available ? 'is-online' : ''}`}>
               {selectedContact.available ? labels.available : labels.unavailable}
             </span>
           </section>
+          {selectedContact.phoneNumber || selectedContact.operatorLabel || selectedContact.sourceLabel ? (
+            <dl className="iphone-contact-metadata">
+              {selectedContact.phoneNumber ? (
+                <div><dt>{labels.phoneNumber}</dt><dd>{selectedContact.phoneNumber}</dd></div>
+              ) : null}
+              {selectedContact.operatorLabel ? (
+                <div><dt>{labels.operator}</dt><dd>{selectedContact.operatorLabel}</dd></div>
+              ) : null}
+              {selectedContact.sourceLabel ? (
+                <div><dt>{labels.source}</dt><dd>{selectedContact.sourceLabel}</dd></div>
+              ) : null}
+            </dl>
+          ) : null}
           <div className="iphone-contact-quick-actions">
             {selectedContact.actions?.map((action) => (
               <button

@@ -64,6 +64,9 @@ export interface ManifestWorkspaceSelection {
   readonly activeResearchResultId?: string
   readonly replyDraft: string
   readonly activeCallContactId?: string
+  /** Cosmetic state only; runtime actor projection remains contact truth. */
+  readonly contactActionStatuses?: Readonly<Record<string, 'pending' | 'completed'>>
+  readonly newContactIds?: readonly string[]
 }
 
 export interface ManifestWorkspaceModels {
@@ -259,7 +262,6 @@ export function createManifestWorkspaceModels(
   const phoneAffordances = allPhoneAffordances.filter(
     (affordance) => affordance.intent.kind === 'action',
   )
-  const actorIds = new Set((runtime?.actors ?? []).map(({ id }) => id))
   const belongsToActor = (
     affordance: (typeof phoneAffordances)[number],
     actorId: string,
@@ -285,13 +287,11 @@ export function createManifestWorkspaceModels(
     return actor.conversation.canTalk || hasAvailableChannel
   }
   const unassignedPhoneAffordances = allPhoneAffordances.filter((affordance) => (
-    affordance.intent.kind !== 'action' || !(
-      [
-        affordance.intent.action.actor,
-        affordance.intent.action.from,
-        affordance.intent.action.target,
-      ].some((candidate) => candidate !== undefined && actorIds.has(candidate))
-    )
+    affordance.intent.kind !== 'action' || [
+      affordance.intent.action.actor,
+      affordance.intent.action.from,
+      affordance.intent.action.target,
+    ].every((candidate) => candidate === undefined)
   ))
   const readyDeductions = affordancesFor('casebook').filter(
     (affordance) => affordance.intent.kind === 'deduce',
@@ -305,7 +305,11 @@ export function createManifestWorkspaceModels(
   const briefingId = 'public-briefing'
   const callId = 'opening-call'
   const currentLeads = offeredAffordances
-    .filter((affordance) => affordance.intent.kind === 'action' && affordance.surface !== 'casebook')
+    .filter((affordance) => (
+      affordance.intent.kind === 'action'
+      && affordance.surface !== 'casebook'
+      && affordance.surface !== 'inbox'
+    ))
     .map((affordance, index) => ({
       ...affordanceViewModel(affordance, index),
       surface: affordance.surface,
@@ -331,6 +335,71 @@ export function createManifestWorkspaceModels(
   const activeResearchResult = completedWebResults.find(({ id }) => (
     id === selection.activeResearchResultId
   ))
+
+  const completedEntryId = (
+    completed: PublicCaseRuntimeState['completedAffordances'][number],
+    index: number,
+  ): string => `action-note-${completed.id}-${completed.completedAtMs}-${index}`
+  const entryIdForInteraction = (
+    interaction: NonNullable<PublicCaseRuntimeState['affordances'][number]['interaction']>,
+  ): string | undefined => {
+    const context = interaction.context
+    if (!context || context.kind === 'opening-call') return callId
+    if (context.kind === 'evidence') return `evidence-note-${context.ref}`
+    const completedIndex = completedAffordances.findIndex(({ id }) => id === context.ref)
+    const completed = completedAffordances[completedIndex]
+    return completed ? completedEntryId(completed, completedIndex) : undefined
+  }
+  const activeContactActions = affordancesFor('inbox').filter((affordance) => (
+    affordance.interaction?.kind === 'async-message'
+  ))
+  const completedContactActions = completedAffordances.filter((affordance) => (
+    affordance.surface === 'inbox' && affordance.interaction?.kind === 'async-message'
+  ))
+  const activeContactEntryCandidates = activeContactActions.flatMap((affordance) => {
+    if (!affordance.interaction) return []
+    const entryId = entryIdForInteraction(affordance.interaction)
+    return entryId ? [{ entryId, context: affordance.interaction.context }] : []
+  })
+  const preferredEntryId = activeContactEntryCandidates.find(({ context }) => (
+    context && context.kind !== 'opening-call'
+  ))?.entryId
+    ?? activeContactEntryCandidates[0]?.entryId
+    ?? briefingId
+  const selectedCasebookEntryId = selection.selectedEntryId ?? preferredEntryId
+  const contactActions: NonNullable<CasebookViewModel['contactActions']> = [
+    ...activeContactActions.flatMap((affordance, index) => {
+      if (!affordance.interaction || entryIdForInteraction(affordance.interaction) !== selectedCasebookEntryId) {
+        return []
+      }
+      const status: 'ready' | 'pending' | 'completed' = (
+        selection.contactActionStatuses?.[affordance.id] ?? 'ready'
+      )
+      return [{
+        affordanceId: affordance.id,
+        label: affordanceLabel(affordance, `Kişiyi bul ${index + 1}`),
+        ...(affordance.interaction.request?.trim()
+          ? { description: affordance.interaction.request.trim() }
+          : {}),
+        destinationLabel: `#${affordance.interaction.channel}`,
+        status,
+      }]
+    }),
+    ...completedContactActions.flatMap((affordance, index) => {
+      if (!affordance.interaction || entryIdForInteraction(affordance.interaction) !== selectedCasebookEntryId) {
+        return []
+      }
+      return [{
+        affordanceId: affordance.id,
+        label: affordance.label?.trim() || `Bulunan kişi ${index + 1}`,
+        ...(affordance.interaction.request?.trim()
+          ? { description: affordance.interaction.request.trim() }
+          : {}),
+        destinationLabel: `#${affordance.interaction.channel}`,
+        status: 'completed' as const,
+      }]
+    }),
+  ]
 
   const files: FilesViewModel = {
     selectedRecordId: selection.selectedRecordId ?? runtimeEvidence[0]?.id,
@@ -376,8 +445,9 @@ export function createManifestWorkspaceModels(
       heading: manifest.case.title,
       synopsis: manifest.case.synopsis,
       phaseLabel: 'AKTİF VAKA',
-      selectedEntryId: selection.selectedEntryId ?? briefingId,
+      selectedEntryId: selectedCasebookEntryId,
       leads: currentLeads,
+      ...(contactActions.length > 0 ? { contactActions } : {}),
       entries: [
         {
           id: briefingId,
@@ -410,7 +480,7 @@ export function createManifestWorkspaceModels(
           const result = completed.result?.trim()
           if (!result) return []
           return [{
-            id: `action-note-${completed.id}-${completed.completedAtMs}-${index}`,
+            id: completedEntryId(completed, index),
             eyebrow: completed.surface === 'phone' ? 'Görüşme / işlem' : 'Soruşturma işlemi',
             title: completed.label?.trim() || `Tamamlanan işlem ${index + 1}`,
             body: result,
@@ -514,13 +584,26 @@ export function createManifestWorkspaceModels(
         )))
         return {
           id: actor.id,
-          name: castText(manifest, actor.id, 'name') ?? actorFallbackLabel(actorIndex),
-          roleLabel: castRole(manifest, actor.id) ?? 'Vaka kişisi',
+          name: actor.displayName?.trim()
+            || actor.name?.trim()
+            || castText(manifest, actor.id, 'name')
+            || actorFallbackLabel(actorIndex),
+          roleLabel: actor.role?.trim()
+            || castRole(manifest, actor.id)
+            || 'Vaka kişisi',
           detail: actor.conversation.reason ?? (
             actor.conversation.canTalk
               ? 'Görüşme için ulaşılabilir.'
               : 'Bu kişi şu anda görüşmeye açık değil.'
           ),
+          ...(actor.phone?.trim() ? { phoneNumber: actor.phone.trim() } : {}),
+          ...('operator' in actor && typeof actor.operator === 'string' && actor.operator.trim()
+            ? { operatorLabel: actor.operator.trim() }
+            : {}),
+          ...('contactSource' in actor && typeof actor.contactSource === 'string' && actor.contactSource.trim()
+            ? { sourceLabel: actor.contactSource.trim() }
+            : {}),
+          ...(selection.newContactIds?.includes(actor.id) ? { newlyAdded: true } : {}),
           available: actor.conversation.canTalk,
           actions: [
             ...exactAffordances.map((affordance, index) => {
@@ -553,7 +636,13 @@ export function createManifestWorkspaceModels(
       ...(selection.activeCallContactId ? {
         activeCall: {
           contactId: selection.activeCallContactId,
-          contactName: castText(manifest, selection.activeCallContactId, 'name') ?? 'Vaka kişisi',
+          contactName: (() => {
+            const actor = runtime?.actors.find(({ id }) => id === selection.activeCallContactId)
+            return actor?.displayName?.trim()
+              || actor?.name?.trim()
+              || castText(manifest, selection.activeCallContactId, 'name')
+              || 'Vaka kişisi'
+          })(),
           elapsedLabel: '00:00',
           transcript: completedAffordances.flatMap((completed) => {
             if (completed.surface !== 'phone' || completed.intent.kind !== 'action') return []
@@ -615,7 +704,7 @@ export function createManifestWorkspaceModels(
           id: `lead-${lead.id}`,
           text: lead.label,
           status: 'open' as const,
-          detail: `${{ phone: 'Aramalar', web: 'Safari', files: 'Finder', casebook: 'Vaka Notları' }[lead.surface]} uygulamasında.`,
+          detail: `${{ phone: 'Aramalar', web: 'Safari', files: 'Finder', casebook: 'Vaka Notları', inbox: 'Ekip Alanı' }[lead.surface]} uygulamasında.`,
         })),
       ],
     },

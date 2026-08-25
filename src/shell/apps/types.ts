@@ -26,6 +26,21 @@ export interface EvidenceLinkViewModel {
   readonly label: string
 }
 
+export type CasebookContactActionStatus = 'ready' | 'pending' | 'completed'
+
+/**
+ * Player-facing follow-up attached to the currently selected case note.
+ * `affordanceId` is opaque to the component and is only returned to its host.
+ */
+export interface CasebookContactActionViewModel {
+  readonly affordanceId: string
+  readonly label: string
+  readonly description?: string
+  readonly destinationLabel?: string
+  readonly status?: CasebookContactActionStatus
+  readonly statusLabel?: string
+}
+
 /**
  * A presentation-safe action offered by the runtime on a specific app
  * surface. The engine command deliberately stays outside component models;
@@ -41,7 +56,7 @@ export interface AffordanceViewModel {
 }
 
 export interface InvestigationLeadViewModel extends AffordanceViewModel {
-  readonly surface: 'phone' | 'web' | 'files' | 'casebook'
+  readonly surface: 'phone' | 'web' | 'files' | 'casebook' | 'inbox'
 }
 
 export type DeductionStatus = 'ready' | 'supported' | 'waiting'
@@ -74,6 +89,8 @@ export interface CasebookViewModel {
   readonly deductions: readonly CasebookDeductionViewModel[]
   /** Active player-facing actions across every app, without their command payloads. */
   readonly leads: readonly InvestigationLeadViewModel[]
+  /** Authored person lookups relevant to the selected note. */
+  readonly contactActions?: readonly CasebookContactActionViewModel[]
   readonly selectedEntryId?: string
 }
 
@@ -119,6 +136,13 @@ export interface InboxThreadViewModel {
   readonly badgeLabel?: string
 }
 
+export interface InboxMessageCtaViewModel {
+  /** Presentation-only action token; its meaning remains with the host. */
+  readonly id: string
+  readonly label: string
+  readonly accessibleLabel?: string
+}
+
 export interface InboxMessageViewModel {
   readonly id: string
   readonly author: string
@@ -127,9 +151,11 @@ export interface InboxMessageViewModel {
   readonly body: string
   readonly timestampLabel: string
   readonly direction: 'incoming' | 'outgoing' | 'system'
-  readonly attachment?: AuthorizedAssetViewModel
+  /** Ordered, host-authorized files attached to this presentation-only message. */
+  readonly attachments?: readonly AuthorizedAssetViewModel[]
   /** Reveals the visual copy word by word while keeping one complete accessible copy. */
   readonly streaming?: boolean
+  readonly cta?: InboxMessageCtaViewModel
 }
 
 export interface InboxChannelViewModel {
@@ -166,6 +192,10 @@ export interface PhoneContactViewModel {
   readonly detail?: string
   readonly initials?: string
   readonly available?: boolean
+  readonly phoneNumber?: string
+  readonly operatorLabel?: string
+  readonly sourceLabel?: string
+  readonly newlyAdded?: boolean
   readonly actions?: readonly {
     readonly action: string
     readonly label: string
@@ -174,6 +204,12 @@ export interface PhoneContactViewModel {
     readonly costLabel?: string
     readonly available: boolean
   }[]
+}
+
+export interface PhoneOpenContactRequest {
+  readonly contactId: string
+  /** Change this value to explicitly request opening the same contact again. */
+  readonly nonce: string | number
 }
 
 export interface PhoneCallViewModel {
@@ -185,11 +221,24 @@ export interface PhoneCallViewModel {
   readonly direction: 'incoming' | 'outgoing' | 'missed'
 }
 
+/** Transient app-only presentation state for one outgoing phone interaction. */
+export interface PhoneOutgoingCallViewModel {
+  readonly sessionId: number
+  readonly phase: 'dialing' | 'speaking' | 'ending' | 'result'
+  readonly contactId: string
+  readonly contactName: string
+  readonly roleLabel?: string
+  readonly actionLabel: string
+  readonly result?: string
+  readonly successful?: boolean
+}
+
 export interface PhoneViewModel {
   readonly contacts: readonly PhoneContactViewModel[]
   readonly recentCalls: readonly PhoneCallViewModel[]
   readonly affordances?: readonly AffordanceViewModel[]
   readonly selectedContactId?: string
+  readonly outgoingCall?: PhoneOutgoingCallViewModel
   readonly incomingCall?: {
     readonly phase: 'ringing' | 'connected' | 'missed'
     readonly contactId: string
@@ -228,6 +277,38 @@ export interface FilesViewModel {
   readonly records: readonly FileRecordViewModel[]
   readonly affordances: readonly AffordanceViewModel[]
   readonly selectedRecordId?: string
+}
+
+/** A currently listed person card on the detective's private case board. */
+export interface CaseBoardPersonPinViewModel {
+  readonly id: string
+  readonly kind: 'person'
+  readonly name: string
+  readonly roleLabel?: string
+  readonly initials?: string
+}
+
+/** A currently public evidence image on the detective's private case board. */
+export interface CaseBoardEvidencePinViewModel {
+  readonly id: string
+  readonly kind: 'evidence'
+  readonly title: string
+  readonly sourceLabel?: string
+  readonly statusLabel?: string
+  readonly asset: AuthorizedAssetViewModel
+}
+
+export type CaseBoardPinViewModel =
+  | CaseBoardPersonPinViewModel
+  | CaseBoardEvidencePinViewModel
+
+/**
+ * Presentation-only board material. The shell derives it from the current
+ * public Phone and Finder projections; it never receives a case definition.
+ */
+export interface CaseBoardViewModel {
+  readonly heading?: string
+  readonly pins: readonly CaseBoardPinViewModel[]
 }
 
 export interface WebResultViewModel {

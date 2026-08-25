@@ -220,10 +220,11 @@
         "result": {"$ref": "#/definitions/translatableText"},
         "risk": {"enum": ["normal", "consequential", "terminal"]},
         "confirmation": {"$ref": "#/definitions/translatableText"},
-        "surface": {"enum": ["phone", "web", "files", "casebook"]},
+        "surface": {"enum": ["phone", "web", "files", "casebook", "inbox"]},
         "initial": {"enum": ["offered", "withdrawn"]},
         "action": {"$ref": "#/definitions/caseAction"},
         "deduction": {"$ref": "#/definitions/id"},
+        "interaction": {"$ref": "#/definitions/affordanceInteraction"},
         "exclusive": {"type": "boolean"},
         "cost": {
           "type": "object",
@@ -239,6 +240,45 @@
       "oneOf": [
         {"required": ["action"], "not": {"required": ["deduction"]}},
         {"required": ["deduction"], "not": {"required": ["action"]}}
+      ]
+    },
+    "affordanceInteraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "channel", "request"],
+      "properties": {
+        "kind": {"const": "async-message"},
+        "channel": {"$ref": "#/definitions/id"},
+        "request": {"$ref": "#/definitions/translatableText"},
+        "context": {"$ref": "#/definitions/affordanceInteractionContext"}
+      }
+    },
+    "affordanceInteractionContext": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {"kind": {"const": "opening-call"}}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "ref"],
+          "properties": {
+            "kind": {"const": "evidence"},
+            "ref": {"$ref": "#/definitions/id"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "ref"],
+          "properties": {
+            "kind": {"const": "completed-affordance"},
+            "ref": {"$ref": "#/definitions/id"}
+          }
+        }
       ]
     },
     "idList": {

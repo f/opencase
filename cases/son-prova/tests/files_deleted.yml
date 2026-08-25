@@ -49,11 +49,13 @@ scenario:
     - detective.observe: orhan_phone_export
     - detective.observe: positioning_message
 
+    - detective.act: {action: locate-contact, target: baran}
     - detective.act: {action: interview, actor: baran, topic: location}
     - detective.observe: cafe_video
     - detective.act: {action: search, query: "PROD-TAB-03 remote pairing"}
     - detective.observe: support_mail
 
+    - detective.act: {action: locate-contact, target: selin}
     - detective.act: {action: interview, actor: selin, topic: alibi}
     - detective.observe: livestream
     - detective.act: {action: search, query: "interview publication history"}

@@ -5,6 +5,7 @@ scenario:
   id: full_without_optional_receipt
   perspective: detective
   steps:
+    - detective.act: {action: locate-contact, target: nihan}
     - expect:
         state:
           evidence: {mert_receipt: hidden}

@@ -14,6 +14,7 @@ export const CASE_EVENTS = {
   actionPerformed: 'case.action.performed',
   deductionSupported: 'case.deduction.supported',
   deadlineReached: 'case.deadline.reached',
+  contactChanged: 'case.contact.changed',
   routeProgressed: 'case.route.progressed',
 } as const
 
@@ -79,6 +80,18 @@ export interface RuntimeEvidenceDefinition {
 
 export interface RuntimeActorConversationDefinition {
   readonly public: boolean
+  readonly contactInitial: 'hidden' | 'listed'
+  readonly presentation: {
+    readonly name?: LocalizedText
+    readonly displayName?: LocalizedText
+    readonly role?: LocalizedText
+    readonly status?: LocalizedText
+    readonly phone?: string
+    readonly operator?: string
+    readonly contactSource?: LocalizedText
+    readonly pronouns?: LocalizedText
+    readonly client?: boolean
+  }
   readonly initialState: string
   readonly states: Readonly<Record<string, {
     readonly canTalk: boolean
@@ -93,11 +106,20 @@ export interface RuntimeAffordanceDefinition {
   readonly result?: LocalizedText
   readonly risk: 'normal' | 'consequential' | 'terminal'
   readonly confirmation?: LocalizedText
-  readonly surface: 'phone' | 'web' | 'files' | 'casebook'
+  readonly surface: 'phone' | 'web' | 'files' | 'casebook' | 'inbox'
   readonly intent:
     | { readonly kind: 'action'; readonly action: CaseAction }
     | { readonly kind: 'deduce'; readonly deductionId: string }
   readonly exclusive: boolean
+  readonly interaction?: {
+    readonly kind: 'async-message'
+    readonly channel: string
+    readonly request: LocalizedText
+    readonly context?:
+      | { readonly kind: 'opening-call' }
+      | { readonly kind: 'evidence'; readonly ref: string }
+      | { readonly kind: 'completed-affordance'; readonly ref: string }
+  }
   readonly cost?: {
     readonly clock: 'case-time'
     readonly milliseconds: number
@@ -187,6 +209,17 @@ export interface CaseAction {
   readonly ref?: string
 }
 
+export interface PublicAsyncMessageInteraction {
+  readonly kind: 'async-message'
+  readonly channel: string
+  readonly request?: string
+  readonly requestKey?: string
+  readonly context?:
+    | { readonly kind: 'opening-call' }
+    | { readonly kind: 'evidence'; readonly ref: string }
+    | { readonly kind: 'completed-affordance'; readonly ref: string }
+}
+
 export interface PublicCaseRuntimeState {
   readonly schema: 'case-runtime/public-v1'
   readonly status: 'active' | 'ended'
@@ -212,6 +245,7 @@ export interface PublicCaseRuntimeState {
     readonly risk: RuntimeAffordanceDefinition['risk']
     readonly confirmation?: string
     readonly confirmationKey?: string
+    readonly interaction?: PublicAsyncMessageInteraction
   }[]
   readonly completedAffordances: readonly {
     readonly id: string
@@ -224,6 +258,9 @@ export interface PublicCaseRuntimeState {
     readonly resultKey?: string
     readonly risk: RuntimeAffordanceDefinition['risk']
     readonly completedAtMs: number
+    readonly interaction?: PublicAsyncMessageInteraction
+    /** Public contact ids listed by this exact accepted command. */
+    readonly contactsListed?: readonly string[]
   }[]
   /** Supported deductions with copy retained from an explicit public affordance. */
   readonly supportedDeductions: readonly {
@@ -233,6 +270,21 @@ export interface PublicCaseRuntimeState {
   }[]
   readonly actors: readonly {
     readonly id: string
+    readonly name?: string
+    readonly nameKey?: string
+    readonly displayName?: string
+    readonly displayNameKey?: string
+    readonly role?: string
+    readonly roleKey?: string
+    readonly status?: string
+    readonly statusKey?: string
+    readonly phone?: string
+    readonly operator?: string
+    readonly contactSource?: string
+    readonly contactSourceKey?: string
+    readonly pronouns?: string
+    readonly pronounsKey?: string
+    readonly client?: boolean
     readonly conversation: {
       readonly state: string
       readonly canTalk: boolean

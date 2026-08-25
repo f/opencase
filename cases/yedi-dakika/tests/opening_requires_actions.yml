@@ -9,11 +9,21 @@ scenario:
     - expect:
         state:
           clocks: {case-time: 0s}
+          contacts:
+            leyla: listed
+            mert: hidden
+            nihan: hidden
+            can: hidden
           evidence:
             lobby_video: hidden
             camera_sync_notice: hidden
             printer_log: hidden
           affordances:
+            locate_mert_contact: hidden
+            locate_nihan_contact: offered
+            interview_leyla: offered
+            interview_mert_location: hidden
+            interview_nihan: hidden
             request_lobby_video: offered
             request_camera_sync: hidden
             request_printer_log: offered

@@ -6,6 +6,10 @@ import {
   runDetectiveCaseTest,
   type DetectiveCaseTestResult,
 } from './detective-runner'
+import {
+  auditContactDiscoveryCoverage,
+  type ContactDiscoveryCoverageAudit,
+} from './contact-discovery-audit'
 
 export interface DetectiveCaseConformanceResult {
   readonly sourceFile: string
@@ -15,6 +19,7 @@ export interface DetectiveCaseConformanceResult {
   readonly caseVersion: string
   readonly ok: boolean
   readonly tests: readonly DetectiveCaseTestResult[]
+  readonly contactDiscovery: ContactDiscoveryCoverageAudit
 }
 
 /**
@@ -30,14 +35,20 @@ export async function runCasePackageConformance(
   const tests = suite.scenarios.map((scenario) =>
     runDetectiveCaseTest(compiled.result.ir, scenario),
   )
+  const contactDiscovery = auditContactDiscoveryCoverage(
+    compiled.result.ir,
+    suite.scenarios,
+    tests,
+  )
   return {
     sourceFile: compiled.sourcePath,
     testsRoot: suite.testsRoot,
     testSuiteDigest: suite.digest,
     caseId: compiled.result.ir.case.id,
     caseVersion: compiled.result.ir.case.version,
-    ok: tests.every(({ ok }) => ok),
+    ok: tests.every(({ ok }) => ok) && contactDiscovery.ok,
     tests,
+    contactDiscovery,
   }
 }
 
@@ -53,6 +64,19 @@ export function formatConformanceResult(result: DetectiveCaseConformanceResult):
       lines.push(`    ${item.expectation}: ${item.message}`)
     }
   }
+  const coverage = result.contactDiscovery
+  lines.push(
+    `  ${coverage.ok ? 'PASS' : 'FAIL'} contact-discovery coverage (${coverage.covered}/${coverage.required} hidden public contacts)`,
+  )
+  for (const item of coverage.items) {
+    if (item.ok) {
+      lines.push(
+        `    PASS actor '${item.actorId}' via scenario '${item.scenarioId}' and affordance '${item.affordanceId}'`,
+      )
+    } else {
+      lines.push(`    FAIL actor '${item.actorId}': ${item.message}`)
+    }
+  }
   return lines.join('\n')
 }
 
@@ -62,5 +86,9 @@ export function conformanceSummaryValue(result: DetectiveCaseConformanceResult):
     ok: result.ok,
     passed: result.tests.filter(({ ok }) => ok).length,
     total: result.tests.length,
+    contactDiscovery: {
+      covered: result.contactDiscovery.covered,
+      required: result.contactDiscovery.required,
+    },
   }
 }

@@ -9,6 +9,7 @@ import listTodoIcon from 'lucide-static/icons/list-todo.svg'
 import panelLeftIcon from 'lucide-static/icons/panel-left.svg'
 import squarePenIcon from 'lucide-static/icons/square-pen.svg'
 import typeIcon from 'lucide-static/icons/type.svg'
+import userSearchIcon from 'lucide-static/icons/user-search.svg'
 
 import { AppScaffold, CountBadge, EmptyState } from './shared'
 import type { CasebookViewModel, DeductionStatus } from './types'
@@ -29,6 +30,11 @@ export interface CasebookLabels {
   readonly openEvidence: string
   readonly leads: string
   readonly openLead: string
+  readonly contactActions: string
+  readonly contactActionsHint: string
+  readonly contactActionReady: string
+  readonly contactActionPending: string
+  readonly contactActionCompleted: string
 }
 
 const DEFAULT_LABELS: CasebookLabels = {
@@ -46,6 +52,11 @@ const DEFAULT_LABELS: CasebookLabels = {
   openEvidence: 'Kanıtı aç',
   leads: 'Sıradaki adımlar',
   openLead: 'Uygulamayı aç',
+  contactActions: 'Kişi araştırması',
+  contactActionsHint: 'Adli İnceleme bağlantısı',
+  contactActionReady: 'Araştır',
+  contactActionPending: 'Araştırılıyor',
+  contactActionCompleted: 'Kişilere eklendi',
 }
 
 export interface CasebookAppProps {
@@ -54,7 +65,8 @@ export interface CasebookAppProps {
   readonly onSelectEntry?: (entryId: string) => void
   readonly onAttemptDeduction?: (deductionId: string) => void
   readonly onOpenEvidence?: (evidenceId: string) => void
-  readonly onOpenLead?: (surface: 'phone' | 'web' | 'files' | 'casebook') => void
+  readonly onOpenLead?: (surface: 'phone' | 'web' | 'files' | 'casebook' | 'inbox') => void
+  readonly onContactAction?: (affordanceId: string) => void
   readonly busy?: boolean
 }
 
@@ -65,6 +77,7 @@ export function CasebookApp({
   onAttemptDeduction,
   onOpenEvidence,
   onOpenLead,
+  onContactAction,
   busy = false,
 }: CasebookAppProps) {
   const deductionsTitleId = useId()
@@ -80,6 +93,7 @@ export function CasebookApp({
     web: 'Safari',
     files: 'Finder',
     casebook: 'Vaka Notları',
+    inbox: 'Ekip Alanı',
   } as const
 
   return (
@@ -102,12 +116,6 @@ export function CasebookApp({
             <strong>{labels.title}</strong>
             <CountBadge value={model.entries.length} label={labels.notes} />
           </div>
-          {model.synopsis ? (
-            <section className="casebook-app__synopsis" aria-label="Vaka özeti">
-              <small>Vaka özeti</small>
-              <p>{model.synopsis}</p>
-            </section>
-          ) : null}
           <nav className="detective-index" aria-label={labels.notes}>
             <div className="detective-section-title">
               <h3>{labels.notes}</h3>
@@ -155,6 +163,57 @@ export function CasebookApp({
                   {selectedEntry.timestampLabel ? <time>{selectedEntry.timestampLabel}</time> : null}
                 </header>
                 <p className="casebook-page__body">{selectedEntry.body}</p>
+                {model.contactActions && model.contactActions.length > 0 ? (
+                  <section
+                    className="casebook-contact-actions"
+                    aria-label={labels.contactActions}
+                    aria-busy={model.contactActions.some(({ status }) => status === 'pending') || undefined}
+                  >
+                    <header>
+                      <span className="casebook-contact-actions__mark" aria-hidden="true">
+                        <img src={userSearchIcon} alt="" />
+                      </span>
+                      <span>
+                        <strong>{labels.contactActions}</strong>
+                        <small>{labels.contactActionsHint}</small>
+                      </span>
+                    </header>
+                    <ul>
+                      {model.contactActions.map((action) => {
+                        const status = action.status ?? 'ready'
+                        const statusText = action.statusLabel ?? (
+                          status === 'pending'
+                            ? labels.contactActionPending
+                            : status === 'completed'
+                              ? labels.contactActionCompleted
+                              : labels.contactActionReady
+                        )
+                        return (
+                          <li key={action.affordanceId} data-status={status}>
+                            <button
+                              type="button"
+                              disabled={busy || status !== 'ready' || !onContactAction}
+                              onClick={() => onContactAction?.(action.affordanceId)}
+                            >
+                              <span className="casebook-contact-actions__avatar" aria-hidden="true">
+                                <img src={userSearchIcon} alt="" />
+                              </span>
+                              <span className="casebook-contact-actions__copy">
+                                <strong>{action.label}</strong>
+                                {action.description ? <small>{action.description}</small> : null}
+                              </span>
+                              <span className="casebook-contact-actions__meta">
+                                {action.destinationLabel ? <small>{action.destinationLabel}</small> : null}
+                                <b>{statusText}</b>
+                              </span>
+                              <img className="casebook-contact-actions__chevron" src={chevronRightIcon} alt="" aria-hidden="true" />
+                            </button>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </section>
+                ) : null}
                 {selectedEntry.findings && selectedEntry.findings.length > 0 ? (
                   <ul className="casebook-page__findings">
                     {selectedEntry.findings.map((finding, index) => (

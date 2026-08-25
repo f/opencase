@@ -192,6 +192,19 @@ function assertState(
     }
   }
 
+  for (const [id, wanted] of Object.entries(expected.contacts ?? {})) {
+    const actual = projection.actors.some((actor) => actor.id === id) ? 'listed' : 'hidden'
+    if (actual !== wanted) {
+      failures.push(
+        failure(
+          `${path}.contacts.${id}`,
+          `expected contact '${id}' to be ${wanted}`,
+          actual,
+        ),
+      )
+    }
+  }
+
   for (const [id, evidenceExpectation] of Object.entries(expected.evidence ?? {})) {
     const card = projection.evidence.find((candidate) => candidate.id === id)
     const actualStatus = !card ? 'hidden' : card.observed ? 'observed' : 'available'

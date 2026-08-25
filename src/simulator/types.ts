@@ -17,6 +17,7 @@ export interface MutableSimulatorClock {
 export type CaseTestEvidenceStatus = 'hidden' | 'available' | 'observed'
 export type CaseTestAffordanceStatus = 'offered' | 'hidden'
 export type CaseTestDeductionStatus = 'supported' | 'unknown'
+export type CaseTestContactStatus = 'listed' | 'hidden'
 
 export type CaseTestResultExpectation =
   | { readonly status: 'accepted' }
@@ -32,6 +33,8 @@ export interface CaseTestStateExpectation {
   /** Elapsed milliseconds from the scenario's initial public clock values. */
   readonly clocks?: Readonly<Partial<Record<SimulatorClock, number>>>
   readonly affordances?: Readonly<Record<string, CaseTestAffordanceStatus>>
+  /** Whether an actor is present in the detective's public contact directory. */
+  readonly contacts?: Readonly<Record<string, CaseTestContactStatus>>
   readonly evidence?: Readonly<Record<string, CaseTestEvidenceExpectation>>
   readonly observations?: Readonly<Record<string, JsonValue>>
   readonly unknownObservations?: readonly string[]

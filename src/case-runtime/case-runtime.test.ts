@@ -261,8 +261,108 @@ outcomes:
   expired_result: {title: Expired, priority: 10, when_marked: expired}
 `
 
+const CONTACT_CASE = `schema: case-source/v0.1
+case:
+  id: demo.runtime-contact-fixture
+  version: 0.1.0
+  title: Runtime Contact Fixture
+  locale: en
+  duration: 5m
+  mode: elastic
+  final_conclusion: first-write-wins
+  time: {date: "2026-01-01", timezone: UTC, starts_at: "10:00"}
+  synopsis: A generic contact-directory runtime fixture.
+use: [investigation@1, artifacts@1, interview@1, contact-directory@1]
+cast:
+  caller: {name: Caller, role: client, client: true}
+  witness:
+    name: Hidden Witness
+    role: witness
+    phone: "+90 555 000 00 01"
+    operator: Anatolia Mobile
+    contact_source: {$text: contacts.witness.source}
+conversations:
+  witness:
+    contact: {initial: hidden}
+    initial: reachable
+    states:
+      reachable: {can_talk: true}
+    channels: {interview: actor, present: target}
+affordances:
+  find_witness:
+    label: Find the witness
+    result: The directory lead returned the witness contact.
+    surface: inbox
+    initial: offered
+    action: {action: locate-contact, target: witness}
+    interaction:
+      kind: async-message
+      channel: forensics
+      request: {$text: affordances.find_witness.request}
+      context: {kind: opening-call}
+  interview_witness:
+    label: Call the witness
+    surface: phone
+    initial: withdrawn
+    action: {action: interview, actor: witness}
+  test_lead:
+    label: Test the directory lead
+    surface: casebook
+    initial: offered
+    deduction: lead
+places: {site: Test Site}
+things: {item: {type: object, name: Item}}
+truth:
+  events:
+    incident: {at: "10:01", type: item.moved, actor: caller, object: item, place: site}
+  facts: {}
+perspectives: {}
+opening:
+  call: {from: caller, text: Find the witness.}
+  grants: [seed]
+  starts: []
+evidence:
+  seed:
+    tool: document
+    at: start
+    reports: {lead: witness}
+deductions:
+  lead:
+    conclude: {witness: witness, status: identified}
+    prove: {any: [[seed.lead]]}
+flags: []
+reactions:
+  - on: {action: locate-contact, target: witness}
+    once: true
+    do: [{contact: [witness, listed]}, {offer: interview_witness}]
+deadlines: {}
+objectives:
+  solve: {supported: lead}
+outcomes:
+  resolved: {title: Resolved, priority: 100, require: [solve], final_target: witness}
+`
+
+const CONTACT_PRESENTATION = {
+  defaultLocale: 'en',
+  locale: 'en',
+  messages: {
+    'affordances.find_witness.request': 'Please locate the witness contact.',
+    'contacts.witness.source': 'Forensics directory response',
+  },
+} as const
+
 function source() {
   return compileCaseSourceOrThrow(GENERIC_CASE, { fileName: 'runtime-fixture.case.yml' }).ir
+}
+
+function contactSource() {
+  return compileCaseSourceOrThrow(CONTACT_CASE, {
+    fileName: 'runtime-contact-fixture.case.yml',
+    localization: {
+      defaultLocale: 'en',
+      availableKeys: new Set(Object.keys(CONTACT_PRESENTATION.messages)),
+    },
+  }).ir
 }
 
 function harness(ir = source()) {
@@ -940,6 +1040,8 @@ cast:`,
 
     expect(projectCaseState(h.session).actors).toContainEqual({
       id: 'subject',
+      name: 'Subject',
+      role: 'subject',
       conversation: {
         state: 'reachable',
         canTalk: true,
@@ -950,6 +1052,84 @@ cast:`,
       action: 'interview',
       actor: 'subject',
     }))
+  })
+
+  it('reveals a contact only after its authored async lookup completes and preserves it on replay', () => {
+    const h = harness(contactSource())
+    const opening = projectCaseState(h.session, CONTACT_PRESENTATION)
+    const lookup = opening.affordances.find(({id}) => id === 'find_witness')
+
+    expect(opening.actors).toEqual([])
+    expect(lookup).toMatchObject({
+      id: 'find_witness',
+      surface: 'inbox',
+      interaction: {
+        kind: 'async-message',
+        channel: 'forensics',
+        request: 'Please locate the witness contact.',
+        context: {kind: 'opening-call'},
+      },
+    })
+    expect(JSON.stringify(lookup)).not.toContain('directory lead returned')
+
+    const hiddenConversation = performAction(h.runtime, h.session, {
+      action: 'present',
+      target: 'witness',
+    })
+    expect(hiddenConversation.ok).toBe(false)
+    if (hiddenConversation.ok) throw new Error('Expected hidden-contact rejection')
+    expect(hiddenConversation.error.code).toBe('actor-unavailable')
+    expect(hiddenConversation.events).toEqual([])
+
+    h.apply(performAction(h.runtime, h.session, {
+      action: 'locate-contact',
+      target: 'witness',
+    }))
+
+    const listed = projectCaseState(h.session, CONTACT_PRESENTATION)
+    expect(listed.affordances.map(({id}) => id)).toContain('interview_witness')
+    expect(listed.completedAffordances).toContainEqual(expect.objectContaining({
+      id: 'find_witness',
+      result: 'The directory lead returned the witness contact.',
+      completedAtMs: 0,
+      contactsListed: ['witness'],
+      interaction: {
+        kind: 'async-message',
+        channel: 'forensics',
+        request: 'Please locate the witness contact.',
+        context: {kind: 'opening-call'},
+      },
+    }))
+    expect(listed.actors).toEqual([{
+      id: 'witness',
+      name: 'Hidden Witness',
+      role: 'witness',
+      phone: '+90 555 000 00 01',
+      operator: 'Anatolia Mobile',
+      contactSource: 'Forensics directory response',
+      conversation: {
+        state: 'reachable',
+        canTalk: true,
+        channels: [{action: 'present', actorField: 'target', available: true}],
+      },
+    }])
+
+    h.apply(performAction(h.runtime, h.session, {
+      action: 'present',
+      target: 'witness',
+    }))
+    h.apply(performAction(h.runtime, h.session, {
+      action: 'interview',
+      actor: 'witness',
+    }))
+
+    const replayed = replayCase(h.runtime, h.session.eventLog)
+    expect(replayed.state).toEqual(h.session.state)
+    expect(projectCaseState(replayed, CONTACT_PRESENTATION)).toEqual(
+      projectCaseState(h.session, CONTACT_PRESENTATION),
+    )
+    expect(projectCaseState(replayed, CONTACT_PRESENTATION).actors.map(({id}) => id))
+      .toContain('witness')
   })
 
   it('delivers a generic deadline through the public outcome projection', () => {

@@ -375,6 +375,7 @@ capabilities the case actually uses.
 | `finance@1` | `account-history` | `search` | reroute `archive-search` |
 | `access-control@1` | `log` | `request` | reroute `security-export` |
 | `facility-logistics@1` | `physical-evidence` | `request`, `search` | reroute `confidential-blue-route` |
+| `contact-directory@1` | — | `locate-contact` | — |
 | `generic-actions@1` | — | all built-in general action verbs | — |
 
 The vocabulary is the union of the selected manifests. Unknown specifiers,
@@ -425,11 +426,16 @@ Localized public manifests resolve these player-safe labels while truth,
 evidence reports, rules, tests, and saves continue to use the same stable ID.
 
 The public cast is deliberately filtered. String entries pass through. Object
-entries expose only `name`, `role`, `status`, `client`, `display_name`, and
-`pronouns`. An entry is omitted from the public manifest if it has
+entries expose only `name`, `role`, `status`, `client`, `display_name`,
+`phone`, `operator`, `contact_source`, and `pronouns`. An entry is omitted from
+the public manifest if it has
 `protected: true`, `hidden: true`, `public: false`, or `visibility` equal to
 `private` or `hidden`. Do not rely on that filtering as permission to put
 secrets in public-facing fields.
+
+A public conversation actor whose contact starts `hidden` is also omitted from
+the bootstrap cast. Their allow-listed presentation fields enter the runtime
+projection only after the authoritative contact slot becomes `listed`.
 
 ## `conversations`
 
@@ -440,6 +446,7 @@ actor/action pair whose contactability the runtime should enforce.
 ```yaml
 conversations:
   witness:
+    contact: {initial: hidden}
     initial: available
     channels:
       interview: actor
@@ -462,6 +469,7 @@ Every actor definition is closed and accepts exactly these fields:
 
 | Field | Required | Meaning |
 | --- | --- | --- |
+| `contact` | no | `{initial: hidden|listed}`. Defaults to `listed`; this state is separate from conversation availability. |
 | `initial` | yes | A state ID declared in this actor's `states` map. |
 | `states` | yes | Non-empty state map. Each state requires `can_talk: boolean` and may contain only an optional `reason`. |
 | `channels` | yes | Non-empty map from a selected action verb to `actor`, `target`, or `from`. |
@@ -498,10 +506,75 @@ conversation entry declares a verb, this contract adds no actor availability
 gate to that verb.
 
 The complete graph remains private. `case-runtime/public-v1` projects only
-actors whose cast entries are public, and only their current state ID,
+actors whose cast entries are public and whose contact state is `listed`, and
+only their safe presentation fields, current state ID,
 `canTalk`, sorted channel verbs, and current optional localized reason. Actors
 marked `protected`, `hidden`, `public: false`, or private/hidden visibility are
 omitted, so probing a guessed ID cannot confirm that it exists.
+
+### Discoverable contacts
+
+Use `contact-directory@1` when a named person should appear in Phone only after
+the detective asks for their details. Do not parse mentions from prose. The
+case explicitly connects localized mention copy to a lookup affordance:
+
+```yaml
+cast:
+  witness:
+    name: Deniz Kaya
+    role: {$text: cast.witness.role}
+    phone: "+90 555 010 20 30"
+    operator: Anadolu Mobil
+    contact_source: {$text: cast.witness.contact_source}
+
+conversations:
+  witness:
+    contact: {initial: hidden}
+    initial: available
+    channels: {interview: actor}
+    states: {available: {can_talk: true}}
+
+affordances:
+  find_witness:
+    label: {$text: affordances.find_witness.label}
+    result: {$text: affordances.find_witness.result}
+    surface: inbox
+    initial: offered
+    action: {action: locate-contact, target: witness}
+    interaction:
+      kind: async-message
+      channel: forensics
+      request: {$text: affordances.find_witness.request}
+      context: {kind: opening-call}
+  interview_witness:
+    label: {$text: affordances.interview_witness.label}
+    surface: phone
+    initial: withdrawn
+    action: {action: interview, actor: witness}
+
+reactions:
+  - on: {action: locate-contact, target: witness}
+    once: true
+    do: [{contact: [witness, listed]}, {offer: interview_witness}]
+```
+
+Interaction context may be `opening-call`, `{kind: evidence, ref: <id>}`, or
+`{kind: completed-affordance, ref: <id>}`. It tells a presentation layer which
+note contains the authored mention. The compiler validates those references.
+It also rejects an initially hidden public actor without a matching Inbox
+lookup and exact listing reaction, or with an initially offered routed Phone
+affordance. A lookup reaction may list only the actor targeted by that lookup,
+which keeps the asynchronous completion unambiguous. The lookup must be
+one-shot and its exact reaction must list the target unconditionally; do not
+put the listing behind `when`, `unless`, or a conditional effect.
+
+`cases:test` also requires a passing scenario that proves the context note is
+actually visible, the contact is hidden while the lookup is offered, the exact
+lookup is accepted, and the contact becomes listed immediately afterward. An
+`evidence` context must be asserted as `available` or `observed` at that
+checkpoint. A `completed-affordance` context must reference an affordance the
+same scenario explicitly completed first. This prevents a structurally valid
+lookup from being attached to a note the player cannot reach.
 
 ## `affordances`
 
@@ -538,7 +611,7 @@ affordances:
 ```
 
 Each entry requires `label`, `surface`, `initial`, and exactly one of `action`
-or `deduction`. `surface` is `phone`, `web`, `files`, or `casebook`; it is a
+or `deduction`. `surface` is `phone`, `web`, `files`, `casebook`, or `inbox`; it is a
 presentation routing hint, not authorization. `initial` is `offered` or
 `withdrawn`. `action` is a complete `CaseAction` mapping. `deduction` names a
 declared deduction and creates a theory button.
@@ -553,6 +626,13 @@ affordances retain their safe label, result, risk, intent, cost, and completion
 time in the public runtime projection.
 Result copy is never projected while the affordance is merely offered.
 Confirmation copy is only needed before dispatch.
+
+An `inbox` affordance must be an action, must provide `result`, and must declare
+`interaction: {kind: async-message, channel, request, context?}`. Its active
+projection exposes the localized request while still withholding `result`.
+The completed projection exposes the result as the remote person's reply. A
+shell dispatches the opaque affordance after its presentation delay; it does
+not interpret the case action or decide whether a contact exists.
 
 For a deduction affordance, write `result` as the concrete conclusion the
 player just proved, not another status message. For example: “The camera was
@@ -1309,6 +1389,7 @@ Every normal effect mapping contains exactly one operator:
 | `{emit: event-type}` | Emit an authored follow-up event. |
 | `{reveal: actor_id.says.stage}` | Copy that statement stage into player-observed assertions. |
 | `{conversation: [actor_id, state_id]}` | Move a declared actor conversation graph to a declared state. |
+| `{contact: [actor_id, listed]}` | Change a declared actor's saved Phone-directory visibility (`hidden` is also accepted). |
 | `{offer: affordance_id}` | Make a declared public affordance available. |
 | `{withdraw: affordance_id}` | Hide a declared public affordance. |
 | `{adjust: [metric_id, actor_id, 3]}` | Add a numeric metric delta for a cast actor. Use it in reactions; see the limitation below. |

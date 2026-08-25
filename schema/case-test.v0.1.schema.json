@@ -216,6 +216,7 @@
         "status": {"enum": ["active", "ended"]},
         "clocks": {"$ref": "#/definitions/clockExpectations"},
         "affordances": {"$ref": "#/definitions/affordanceExpectations"},
+        "contacts": {"$ref": "#/definitions/contactExpectations"},
         "evidence": {"$ref": "#/definitions/evidenceExpectations"},
         "observations": {"$ref": "#/definitions/observationExpectations"},
         "unknown_observations": {"$ref": "#/definitions/idList"},
@@ -265,6 +266,12 @@
       "minProperties": 1,
       "propertyNames": {"$ref": "#/definitions/id"},
       "additionalProperties": {"enum": ["offered", "hidden"]}
+    },
+    "contactExpectations": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"$ref": "#/definitions/id"},
+      "additionalProperties": {"enum": ["listed", "hidden"]}
     },
     "evidenceExpectations": {
       "type": "object",

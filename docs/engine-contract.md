@@ -76,6 +76,7 @@ Conversation availability is a generic case-authored state machine, not a set
 of story concepts built into the engine. A top-level `conversations` entry
 binds one cast actor to:
 
+- an independent initial contact-directory state, `hidden` or `listed`;
 - one declared initial state;
 - a non-empty map of arbitrary case-owned state IDs, each with
   `can_talk: true|false` and optional localized `reason` copy;
@@ -92,6 +93,19 @@ state through the normal deterministic rule pipeline. An allowed recovery verb
 only bypasses the availability gate; all other action and evidence validation
 still applies.
 
+Contact-directory visibility is separate from `can_talk`. The generic
+`contact-directory@1` capability accepts only an explicitly offered
+`locate-contact` action. A matching case reaction applies
+`{contact: [actor_id, listed]}` through the event/rule pipeline. That slot is
+authoritative case state, so event replay and a restored save reproduce the
+same Phone directory. Pending messages, typing animation, unread badges, and
+window focus remain application state and cannot list an actor. Each completed
+affordance projects the public contact IDs listed by that exact accepted
+command. The shell uses this explicit delta for its message CTA; it never
+guesses a person by comparing contact arrays. Shell chat state is also keyed by
+the host's opaque run ID, so a stale message cannot disable or execute a lookup
+in a new case run.
+
 When at least one actor regulates an action, a missing actor field is rejected
 as `actor-required`, contradictory actor fields as `actor-argument-conflict`,
 and an unknown, hidden, protected, or unavailable actor as
@@ -99,8 +113,9 @@ and an unknown, hidden, protected, or unavailable actor as
 not echo the attempted actor, current state, or reason. A rejected command
 emits no event and leaves the projection unchanged.
 
-The private IR and runtime catalog retain the complete state graphs. The public
-runtime projection contains only conversation entries for public cast actors:
+The private IR and runtime catalog retain the complete state graphs and safe
+actor presentation allow-list. The public runtime projection contains only
+conversation entries for public cast actors whose contact state is `listed`:
 the actor ID, current state ID, `canTalk`, sorted channel verbs, and the current
 state's optional `reason` or `reasonKey`. Protected/hidden actors are omitted,
 so guessing one through a command does not reveal whether that actor exists.
@@ -120,6 +135,12 @@ nothing. Supported deductions retain copy only when that copy came from an
 explicit public deduction affordance. No future command, unlock predicate,
 evidence ID, proof alternative, or private reaction is derived into the
 projection.
+
+An Inbox async-message affordance carries localized request copy and optional
+note context in the active projection, while its result remains private until
+the affordance completes. The application may delay and animate that request,
+but it dispatches only the opaque offered affordance ID. The resulting runtime
+projection, not the chat UI, determines whether a new contact exists.
 
 ## Portable asset contract
 
@@ -216,8 +237,9 @@ A true restart crosses the same boundary in reverse:
 1. stop using and discard the current controller;
 2. call `deleteCaseSessionFromStorage(runtime, storage, saveId)` so
    `CaseSaveStorage.delete` removes the exact case/build/save key;
-3. clear the separately scoped `detective-desktop-layout/v1` snapshot and any
-   other non-authoritative per-session UI selection; and
+3. clear the separately scoped `detective-desktop-layout/v1` snapshot, the
+   `detective-case-board/v1` presentation sidecar, and any other
+   non-authoritative per-session UI selection; and
 4. return to phone onboarding, creating and persisting a new controller only
    after the player accepts again.
 

@@ -421,6 +421,38 @@ state:
 means it does not. Tests cannot inspect future labels, commands, costs, or the
 private rule that may offer an affordance later.
 
+### Contacts
+
+Assert only whether a conversation actor is present in the sanitized public
+contact directory:
+
+```yaml
+state:
+  contacts:
+    client: listed
+    witness: hidden
+```
+
+Accepted values are `listed` and `hidden`. A hidden contact has no public actor
+card, name, role, number, operator, contact source, or conversation state. A
+contact-discovery scenario must assert `hidden` and the matching Inbox
+affordance as `offered` in a stable checkpoint, dispatch that affordance's
+exact `locate-contact` action with an explicit accepted result, then assert
+`listed` on the action or the next checkpoint. `cases:test` automatically
+requires at least one passing scenario with that complete proof for every
+public conversation actor whose initial contact state is `hidden`. Protected
+or otherwise non-public actors are outside this public-directory audit. This
+route-level gate complements the compiler's structural anti-stranding
+validation.
+
+The checkpoint must also prove the lookup's UI anchor exists. An
+`opening-call` context needs no extra state assertion. For `{kind: evidence}`,
+assert the referenced evidence as `available` or `observed` in the same
+checkpoint. For `{kind: completed-affordance}`, explicitly complete the
+referenced action or deduction with an accepted result before the checkpoint.
+The audit fails if the lookup works in the engine but its note button would be
+missing from the detective's casebook.
+
 ### Evidence and assets
 
 The compact form asserts only evidence status:
@@ -574,7 +606,9 @@ For each package, the conformance command:
 8. checks denial atomicity;
 9. replays the immutable event log after every command and at scenario end,
    requiring the authoritative replayed state to match;
-10. reports every failed expectation with its scenario and step path.
+10. audits complete hidden-contact discovery coverage across all passing
+    scenarios;
+11. reports every failed expectation and each contact-coverage PASS/FAIL.
 
 The runner never asks private truth how to solve the case. If an authored route
 omits the action that grants a clue, the following observation is denied and

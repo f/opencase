@@ -113,6 +113,18 @@ parent directory.
   commands without relying on private truth or automatic planning.
 - Provide at least one recovery route after any intentionally premature or
   costly action unless the brief explicitly requires a hard failure.
+- Keep callable non-caller contacts hidden until localized story copy actually
+  names them. Author an Inbox `locate-contact` affordance anchored to that
+  opening/evidence/completed-action note, then list the actor and offer their
+  Phone action unconditionally in the exact matching one-shot reaction. One
+  lookup must list only its own target. Never infer a name from prose.
+- Add a scenario that asserts `contacts: {actor: hidden}`, the offered lookup,
+  and its visible context note, then the accepted zero-cost lookup,
+  `contacts: {actor: listed}`, and the callable affordance. For evidence
+  anchors, assert the evidence is available or observed. For completed-action
+  anchors, explicitly complete the referenced affordance first. The compiler
+  proves route structure; the scenario proves the mention path cannot strand
+  the player.
 
 Use case-specific IDs and copy, but keep this separation:
 

@@ -165,6 +165,7 @@ function stateExpectation(
     status?: 'active' | 'ended'
     clocks?: Partial<Record<SimulatorClock, number>>
     affordances?: Record<string, CaseTestAffordanceStatus>
+    contacts?: Record<string, 'listed' | 'hidden'>
     evidence?: Record<string, CaseTestEvidenceExpectation>
     observations?: Record<string, JsonValue>
     unknownObservations?: string[]
@@ -198,6 +199,9 @@ function stateExpectation(
   }
   if (definition.affordances !== undefined) {
     output.affordances = definition.affordances as Record<string, CaseTestAffordanceStatus>
+  }
+  if (definition.contacts !== undefined) {
+    output.contacts = definition.contacts as Record<string, 'listed' | 'hidden'>
   }
   if (definition.evidence !== undefined) {
     const authoredEvidence = record(definition.evidence)
@@ -370,6 +374,7 @@ function validateStepReferences(
     observations: ReadonlySet<string>
     deductions: ReadonlySet<string>
     affordances: ReadonlySet<string>
+    contacts: ReadonlySet<string>
     outcomes: ReadonlySet<string>
     finalTargets: ReadonlySet<string>
     actions: ReadonlySet<string>
@@ -423,6 +428,15 @@ function validateStepReferences(
         sourceFile,
         `${basePath}/expect/state/affordances/${affordanceId}`,
         `Unknown affordance '${affordanceId}'.`,
+      )
+    }
+  }
+  for (const actorId of Object.keys(state.contacts ?? {})) {
+    if (!known.contacts.has(actorId)) {
+      semanticError(
+        sourceFile,
+        `${basePath}/expect/state/contacts/${actorId}`,
+        `Unknown conversation actor '${actorId}'.`,
       )
     }
   }
@@ -515,6 +529,7 @@ function validateReferences(
     observations: new Set(ir.observations.map((item) => item.id)),
     deductions: new Set(ir.deductions.map((item) => item.id)),
     affordances: new Set(ir.affordances.map((item) => item.id)),
+    contacts: new Set(ir.private.conversations.map((item) => item.actorId)),
     outcomes: new Set(ir.private.outcomes.map((item) => item.id)),
     finalTargets: allowedFinalTargets(ir),
     actions: capabilityVocabulary(manifests.filter((manifest) => manifest !== undefined)).verbs,

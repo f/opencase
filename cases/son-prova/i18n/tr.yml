@@ -10,16 +10,32 @@ messages:
   opening.call: >-
     Orhan Demir prova sırasında sahne kapağından düşerek öldü. Polis, elli beş
     soruşturma dakikası içinde sahne amiri Baran'ı gözaltına alacak; Orhan'ın
-    yapım çalışma alanı da silinme kuyruğunda. Sahne inceleme raporunu ve
+    yapım çalışma alanı da silinme kuyruğunda. Başrol oyuncusu Leyla ile yapımcı
+    Selin hâlâ tiyatroda; Selin bir saat içinde ayrılacak. Sahne inceleme raporunu ve
     otomasyon dışa aktarımını açabilirim. Kayıtlar ve tanıklar kaybolmadan önce
     neyi isteyeceğine ve kiminle konuşacağına sen karar ver.
+  cast.ekin.role: Tiyatro müdürü
+  cast.orhan.role: Sanat yönetmeni
+  cast.leyla.role: Başrol oyuncusu
+  cast.baran.role: Sahne amiri
+  cast.selin.role: Yapımcı
+  contacts.ekin.source: Vaka açılış araması
+  contacts.leyla.source: Yapım ekibi iletişim listesi
+  contacts.baran.source: Tiyatro personel rehberi
+  contacts.selin.source: Yapım ekibi iletişim listesi
   affordances.request_scene_report.label: Ekin'den sahne kapağı inceleme raporunu iste
   affordances.request_automation_export.label: Ekin'den sahne otomasyonu dışa aktarımını iste
   affordances.request_victim_phone.label: Ekin'den Orhan'ın telefon çıkarımını iste
+  affordances.locate_baran_contact.label: Baran Kılıç'ın personel iletişim kaydını bul
+  affordances.locate_baran_contact.request: Baran Kılıç'ın tiyatro personel rehberindeki iletişim kaydını bulabilir misin? Sahne amiri.
   affordances.interview_baran_location.label: Kapak açıldığında nerede olduğunu Baran'a sor
   affordances.request_baran_custody_packet.label: Ekin'den Baran'ın polis teslim dosyasını iste
+  affordances.locate_selin_contact.label: Selin Aksoy'un yapım iletişim kaydını bul
+  affordances.locate_selin_contact.request: Selin Aksoy'un yapım iletişim kaydını bulabilir misin? Yapımcı olarak geçiyor.
   affordances.interview_selin_alibi.label: Canlı yayın alibisini Selin'e açıklat
   affordances.request_livestream_archive.label: Ekin'den Selin'in yayın arşivini iste
+  affordances.locate_leyla_contact.label: Leyla Aras'ın yapım iletişim kaydını bul
+  affordances.locate_leyla_contact.request: Leyla Aras'ın yapım ekibi iletişim kaydını bulabilir misin? Başrol oyuncusu.
   affordances.interview_leyla.label: Leyla'nın ilk ifadesini al
   affordances.request_security_export.label: Ekin'den tiyatro güvenlik dışa aktarımını iste
   affordances.search_remote_pairing.label: Destek arşivinde PROD-TAB-03 uzaktan eşlemesini ara
@@ -49,10 +65,13 @@ messages:
   affordances.request_scene_report.result: Ekin, inceleme raporunu ve çıkarılmış emniyet piminin fotoğrafını Dosyalar'a gönderdi.
   affordances.request_automation_export.result: Sahne otomasyonu dışa aktarımı Dosyalar'da incelemeye hazır.
   affordances.request_victim_phone.result: Orhan'ın telefon çıkarımı hazır. Mesajları artık incelenebilir.
+  affordances.locate_baran_contact.result: Personel rehberi kaydı doğrulandı. Baran Kılıç Kişiler'e eklendi.
   affordances.interview_baran_location.result: Baran, kapak açıldığında karşı kafede olduğunu söylüyor.
   affordances.request_baran_custody_packet.result: Ekin polis teslim dosyasını aldı. Dosyada, memurların Baran'ın konumunu doğrulamak için kullandığı kafe kaydı da var.
+  affordances.locate_selin_contact.result: Yapım iletişim kaydı doğrulandı. Selin Aksoy Kişiler'e eklendi.
   affordances.interview_selin_alibi.result: Selin, 21:05 ile 21:17 arasında canlı yayında olduğunu söylüyor.
   affordances.request_livestream_archive.result: Selin'in yayın arşivi incelemeye hazır.
+  affordances.locate_leyla_contact.result: Yapım ekibi kaydı doğrulandı. Leyla Aras Kişiler'e eklendi.
   affordances.interview_leyla.result: Leyla, Orhan'la tartıştığını kabul ediyor fakat düşüş sırasında sahne solunda kaldığını söylüyor.
   affordances.request_security_export.result: Tiyatro çıkış ve kulis erişim kayıtları incelemeye hazır.
   affordances.search_remote_pairing.result: Uzaktan sahne kontrolü hakkında bir destek e-postası bulundu.

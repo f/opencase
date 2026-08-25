@@ -17,7 +17,7 @@ case:
 
 use: [investigation@1, comms@1, artifacts@1, virtual-web@1,
       casebook@1, interview@1, media-forensics@1,
-      stage-automation@1, finance@1]
+      stage-automation@1, finance@1, contact-directory@1]
 
 authoring:
   evidence_source_policy: implicit-per-evidence
@@ -33,19 +33,35 @@ assets:
       sha256: ce2bdbe643070251ffe436527fd9017c1ee09ed1380052cf9960b578954328ed
 
 cast:
-  ekin: {name: Ekin Soylu, role: tiyatro-müdürü, client: true}
-  orhan: {name: Orhan Demir, role: sanat-yönetmeni, status: deceased}
-  leyla: {name: Leyla Aras, role: başrol-oyuncusu}
-  baran: {name: Baran Kılıç, role: sahne-amiri}
-  selin: {name: Selin Aksoy, role: yapımcı}
+  ekin:
+    {name: Ekin Soylu, role: {$text: cast.ekin.role}, client: true,
+     phone: "+90 555 000 21 01", operator: Marmara Mobil,
+     contact_source: {$text: contacts.ekin.source}}
+  orhan:
+    {name: Orhan Demir, role: {$text: cast.orhan.role}, status: deceased,
+     public: false}
+  leyla:
+    {name: Leyla Aras, role: {$text: cast.leyla.role},
+     phone: "+90 555 000 21 02", operator: SahneCell,
+     contact_source: {$text: contacts.leyla.source}}
+  baran:
+    {name: Baran Kılıç, role: {$text: cast.baran.role},
+     phone: "+90 555 000 21 03", operator: Perde Mobil,
+     contact_source: {$text: contacts.baran.source}}
+  selin:
+    {name: Selin Aksoy, role: {$text: cast.selin.role},
+     phone: "+90 555 000 21 04", operator: Mavi Hat,
+     contact_source: {$text: contacts.selin.source}}
 
 conversations:
   ekin:
+    contact: {initial: listed}
     initial: available
     states:
       available: {can_talk: true}
     channels: {request: from}
   orhan:
+    contact: {initial: hidden}
     initial: deceased
     states:
       deceased:
@@ -53,11 +69,13 @@ conversations:
         reason: {$text: conversations.orhan.states.deceased.reason}
     channels: {interview: actor, present: target}
   leyla:
+    contact: {initial: hidden}
     initial: available
     states:
       available: {can_talk: true}
     channels: {interview: actor, present: target}
   baran:
+    contact: {initial: hidden}
     initial: available
     states:
       available: {can_talk: true}
@@ -66,6 +84,7 @@ conversations:
         reason: {$text: conversations.baran.states.detained.reason}
     channels: {interview: actor, present: target}
   selin:
+    contact: {initial: hidden}
     initial: available
     states:
       available: {can_talk: true}
@@ -98,11 +117,23 @@ affordances:
     initial: withdrawn
     action: {action: request, from: ekin, topic: victim-phone}
     cost: {clock: case-time, by: 3m}
+  locate_baran_contact:
+    label: {$text: affordances.locate_baran_contact.label}
+    result: {$text: affordances.locate_baran_contact.result}
+    surface: inbox
+    initial: offered
+    action: {action: locate-contact, target: baran}
+    interaction:
+      kind: async-message
+      channel: forensics
+      request: {$text: affordances.locate_baran_contact.request}
+      context: {kind: opening-call}
+    once: true
   interview_baran_location:
     label: {$text: affordances.interview_baran_location.label}
     result: {$text: affordances.interview_baran_location.result}
     surface: phone
-    initial: offered
+    initial: withdrawn
     action: {action: interview, actor: baran, topic: location}
     cost: {clock: case-time, by: 4m}
   request_baran_custody_packet:
@@ -113,11 +144,23 @@ affordances:
     action: {action: request, from: ekin, topic: baran-custody-packet}
     cost: {clock: case-time, by: 2m}
     once: true
+  locate_selin_contact:
+    label: {$text: affordances.locate_selin_contact.label}
+    result: {$text: affordances.locate_selin_contact.result}
+    surface: inbox
+    initial: offered
+    action: {action: locate-contact, target: selin}
+    interaction:
+      kind: async-message
+      channel: forensics
+      request: {$text: affordances.locate_selin_contact.request}
+      context: {kind: opening-call}
+    once: true
   interview_selin_alibi:
     label: {$text: affordances.interview_selin_alibi.label}
     result: {$text: affordances.interview_selin_alibi.result}
     surface: phone
-    initial: offered
+    initial: withdrawn
     action: {action: interview, actor: selin, topic: alibi}
     cost: {clock: case-time, by: 4m}
   request_livestream_archive:
@@ -127,11 +170,23 @@ affordances:
     initial: withdrawn
     action: {action: request, from: ekin, topic: livestream-archive}
     cost: {clock: case-time, by: 3m}
+  locate_leyla_contact:
+    label: {$text: affordances.locate_leyla_contact.label}
+    result: {$text: affordances.locate_leyla_contact.result}
+    surface: inbox
+    initial: offered
+    action: {action: locate-contact, target: leyla}
+    interaction:
+      kind: async-message
+      channel: forensics
+      request: {$text: affordances.locate_leyla_contact.request}
+      context: {kind: opening-call}
+    once: true
   interview_leyla:
     label: {$text: affordances.interview_leyla.label}
     result: {$text: affordances.interview_leyla.result}
     surface: phone
-    initial: offered
+    initial: withdrawn
     action: {action: interview, actor: leyla}
     cost: {clock: case-time, by: 3m}
   request_security_export:
@@ -751,6 +806,21 @@ reactions:
   - id: research-time-cost
     on: {action: search}
     do: [{spend: [case-time, 4m]}]
+
+  - id: baran-contact-located
+    on: {action: locate-contact, target: baran}
+    once: true
+    do: [{contact: [baran, listed]}, {offer: interview_baran_location}]
+
+  - id: selin-contact-located
+    on: {action: locate-contact, target: selin}
+    once: true
+    do: [{contact: [selin, listed]}, {offer: interview_selin_alibi}]
+
+  - id: leyla-contact-located
+    on: {action: locate-contact, target: leyla}
+    once: true
+    do: [{contact: [leyla, listed]}, {offer: interview_leyla}]
 
   # Acquisition actions emit case-owned delivery events only after their public
   # commands are genuinely available. Evidence listens to those events rather

@@ -147,37 +147,6 @@
   font-size: 0.67rem;
 }
 
-.casebook-app .casebook-app__synopsis {
-  margin: 9px;
-  padding: 11px 12px 12px;
-  border: 0;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.66);
-  box-shadow: 0 1px 2px rgba(43, 37, 25, 0.08);
-  font-style: normal;
-}
-
-.casebook-app__synopsis small {
-  display: block;
-  color: #8b691a;
-  font-size: 0.57rem;
-  font-weight: 680;
-  letter-spacing: 0.045em;
-  text-transform: uppercase;
-}
-
-.casebook-app__synopsis p {
-  display: -webkit-box;
-  margin: 5px 0 0;
-  overflow: hidden;
-  color: #565149;
-  font-family: var(--font-editorial);
-  font-size: 0.79rem;
-  line-height: 1.36;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
-}
-
 .casebook-app .detective-index {
   display: flex;
   min-height: 0;
@@ -330,6 +299,190 @@
   font-size: clamp(1.02rem, 2.2cqi, 1.24rem);
   font-weight: 390;
   line-height: 1.62;
+}
+
+.casebook-contact-actions {
+  max-width: 63ch;
+  margin: -3px 0 26px;
+  padding: 12px;
+  border: 1px solid rgba(67, 75, 69, 0.12);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(247, 249, 246, 0.96), rgba(241, 245, 242, 0.84));
+  box-shadow:
+    0 1px 1px rgba(38, 43, 39, 0.04),
+    0 8px 24px rgba(51, 58, 53, 0.055);
+  font-family: var(--font-ui);
+}
+
+.casebook-contact-actions > header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 2px 10px;
+}
+
+.casebook-contact-actions > header > span:last-child {
+  display: grid;
+  gap: 1px;
+}
+
+.casebook-contact-actions > header strong {
+  color: #343c37;
+  font-size: 0.7rem;
+  font-weight: 680;
+  letter-spacing: -0.005em;
+}
+
+.casebook-contact-actions > header small {
+  color: #777f79;
+  font-size: 0.55rem;
+}
+
+.casebook-contact-actions__mark {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #397267, #24564f);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.25), 0 2px 5px rgba(26, 70, 62, 0.16);
+  place-items: center;
+}
+
+.casebook-contact-actions__mark img {
+  width: 15px;
+  height: 15px;
+  filter: brightness(0) invert(1);
+}
+
+.casebook-contact-actions ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.casebook-contact-actions li {
+  min-width: 0;
+}
+
+.casebook-contact-actions li > button {
+  display: grid;
+  width: 100%;
+  min-height: 68px;
+  grid-template-columns: 36px minmax(0, 1fr) auto 12px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid rgba(37, 70, 63, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 2px rgba(33, 47, 40, 0.04);
+  color: #292f2b;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.casebook-contact-actions li > button:not(:disabled):hover {
+  border-color: rgba(31, 106, 90, 0.35);
+  box-shadow: 0 7px 18px rgba(31, 68, 59, 0.09);
+  transform: translateY(-1px);
+}
+
+.casebook-contact-actions li > button:focus-visible {
+  outline: 3px solid rgba(0, 122, 255, 0.34);
+  outline-offset: 2px;
+}
+
+.casebook-contact-actions li > button:disabled {
+  cursor: default;
+  opacity: 0.76;
+}
+
+.casebook-contact-actions__avatar {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #e5efeb;
+  color: #265e53;
+  place-items: center;
+}
+
+.casebook-contact-actions__avatar img {
+  width: 17px;
+  height: 17px;
+  filter: invert(32%) sepia(19%) saturate(1251%) hue-rotate(116deg) brightness(92%);
+}
+
+.casebook-contact-actions__copy,
+.casebook-contact-actions__meta {
+  display: grid;
+  min-width: 0;
+}
+
+.casebook-contact-actions__copy {
+  gap: 3px;
+}
+
+.casebook-contact-actions__copy strong {
+  overflow: hidden;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.casebook-contact-actions__copy small {
+  overflow: hidden;
+  color: #6b746e;
+  font-size: 0.59rem;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.casebook-contact-actions__meta {
+  justify-items: end;
+  gap: 4px;
+  text-align: right;
+}
+
+.casebook-contact-actions__meta small {
+  color: #69716c;
+  font-family: var(--font-mono);
+  font-size: 0.49rem;
+}
+
+.casebook-contact-actions__meta b {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #e1eee8;
+  color: #1f6656;
+  font-size: 0.5rem;
+  font-weight: 720;
+  white-space: nowrap;
+}
+
+.casebook-contact-actions li[data-status="pending"] .casebook-contact-actions__meta b {
+  background: #fff0c9;
+  color: #805b0b;
+}
+
+.casebook-contact-actions li[data-status="completed"] .casebook-contact-actions__meta b {
+  background: #e3f1e9;
+  color: #19614f;
+}
+
+.casebook-contact-actions__chevron {
+  width: 12px;
+  height: 12px;
+  opacity: 0.42;
 }
 
 .casebook-app .casebook-page__findings li {
@@ -621,15 +774,6 @@
     grid-template-columns: minmax(140px, 22%) minmax(265px, 1fr) minmax(205px, 31%);
   }
 
-  .casebook-app .casebook-app__synopsis {
-    margin: 7px;
-    padding: 9px;
-  }
-
-  .casebook-app__synopsis p {
-    -webkit-line-clamp: 3;
-  }
-
   .casebook-app .casebook-leads {
     padding-inline: 9px;
   }
@@ -640,7 +784,16 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .casebook-app .casebook-leads button {
+  .casebook-app .casebook-leads button,
+  .casebook-contact-actions li > button {
     transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .casebook-contact-actions,
+  .casebook-contact-actions li > button,
+  .casebook-contact-actions__meta b {
+    border: 1px solid ButtonText;
   }
 }

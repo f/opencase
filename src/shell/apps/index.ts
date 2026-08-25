@@ -1,5 +1,6 @@
 export * from './CasebookApp'
 export * from './CaseDispatchApp'
+export * from './CaseBoardApp'
 export * from './AssetViewerDialog'
 export * from './EvidenceQuestionsRail'
 export * from './FilesApp'

@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type CSSProperties, type FormEvent } from 'react'
 import activityIcon from 'lucide-static/icons/activity.svg'
+import arrowRightIcon from 'lucide-static/icons/arrow-right.svg'
 import atSignIcon from 'lucide-static/icons/at-sign.svg'
 import bellIcon from 'lucide-static/icons/bell.svg'
 import chevronDownIcon from 'lucide-static/icons/chevron-down.svg'
@@ -11,6 +12,7 @@ import historyIcon from 'lucide-static/icons/history.svg'
 import homeIcon from 'lucide-static/icons/home.svg'
 import inboxIcon from 'lucide-static/icons/inbox.svg'
 import lockIcon from 'lucide-static/icons/lock.svg'
+import maximizeIcon from 'lucide-static/icons/maximize-2.svg'
 import moreIcon from 'lucide-static/icons/more-horizontal.svg'
 import paperclipIcon from 'lucide-static/icons/paperclip.svg'
 import plusIcon from 'lucide-static/icons/plus.svg'
@@ -21,7 +23,12 @@ import usersIcon from 'lucide-static/icons/users.svg'
 
 import { AssetPreview } from './shared'
 import './inbox-realistic.css'
-import type { InboxChannelViewModel, InboxMessageViewModel, InboxViewModel } from './types'
+import type {
+  AuthorizedAssetViewModel,
+  InboxChannelViewModel,
+  InboxMessageViewModel,
+  InboxViewModel,
+} from './types'
 
 export interface InboxLabels {
   readonly title: string
@@ -34,6 +41,7 @@ export interface InboxLabels {
   readonly reply: string
   readonly sending: string
   readonly openAttachment: string
+  readonly imageAttachmentMeta: string
 }
 
 const DEFAULT_LABELS: InboxLabels = {
@@ -47,6 +55,7 @@ const DEFAULT_LABELS: InboxLabels = {
   reply: 'Gönder',
   sending: 'Gönderiliyor…',
   openAttachment: 'Eki aç',
+  imageAttachmentMeta: 'Görsel eki · İnceleme kaydı',
 }
 
 const DEFAULT_CHANNELS: readonly InboxChannelViewModel[] = [
@@ -108,6 +117,73 @@ function MessageAvatar({ message }: { readonly message: InboxMessageViewModel })
   )
 }
 
+function MessageAttachment({
+  asset,
+  openLabel,
+  imageMetaLabel,
+  onOpen,
+}: {
+  readonly asset: AuthorizedAssetViewModel
+  readonly openLabel: string
+  readonly imageMetaLabel: string
+  readonly onOpen?: (assetId: string) => void
+}) {
+  const previewUrl = asset.thumbnailUrl ?? asset.deliveryUrl
+  if (asset.kind !== 'image' || !previewUrl) {
+    return (
+      <AssetPreview
+        asset={asset}
+        compact
+        openLabel={openLabel}
+        onOpen={onOpen}
+      />
+    )
+  }
+
+  const image = (
+    <>
+      <img
+        src={previewUrl}
+        alt={asset.description ?? asset.label}
+        loading="lazy"
+      />
+      {onOpen ? (
+        <span className="workspace-image-attachment__open" aria-hidden="true">
+          <Icon src={maximizeIcon} />
+          {openLabel}
+        </span>
+      ) : null}
+    </>
+  )
+
+  return (
+    <figure className="workspace-image-attachment">
+      <figcaption>
+        <span className="workspace-image-attachment__file-icon" aria-hidden="true">
+          <Icon src={paperclipIcon} />
+        </span>
+        <span>
+          <strong>{asset.label}</strong>
+          <small>{asset.durationLabel ?? imageMetaLabel}</small>
+        </span>
+      </figcaption>
+      {onOpen ? (
+        <button
+          type="button"
+          className="workspace-image-attachment__preview"
+          aria-label={`${openLabel}: ${asset.label}`}
+          aria-haspopup="dialog"
+          onClick={() => onOpen(asset.id)}
+        >
+          {image}
+        </button>
+      ) : (
+        <div className="workspace-image-attachment__preview">{image}</div>
+      )}
+    </figure>
+  )
+}
+
 export interface InboxAppProps {
   readonly model: InboxViewModel
   readonly labels?: Partial<InboxLabels>
@@ -115,6 +191,7 @@ export interface InboxAppProps {
   readonly onReplyDraftChange?: (value: string) => void
   readonly onSendReply?: (threadId: string, body: string) => void
   readonly onOpenAttachment?: (assetId: string) => void
+  readonly onMessageCta?: (ctaId: string) => void
 }
 
 export function InboxApp({
@@ -124,6 +201,7 @@ export function InboxApp({
   onReplyDraftChange,
   onSendReply,
   onOpenAttachment,
+  onMessageCta,
 }: InboxAppProps) {
   const replyId = useId()
   const messagesRef = useRef<HTMLOListElement>(null)
@@ -304,7 +382,21 @@ export function InboxApp({
                 {model.messages.map((message) => (
                   <li className="workspace-message" key={message.id} data-direction={message.direction}>
                     {message.direction === 'system' ? (
-                      <p className="workspace-message__system">{message.body}</p>
+                      <div className="workspace-message__system-row">
+                        <p className="workspace-message__system">{message.body}</p>
+                        {message.cta ? (
+                          <button
+                            type="button"
+                            className="workspace-message__cta"
+                            aria-label={message.cta.accessibleLabel ?? message.cta.label}
+                            disabled={!onMessageCta}
+                            onClick={() => onMessageCta?.(message.cta!.id)}
+                          >
+                            <span>{message.cta.label}</span>
+                            <Icon src={arrowRightIcon} />
+                          </button>
+                        ) : null}
+                      </div>
                     ) : (
                       <>
                         <MessageAvatar message={message} />
@@ -315,13 +407,26 @@ export function InboxApp({
                             <time>{message.timestampLabel}</time>
                           </header>
                           {message.streaming ? <StreamingText body={message.body} /> : <p className="workspace-message__body">{message.body}</p>}
-                          {message.attachment ? (
-                            <AssetPreview
-                              asset={message.attachment}
-                              compact
+                          {!message.streaming ? message.attachments?.map((asset) => (
+                            <MessageAttachment
+                              key={asset.id}
+                              asset={asset}
                               openLabel={labels.openAttachment}
+                              imageMetaLabel={labels.imageAttachmentMeta}
                               onOpen={onOpenAttachment}
                             />
+                          )) : null}
+                          {message.cta ? (
+                            <button
+                              type="button"
+                              className="workspace-message__cta"
+                              aria-label={message.cta.accessibleLabel ?? message.cta.label}
+                              disabled={!onMessageCta}
+                              onClick={() => onMessageCta?.(message.cta!.id)}
+                            >
+                              <span>{message.cta.label}</span>
+                              <Icon src={arrowRightIcon} />
+                            </button>
                           ) : null}
                         </article>
                       </>
