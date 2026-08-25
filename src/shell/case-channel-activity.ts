@@ -38,60 +38,146 @@ const COPY = {
   tr: {
     detective: 'Dedektif',
     detectiveRole: 'Soruşturma sorumlusu',
-    evidenceWithoutTitle: 'Yeni kanıt kaydını inceledim.',
-    evidenceWithTitle: (title: string) => `Hımm, “${title}” kaydını inceledim.`,
-    completedWithoutLabel: 'Bu adımı tamamladım.',
-    completedWithLabel: (label: string) => `“${label}” adımını tamamladım.`,
-    deductionWithoutLabel: 'Yeni bir çıkarım artık kanıtlarla destekleniyor.',
-    deductionWithLabel: (label: string) => `Şu çıkarım artık kanıtlarla destekleniyor: “${label}”.`,
+    evidenceWithoutTitle: [
+      'hmm, yeni kanıta baktım 👀',
+      'yeni bir kayıt düştü, açtım 🕵️',
+      'dur, burada yeni bir şey var 🧐',
+      'okey, yeni kanıtı kontrol ettim 🔎',
+    ],
+    evidenceWithTitle: [
+      (title: string) => `hmm, “${title}” kaydına baktım 👀`,
+      (title: string) => `şu “${title}” kaydını açtım 🕵️`,
+      (title: string) => `dur, “${title}” tarafında bir şey var 🧐`,
+      (title: string) => `okey, “${title}” kaydını kontrol ettim 🔎`,
+    ],
+    completedWithoutLabel: [
+      'tamam, bu adım bitti ✅',
+      'şu işi hallettim 👌',
+      'bir adım daha tamam 🫡',
+      'okey, bu iş tamamlandı 👍',
+    ],
+    completedWithLabel: [
+      (label: string) => `tamam, “${label}” işini hallettim ✅`,
+      (label: string) => `az önce “${label}” adımını geçtim 👀`,
+      (label: string) => `okey, “${label}” tamam 👌`,
+      (label: string) => `şu “${label}” işi de bitti 🫡`,
+    ],
+    deductionWithoutLabel: [
+      'hmm, yeni bir bağlantı oturdu 🧩',
+      'bence burada bir şey netleşti 👀',
+      'tamam, bu çıkarım artık sağlam duruyor ✅',
+      'şu bağlantı kanıtlarla uyuşuyor gibi 🤔',
+    ],
+    deductionWithLabel: [
+      (label: string) => `hmm, “${label}” artık daha mantıklı duruyor 🧩`,
+      (label: string) => `bence “${label}” tarafı oturdu 👀`,
+      (label: string) => `şu bağlantı netleşti: “${label}” 🔗`,
+      (label: string) => `tamam, “${label}” kanıtlarla uyuşuyor gibi ✅`,
+    ],
     evidenceComments: [
-      'Bunu zaman çizelgesine ekleyelim. Detay önemli olabilir 🤔',
-      'Tamam, bu kayıt tabloyu biraz daha netleştiriyor.',
-      'İyi yakalamışsın. Bunun diğer bulgularla uyuşup uyuşmadığına bakalım.',
-      'Not aldım. Bunu diğer kayıtlarla karşılaştırmak iyi olur.',
+      'iyiymiş, bunu zaman çizgisine koyalım 👀',
+      'hmm evet, bu detay önemli olabilir 🤔',
+      'güzel yakalamışsın, diğer kayıtlarla karşılaştıralım mı?',
+      'bence burada bir şey var 🧩',
+      'notumu aldım ✍️',
+      'dur, bu önceki bilgiyle çelişiyor olabilir 👀',
     ],
     actionComments: [
-      'Tamam, bu adımın sonucu dosyada. Buradan devam edebiliriz.',
-      'Bu sonuç tabloyu değiştiriyor olabilir. Notlarda yanında tutalım 🤔',
-      'Anlaşıldı. Bunu sonraki görüşmede referans alabiliriz.',
-      'Not ettim. Sonraki bulguyla birlikte tekrar bakalım.',
+      'tamamdır, buradan devam 👌',
+      'iyi, şimdi tablo biraz daha net',
+      'hmm bunu sonraki görüşmede kullanalım 👀',
+      'notumu aldım ✍️',
+      'mantıklı, bir sonraki adım belli gibi 🤔',
+      'evet ya, bu işimize yarar 👍',
     ],
     deductionComments: [
-      'Evet, kanıtlar bu değerlendirmeyi destekliyor gibi duruyor.',
-      'Bu çıkarımı vaka notlarına açıkça ekleyelim.',
-      'Tamam, artık bunu diğer bulgularla birlikte okuyabiliriz.',
-      'Mantıklı. Bu bağlantıyı gözden kaçırmayalım 🤔',
+      'evet ya, bence de 🧩',
+      'hmm bu bağlantı oturdu gibi',
+      'aynen, kanıtlar da oraya gidiyor 👀',
+      'bunu panoya sabitleyelim 📌',
+      'mantıklı geldi bana 🤔',
+      'tamamdır, bu artık sağlam duruyor ✅',
     ],
-    hint: (label: string) => `Belki sırada “${label}” adımına bakmalısın 🤔`,
+    hints: [
+      (label: string) => `bence sırada “${label}” var 👀`,
+      (label: string) => `bu arada “${label}” işine de baksak mı? 🤔`,
+      (label: string) => `hmm, belki “${label}” ile devam etmelisin`,
+      (label: string) => `şunu da unutma: “${label}” 📌`,
+      (label: string) => `ben olsam şimdi “${label}” tarafına geçerdim`,
+      (label: string) => `hâlâ açık: “${label}”, bi’ bak istersen 👀`,
+    ],
   },
   en: {
     detective: 'Detective',
     detectiveRole: 'Lead investigator',
-    evidenceWithoutTitle: 'I reviewed a new evidence record.',
-    evidenceWithTitle: (title: string) => `Hmm, I reviewed the “${title}” record.`,
-    completedWithoutLabel: 'I completed this step.',
-    completedWithLabel: (label: string) => `I completed “${label}”.`,
-    deductionWithoutLabel: 'A new deduction is now supported by the evidence.',
-    deductionWithLabel: (label: string) => `The evidence now supports this deduction: “${label}”.`,
+    evidenceWithoutTitle: [
+      'hmm, checked the new evidence 👀',
+      'just opened a new record 🕵️',
+      'wait, there’s something here 🧐',
+      'ok, checked the new evidence 🔎',
+    ],
+    evidenceWithTitle: [
+      (title: string) => `hmm, checked “${title}” 👀`,
+      (title: string) => `just opened “${title}” 🕵️`,
+      (title: string) => `wait, “${title}” may matter 🧐`,
+      (title: string) => `ok, looked through “${title}” 🔎`,
+    ],
+    completedWithoutLabel: [
+      'ok, that step is done ✅',
+      'handled that one 👌',
+      'one more step done 🫡',
+      'yep, finished that 👍',
+    ],
+    completedWithLabel: [
+      (label: string) => `ok, “${label}” is done ✅`,
+      (label: string) => `just completed “${label}” 👀`,
+      (label: string) => `yep, “${label}” is done 👌`,
+      (label: string) => `finished “${label}”, result below 👇`,
+    ],
+    deductionWithoutLabel: [
+      'hmm, a new connection just clicked 🧩',
+      'i think something is clearer now 👀',
+      'ok, this theory looks solid now ✅',
+      'this seems to match the evidence 🤔',
+    ],
+    deductionWithLabel: [
+      (label: string) => `hmm, “${label}” makes more sense now 🧩`,
+      (label: string) => `i think “${label}” just clicked 👀`,
+      (label: string) => `this connection looks clearer: “${label}” 🔗`,
+      (label: string) => `ok, “${label}” matches the evidence ✅`,
+    ],
     evidenceComments: [
-      'Let’s add this to the timeline. That detail may matter 🤔',
-      'Okay, this record makes the picture a little clearer.',
-      'Good catch. Let’s see if it matches the other findings.',
-      'Noted. It would be good to compare this with the other records.',
+      'nice, adding this to the timeline 👀',
+      'hmm yeah, that detail may matter 🤔',
+      'good catch, should we compare the other records?',
+      'i think there’s something here 🧩',
+      'noted ✍️',
+      'wait, this may clash with the earlier info 👀',
     ],
     actionComments: [
-      'Okay, the result is in the file. We can continue from here.',
-      'This may change the picture. Let’s keep it next to the other notes 🤔',
-      'Got it. We can refer to this in the next interview.',
-      'Noted. Let’s look at it again with the next finding.',
+      'nice, let’s keep going 👌',
+      'good, the picture is a bit clearer now',
+      'hmm let’s use this in the next call 👀',
+      'noted ✍️',
+      'makes sense, next move looks clearer 🤔',
+      'yeah, this helps 👍',
     ],
     deductionComments: [
-      'Yes, the evidence seems to support that assessment.',
-      'Let’s add this deduction clearly to the case notes.',
-      'Okay, now we can read this together with the other findings.',
-      'Makes sense. Let’s not lose this connection 🤔',
+      'yeah, i think so too 🧩',
+      'hmm, that connection just clicked',
+      'yep, the evidence points there too 👀',
+      'pinning this to the board 📌',
+      'makes sense to me 🤔',
+      'ok, this looks solid now ✅',
     ],
-    hint: (label: string) => `Maybe you should check “${label}” next 🤔`,
+    hints: [
+      (label: string) => `i’d check “${label}” next 👀`,
+      (label: string) => `btw, maybe look at “${label}” 🤔`,
+      (label: string) => `hmm, “${label}” might be the next move`,
+      (label: string) => `don’t forget “${label}” 📌`,
+      (label: string) => `i’d probably go with “${label}” now`,
+      (label: string) => `still open: “${label}”, maybe take a look 👀`,
+    ],
   },
 } as const
 
@@ -114,6 +200,16 @@ function stableHash(value: string): number {
   return hash >>> 0
 }
 
+function stablePick<T>(choices: readonly T[], seed: string): T {
+  let hash = stableHash(seed)
+  hash ^= hash >>> 16
+  hash = Math.imul(hash, 0x7feb352d)
+  hash ^= hash >>> 15
+  hash = Math.imul(hash, 0x846ca68b)
+  hash ^= hash >>> 16
+  return choices[(hash >>> 0) % choices.length]!
+}
+
 function normalizeOpening(
   opening: InboxMessageViewModel | readonly InboxMessageViewModel[],
 ): readonly InboxMessageViewModel[] {
@@ -121,7 +217,7 @@ function normalizeOpening(
 }
 
 function officeMember(seed: string): OfficeMember {
-  return OFFICE_ROSTER[stableHash(seed) % OFFICE_ROSTER.length]!
+  return stablePick(OFFICE_ROSTER, `${seed}:member`)
 }
 
 function uniquePublicDetails(values: readonly (string | undefined)[]): readonly string[] {
@@ -135,7 +231,7 @@ function uniquePublicDetails(values: readonly (string | undefined)[]): readonly 
 }
 
 function joinSummary(opening: string, details: readonly string[]): string {
-  return details.length > 0 ? `${opening} ${details.join(' ')}` : opening
+  return details.length > 0 ? `${opening}\n↳ ${details.join(' ')}` : opening
 }
 
 function completedForActivity(
@@ -155,6 +251,7 @@ function detectiveSummary(
   runtime: PublicCaseRuntimeState,
   copy: ActivityCopy,
   fallbackOccurrence: number,
+  seed: string,
 ): { readonly body: string; readonly commentKind: 'evidence' | 'action' | 'deduction' } {
   if (activity.kind === 'evidence-observed') {
     const evidence = runtime.evidence.find(({ id }) => id === activity.evidenceId)
@@ -163,11 +260,11 @@ function detectiveSummary(
       evidence?.description,
       ...(evidence?.findings.map(({ text }) => text) ?? []),
     ])
+    const opening = title
+      ? stablePick(copy.evidenceWithTitle, `${seed}:detective:evidence:title`)(title)
+      : stablePick(copy.evidenceWithoutTitle, `${seed}:detective:evidence`)
     return {
-      body: joinSummary(
-        title ? copy.evidenceWithTitle(title) : copy.evidenceWithoutTitle,
-        details,
-      ),
+      body: joinSummary(opening, details),
       commentKind: 'evidence',
     }
   }
@@ -177,8 +274,12 @@ function detectiveSummary(
   const result = completed?.result?.trim()
   const isDeduction = completed?.intent.kind === 'deduce'
   const opening = isDeduction
-    ? label ? copy.deductionWithLabel(label) : copy.deductionWithoutLabel
-    : label ? copy.completedWithLabel(label) : copy.completedWithoutLabel
+    ? label
+      ? stablePick(copy.deductionWithLabel, `${seed}:detective:deduction:label`)(label)
+      : stablePick(copy.deductionWithoutLabel, `${seed}:detective:deduction`)
+    : label
+      ? stablePick(copy.completedWithLabel, `${seed}:detective:action:label`)(label)
+      : stablePick(copy.completedWithoutLabel, `${seed}:detective:action`)
   return {
     body: joinSummary(opening, result ? [result] : []),
     commentKind: isDeduction ? 'deduction' : 'action',
@@ -195,7 +296,7 @@ function officeComment(
     : kind === 'deduction'
       ? copy.deductionComments
       : copy.actionComments
-  return choices[stableHash(`${seed}:comment`) % choices.length]!
+  return stablePick(choices, `${seed}:comment`)
 }
 
 function currentHint(runtime: PublicCaseRuntimeState) {
@@ -240,7 +341,7 @@ export function createCaseChannelActivityMessages(
       occurrenceByAffordance.set(activity.affordanceId, fallbackOccurrence + 1)
     }
     const seed = `${runtime.case.digest}:${activity.id}:${activity.sequence}`
-    const summary = detectiveSummary(activity, runtime, copy, fallbackOccurrence)
+    const summary = detectiveSummary(activity, runtime, copy, fallbackOccurrence, seed)
     const coworker = officeMember(seed)
     const timestampLabel = formatTimestamp(activity.occurredAtMs)
     const idBase = `case-activity-${activity.sequence}-${stableHash(seed).toString(36)}`
@@ -275,7 +376,7 @@ export function createCaseChannelActivityMessages(
         author: hintMember.name,
         roleLabel: hintMember.role[locale],
         avatarLabel: hintMember.avatarLabel,
-        body: copy.hint(hintLabel),
+        body: stablePick(copy.hints, `${hintSeed}:copy`)(hintLabel),
         timestampLabel: formatTimestamp(runtime.clocks.caseTimeMs),
         direction: 'incoming',
       }]

@@ -314,6 +314,33 @@ describe('createCaseChannelActivityMessages', () => {
     expect(rendered).not.toContain('private-witness-id')
   })
 
+  it('varies casual lowercase chatter by stable public event seed', () => {
+    const snapshot = runtime({
+      activity: Array.from({ length: 24 }, (_, index) => ({
+        id: `activity:${index + 1}`,
+        kind: 'evidence-observed' as const,
+        sequence: index + 1,
+        occurredAtMs: (index + 1) * 60_000,
+        evidenceId: `unresolved-public-record-${index + 1}`,
+      })),
+    })
+
+    const messages = createCaseChannelActivityMessages(opening, snapshot, 'Ada', 'tr', String)
+      .filter(({ id }) => id.startsWith('case-activity-'))
+    const detectiveBodies = messages
+      .filter(({ direction }) => direction === 'outgoing')
+      .map(({ body }) => body)
+    const officeBodies = messages
+      .filter(({ direction }) => direction === 'incoming')
+      .map(({ body }) => body)
+
+    expect(new Set(detectiveBodies).size).toBeGreaterThanOrEqual(3)
+    expect(new Set(officeBodies).size).toBeGreaterThanOrEqual(4)
+    expect([...detectiveBodies, ...officeBodies].every((body) => /^[a-zçğıöşüh]/u.test(body))).toBe(true)
+    expect(detectiveBodies.every((body) => /(?:👀|🕵️|🧐|🔎)/u.test(body))).toBe(true)
+    expect(officeBodies.some((body) => /(?:👀|🤔|🧩|✍️)/u.test(body))).toBe(true)
+  })
+
   it('localizes conversational copy and roles in Turkish and English', () => {
     const snapshot = runtime({
       activity: [{
@@ -341,13 +368,17 @@ describe('createCaseChannelActivityMessages', () => {
       roleLabel: 'Soruşturma sorumlusu',
       direction: 'outgoing',
     })
-    expect(tr[1]?.body).toContain('kaydını inceledim')
+    expect(tr[1]?.body).toContain('Clock record')
+    expect(tr[1]?.body).toMatch(/^[a-zçğıöşü]/u)
+    expect(tr[1]?.body).toMatch(/(?:👀|🕵️|🧐|🔎)/u)
     expect(en[1]).toMatchObject({
       author: 'Detective',
       roleLabel: 'Lead investigator',
       direction: 'outgoing',
     })
-    expect(en[1]?.body).toContain('I reviewed')
+    expect(en[1]?.body).toContain('Clock record')
+    expect(en[1]?.body).toMatch(/^[a-z]/u)
+    expect(en[1]?.body).toMatch(/(?:👀|🕵️|🧐|🔎)/u)
     expect(tr[2]?.roleLabel).not.toBe(en[2]?.roleLabel)
   })
 
