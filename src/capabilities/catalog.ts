@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { sha256Text } from '../compiler/digests'
 
 export type CapabilityKind = 'profile' | 'capability'
 
@@ -46,7 +46,7 @@ function canonicalJson(value: unknown): string {
 }
 
 function sha256(value: string): string {
-  return createHash('sha256').update(value, 'utf8').digest('hex')
+  return sha256Text(value)
 }
 
 function define(

@@ -16,12 +16,31 @@ const hostMocks = vi.hoisted(() => ({
   start: vi.fn(),
   command: vi.fn(),
   restart: vi.fn(),
+  assetUrl: vi.fn(() => 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='),
 }))
 
-vi.mock('./demo-host-client', () => ({
-  PRIMARY_DEMO_SAVE_ID: 'primary',
-  createDemoAssetUrl: vi.fn(() => '/mock-asset'),
-  demoSessionClient: hostMocks,
+const libraryMocks = vi.hoisted(() => ({
+  list: vi.fn(),
+  importCase: vi.fn(),
+}))
+
+vi.mock('./browser-host/game-client', () => ({
+  browserGameSessionClient: hostMocks,
+}))
+
+vi.mock('./case-library-client', () => ({
+  CaseLibraryClientError: class CaseLibraryClientError extends Error {
+    readonly name = 'CaseLibraryClientError'
+    constructor(
+      readonly code: string,
+      message: string,
+      readonly status: number,
+      readonly diagnostics: readonly unknown[] = [],
+    ) {
+      super(message)
+    }
+  },
+  caseLibraryClient: libraryMocks,
 }))
 
 interface MockDesktopShellProps {
@@ -110,33 +129,26 @@ const activeSnapshot: PublicCaseRuntimeState = {
   hypotheses: [],
 }
 
-const publicIndex = {
-  schema: 'case-public-index/v0.3',
-  cases: [],
-  packages: [{
-    slug: 'poll-recovery',
-    caseId: manifest.case.id,
-    caseVersion: manifest.case.version,
-    caseDigest: 'sha256:case',
-    manifestUrl: '/generated/poll-recovery.json',
-    manifestDigest: 'sha256:manifest',
-    defaultLocale: 'tr',
-    locales: [{
-      locale: 'tr',
-      manifestUrl: '/generated/poll-recovery.tr.json',
-      manifestDigest: 'sha256:manifest',
+beforeEach(() => {
+  libraryMocks.list.mockResolvedValue({
+    schema: 'detective-case-catalog/v1',
+    cases: [{
+      id: manifest.case.id,
+      version: manifest.case.version,
+      caseDigest: activeSnapshot.case.digest,
+      packageDigest: 'sha256:package',
+      title: manifest.case.title,
+      synopsis: manifest.case.synopsis,
+      durationMinutes: manifest.case.durationMinutes,
+      locale: manifest.case.locale ?? 'tr',
+      defaultLocale: manifest.case.locale ?? 'tr',
+      locales: [manifest.case.locale ?? 'tr'],
+      source: { kind: 'built-in', label: 'Dedektif' },
+      verification: { level: 'built-in', authoredTests: 0 },
+      manifest,
     }],
-    assetManifestUrl: '/generated/poll-recovery.assets.json',
-    assetManifestDigest: 'sha256:assets',
-  }],
-}
-
-function jsonResponse(value: unknown): Response {
-  return {
-    ok: true,
-    json: async () => value,
-  } as Response
-}
+  })
+})
 
 async function flushMicrotasks(): Promise<void> {
   for (let index = 0; index < 20; index += 1) await Promise.resolve()
@@ -183,11 +195,6 @@ describe('App wall-clock session recovery', () => {
         saveId: 'primary',
         exists: false,
       })
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => (
-      String(input) === '/generated/cases.json'
-        ? jsonResponse(publicIndex)
-        : jsonResponse(manifest)
-    )))
     host = document.createElement('div')
     document.body.append(host)
     root = createRoot(host)
@@ -324,11 +331,6 @@ describe('App forensics handoff', () => {
       ok: true,
       snapshot: observedEvidenceSnapshot,
     })
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => (
-      String(input) === '/generated/cases.json'
-        ? jsonResponse(publicIndex)
-        : jsonResponse(manifest)
-    )))
     host = document.createElement('div')
     document.body.append(host)
     root = createRoot(host)
@@ -403,7 +405,7 @@ describe('App forensics handoff', () => {
     expect(attachment?.textContent).toContain('Lobi kamera kaydı')
     expect(
       attachment?.querySelector('.workspace-image-attachment__preview > img')?.getAttribute('src'),
-    ).toBe('/mock-asset')
+    ).toBe('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==')
     expect(attachment?.querySelector('button')?.getAttribute('aria-label'))
       .toBe('Eki aç: Lobi kamera kaydı')
 
@@ -499,11 +501,6 @@ describe('App contact discovery handoff', () => {
       ok: true,
       snapshot: listedSnapshot,
     })
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => (
-      String(input) === '/generated/cases.json'
-        ? jsonResponse(publicIndex)
-        : jsonResponse(manifest)
-    )))
     host = document.createElement('div')
     document.body.append(host)
     root = createRoot(host)
@@ -964,11 +961,6 @@ describe('App case-file dispatch', () => {
         affordances: [],
       },
     })
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => (
-      String(input) === '/generated/cases.json'
-        ? jsonResponse(publicIndex)
-        : jsonResponse(manifest)
-    )))
     host = document.createElement('div')
     document.body.append(host)
     root = createRoot(host)
@@ -1086,11 +1078,6 @@ describe('App modal priority', () => {
       assetSessionId: 'asset-session-outcome',
       snapshot: outcomeSnapshot,
     })
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => (
-      String(input) === '/generated/cases.json'
-        ? jsonResponse(publicIndex)
-        : jsonResponse(manifest)
-    )))
     host = document.createElement('div')
     document.body.append(host)
     root = createRoot(host)

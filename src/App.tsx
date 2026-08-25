@@ -26,6 +26,7 @@ import {
   caseLibraryClient,
   type CaseCatalogEntry,
 } from './case-library-client'
+import { browserGameSessionClient } from './browser-host/game-client'
 import {
   createLocalStorageLayoutPersistence,
   DesktopShell,
@@ -90,33 +91,10 @@ import {
   useUiLocale,
 } from './ui-locale'
 import {
-  createDemoAssetUrl,
-  demoSessionClient,
   type DemoBrowserIntent,
   type DemoCaseSessionRef,
   type DemoCommandResponse,
 } from './demo-host-client'
-
-interface PublicCaseIndex {
-  readonly schema: 'case-public-index/v0.3'
-  readonly cases: readonly ShellPublicCaseManifest[]
-  readonly packages: readonly {
-    readonly slug: string
-    readonly caseId: string
-    readonly caseVersion: string
-    readonly caseDigest: string
-    readonly manifestUrl: string
-    readonly manifestDigest: string
-    readonly defaultLocale: string
-    readonly locales: readonly {
-      readonly locale: string
-      readonly manifestUrl: string
-      readonly manifestDigest: string
-    }[]
-    readonly assetManifestUrl: string
-    readonly assetManifestDigest: string
-  }[]
-}
 
 const CASE_PREFERENCE_KEY = 'karanlik-oda:selected-case'
 
@@ -654,54 +632,6 @@ function outgoingCallOutcome(
   }
 }
 
-function localizedManifestUrl(
-  packageEntry: PublicCaseIndex['packages'][number],
-  requestedLocales: readonly string[],
-): string {
-  for (const requested of requestedLocales) {
-    const exact = packageEntry.locales.find(({ locale }) => locale === requested)
-    if (exact) return exact.manifestUrl
-    const base = requested.split('-')[0]
-    const language = packageEntry.locales.find(({ locale }) => locale === base)
-    if (language) return language.manifestUrl
-  }
-  return packageEntry.locales.find(
-    ({ locale }) => locale === packageEntry.defaultLocale,
-  )?.manifestUrl ?? packageEntry.manifestUrl
-}
-
-async function loadStaticCaseCatalog(
-  locale: string,
-  signal: AbortSignal,
-): Promise<readonly CaseCatalogEntry[]> {
-  const response = await fetch('/generated/cases.json', { signal })
-  if (!response.ok) throw new Error(`Manifest index: ${response.status}`)
-  const index = await response.json() as PublicCaseIndex
-  return Promise.all(index.packages.map(async (packageEntry) => {
-    const manifestResponse = await fetch(
-      localizedManifestUrl(packageEntry, [locale]),
-      { signal },
-    )
-    if (!manifestResponse.ok) throw new Error(`Localized manifest: ${manifestResponse.status}`)
-    const manifest = await manifestResponse.json() as ShellPublicCaseManifest
-    return Object.freeze({
-      id: packageEntry.caseId,
-      version: packageEntry.caseVersion,
-      caseDigest: packageEntry.caseDigest,
-      packageDigest: manifest.integrity.manifest,
-      title: manifest.case.title,
-      synopsis: manifest.case.synopsis,
-      durationMinutes: manifest.case.durationMinutes,
-      locale: manifest.case.locale ?? packageEntry.defaultLocale,
-      defaultLocale: packageEntry.defaultLocale,
-      locales: packageEntry.locales.map(({ locale: availableLocale }) => availableLocale),
-      source: { kind: 'built-in' as const, label: 'Dedektif' },
-      verification: { level: 'built-in' as const, authoredTests: 0 },
-      manifest,
-    })
-  }))
-}
-
 function installedCaseSummary(entry: CaseCatalogEntry): InstalledCaseSummary {
   return {
     id: caseSelectionKey(entry),
@@ -1085,14 +1015,16 @@ function CaseDesktop({
         newContactIds,
       },
       snapshot,
-      (asset) => createDemoAssetUrl({
+      (asset) => browserGameSessionClient.assetUrl({
         caseId: snapshot.case.id,
         caseVersion: snapshot.case.version,
         locale: manifest.case.locale ?? 'tr',
         saveId,
+      }, {
         assetSessionId,
         caseDigest: snapshot.case.digest,
-      }, asset.id),
+        assetId: asset.id,
+      }, snapshot),
       uiLocale,
     ),
     [assetSessionId, contactActionStatuses, manifest, newContactIds, saveId, selection, snapshot, uiLocale],
@@ -2258,7 +2190,7 @@ function CaseExperience({ manifest, saveId, renderSettings }: CaseExperienceProp
     setPhase('checking')
     setError(undefined)
     setAssetSessionId(undefined)
-    demoSessionClient.status(sessionRef)
+    browserGameSessionClient.status(sessionRef)
       .then((status) => {
         if (!current) return
         if (status.exists && status.snapshot) {
@@ -2287,7 +2219,7 @@ function CaseExperience({ manifest, saveId, renderSettings }: CaseExperienceProp
     const refresh = (): void => {
       if (inFlight) return
       inFlight = true
-      demoSessionClient.status(sessionRef)
+      browserGameSessionClient.status(sessionRef)
         .then((status) => {
           if (!current) return
           if (!status.exists) {
@@ -2317,7 +2249,7 @@ function CaseExperience({ manifest, saveId, renderSettings }: CaseExperienceProp
     setBusy(true)
     setError(undefined)
     try {
-      const started = await demoSessionClient.start(sessionRef)
+      const started = await browserGameSessionClient.start(sessionRef)
       if (!started.snapshot) throw new Error('Missing case state.')
       if (!started.assetSessionId) throw new Error('Missing asset session.')
       createCaseBoardPersistence(
@@ -2335,7 +2267,7 @@ function CaseExperience({ manifest, saveId, renderSettings }: CaseExperienceProp
   }, [copy, manifest, saveId, sessionRef])
 
   const command = useCallback(async (intent: DemoBrowserIntent): Promise<DemoCommandResponse> => {
-    const result = await demoSessionClient.command(sessionRef, intent)
+    const result = await browserGameSessionClient.command(sessionRef, intent)
     setSnapshot((current) => (
       current && current.revision > result.snapshot.revision ? current : result.snapshot
     ))
@@ -2349,7 +2281,7 @@ function CaseExperience({ manifest, saveId, renderSettings }: CaseExperienceProp
     setError(undefined)
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
     try {
-      await demoSessionClient.restart(sessionRef)
+      await browserGameSessionClient.restart(sessionRef)
       createLocalStorageLayoutPersistence(desktopLayoutKey(manifest, saveId)).clear?.()
       if (snapshot) {
         createCaseBoardPersistence(
@@ -2431,22 +2363,11 @@ export default function App() {
     setLoadError(false)
     setCatalog(null)
     void (async () => {
-      let cases: readonly CaseCatalogEntry[]
-      try {
-        const response = await caseLibraryClient.list(requestedCaseLocale, controller.signal)
-        if (response.schema !== 'detective-case-catalog/v1' || !Array.isArray(response.cases)) {
-          throw new Error('The case catalog response is not compatible.')
-        }
-        cases = response.cases
-      } catch (hostError) {
-        if (controller.signal.aborted) return
-        try {
-          cases = await loadStaticCaseCatalog(requestedCaseLocale, controller.signal)
-        } catch (staticError) {
-          if (controller.signal.aborted) return
-          throw staticError instanceof Error ? staticError : hostError
-        }
+      const response = await caseLibraryClient.list(requestedCaseLocale, controller.signal)
+      if (response.schema !== 'detective-case-catalog/v1' || !Array.isArray(response.cases)) {
+        throw new Error('The case catalog response is not compatible.')
       }
+      const cases = response.cases
       if (controller.signal.aborted) return
       setCatalog(cases)
       const selectedEntry = selectedCatalogEntry(cases, selectedCaseId)

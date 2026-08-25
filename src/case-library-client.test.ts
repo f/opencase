@@ -1,5 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+const libraryMocks = vi.hoisted(() => ({
+  list: vi.fn(),
+  importCase: vi.fn(),
+}))
+
+vi.mock('./browser-host/case-library', () => ({
+  browserCaseLibrary: libraryMocks,
+}))
+
+import { BrowserCaseImportError } from './browser-host/import-errors'
 import {
   CaseLibraryClientError,
   caseLibraryClient,
@@ -25,37 +35,24 @@ function catalogEntry(): CaseCatalogEntry {
   }
 }
 
-function jsonResponse(value: unknown, status = 200): Response {
-  return new Response(JSON.stringify(value), {
-    status,
-    headers: { 'content-type': 'application/json' },
-  })
-}
-
 describe('case library client', () => {
   afterEach(() => {
-    vi.unstubAllGlobals()
-    vi.restoreAllMocks()
+    vi.clearAllMocks()
   })
 
-  it('requests the catalog with the selected locale and caller signal', async () => {
+  it('delegates catalog loading with the selected locale and caller signal', async () => {
     const payload: CaseCatalogResponse = {
       schema: 'detective-case-catalog/v1',
       cases: [catalogEntry()],
     }
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(payload))
-    vi.stubGlobal('fetch', fetchMock)
+    libraryMocks.list.mockResolvedValueOnce(payload)
     const abortController = new AbortController()
 
     await expect(caseLibraryClient.list('tr-TR', abortController.signal)).resolves.toEqual(payload)
-    expect(fetchMock).toHaveBeenCalledOnce()
-    expect(fetchMock).toHaveBeenCalledWith('/api/case-library?locale=tr-TR', {
-      headers: { accept: 'application/json' },
-      signal: abortController.signal,
-    })
+    expect(libraryMocks.list).toHaveBeenCalledWith('tr-TR', abortController.signal)
   })
 
-  it('posts an import kind, URL, and locale as JSON', async () => {
+  it('delegates an import kind, URL, locale, and caller signal', async () => {
     const entry = {
       ...catalogEntry(),
       source: {
@@ -66,47 +63,32 @@ describe('case library client', () => {
       verification: { level: 'conformance-passed' as const, authoredTests: 4 },
     }
     const payload = { schema: 'detective-case-import/v1' as const, entry }
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(payload, 201))
-    vi.stubGlobal('fetch', fetchMock)
+    libraryMocks.importCase.mockResolvedValueOnce(payload)
+    const request = { kind: 'github' as const, url: 'https://github.com/example/detective-case' }
     const abortController = new AbortController()
 
     await expect(caseLibraryClient.importCase(
-      { kind: 'github', url: 'https://github.com/example/detective-case' },
+      request,
       'en',
       abortController.signal,
     )).resolves.toEqual(payload)
-
-    expect(fetchMock).toHaveBeenCalledOnce()
-    expect(fetchMock).toHaveBeenCalledWith('/api/case-library/import', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify({
-        kind: 'github',
-        url: 'https://github.com/example/detective-case',
-        locale: 'en',
-      }),
-      signal: abortController.signal,
-    })
+    expect(libraryMocks.importCase).toHaveBeenCalledWith(request, 'en', abortController.signal)
   })
 
-  it('keeps only player-safe diagnostic fields from rejected imports', async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
-      error: {
-        code: 'case-import-invalid',
-        message: 'The case could not be installed.',
-        stack: '/private/server/path/importer.ts:42',
-        diagnostics: [{
-          code: 'E_SCHEMA',
-          message: 'case.id is required',
-          path: 'case.yml',
-          line: 4,
-          column: 3,
-          sourceExcerpt: 'private authoring source',
-          internalCause: { token: 'do-not-leak' },
-        }, null, { code: 'E_IGNORED' }],
-      },
-    }, 422))
-    vi.stubGlobal('fetch', fetchMock)
+  it('maps browser import errors to the stable, player-safe client error', async () => {
+    libraryMocks.importCase.mockRejectedValueOnce(new BrowserCaseImportError(
+      'case-import-invalid',
+      'The case could not be installed.',
+      [{
+        code: 'E_SCHEMA',
+        message: 'case.id is required',
+        path: 'case.yml',
+        line: 4,
+        column: 3,
+        sourceExcerpt: 'private authoring source',
+      } as never],
+      422,
+    ))
 
     let caught: unknown
     try {
@@ -133,22 +115,16 @@ describe('case library client', () => {
       }],
     })
     expect(JSON.stringify(caught)).not.toContain('private authoring source')
-    expect(JSON.stringify(caught)).not.toContain('do-not-leak')
-    expect(JSON.stringify(caught)).not.toContain('/private/server/path')
   })
 
-  it('turns invalid JSON into a stable host-response error', async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response('<!doctype html>', {
-      status: 502,
-      headers: { 'content-type': 'text/html' },
-    }))
-    vi.stubGlobal('fetch', fetchMock)
+  it('maps unexpected failures to one stable client error', async () => {
+    libraryMocks.list.mockRejectedValueOnce(new Error('Static case index is unavailable.'))
 
     await expect(caseLibraryClient.list('en')).rejects.toMatchObject({
       name: 'CaseLibraryClientError',
-      code: 'invalid-host-response',
-      message: 'The local detective host returned invalid JSON.',
-      status: 502,
+      code: 'case-library-request-failed',
+      message: 'Static case index is unavailable.',
+      status: 500,
       diagnostics: [],
     })
   })

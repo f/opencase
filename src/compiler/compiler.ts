@@ -1,5 +1,4 @@
 import Ajv, { type ErrorObject } from 'ajv'
-import { isIP } from 'node:net'
 import {
   LineCounter,
   parseDocument,
@@ -376,7 +375,8 @@ function unsafeRemoteAssetHostname(hostname: string): boolean {
     ? normalized.slice(1, -1)
     : normalized
   return (
-    isIP(unbracketed) !== 0 ||
+    unbracketed.includes(':') ||
+    /^(?:\d{1,3}\.){3}\d{1,3}$/.test(unbracketed) ||
     normalized === 'localhost' ||
     normalized.endsWith('.localhost') ||
     normalized.endsWith('.local') ||

@@ -1,6 +1,5 @@
-import { createHash } from 'node:crypto'
-
 import type { JsonValue } from './types'
+import { sha256Text } from './digests'
 
 /** Locale-independent UTF-16/code-unit ordering, matching JSON's string model. */
 export function compareCanonicalStrings(left: string, right: string): number {
@@ -29,7 +28,7 @@ export function canonicalJson(value: unknown): string {
 }
 
 export function sha256(value: string): string {
-  return createHash('sha256').update(value, 'utf8').digest('hex')
+  return sha256Text(value)
 }
 
 export function hashCanonical(value: JsonValue | object): string {

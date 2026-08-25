@@ -1,4 +1,6 @@
 import type { ShellPublicCaseManifest } from './shell/manifest-workspace'
+import { browserCaseLibrary } from './browser-host/case-library'
+import { BrowserCaseImportError } from './browser-host/import-errors'
 
 export type CaseLibraryImportKind = 'github' | 'yaml'
 
@@ -59,15 +61,7 @@ export class CaseLibraryClientError extends Error {
   }
 }
 
-interface ErrorEnvelope {
-  readonly error?: {
-    readonly code?: unknown
-    readonly message?: unknown
-    readonly diagnostics?: unknown
-  }
-}
-
-function diagnostics(value: unknown): readonly CaseLibraryDiagnostic[] {
+function safeDiagnostics(value: unknown): readonly CaseLibraryDiagnostic[] {
   if (!Array.isArray(value)) return []
   return value.flatMap((candidate) => {
     if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return []
@@ -83,39 +77,33 @@ function diagnostics(value: unknown): readonly CaseLibraryDiagnostic[] {
   })
 }
 
-async function responseJson<T>(response: Response): Promise<T> {
-  let value: unknown
-  try {
-    value = await response.json()
-  } catch {
-    throw new CaseLibraryClientError(
-      'invalid-host-response',
-      'The local detective host returned invalid JSON.',
-      response.status,
+function clientError(error: unknown): CaseLibraryClientError {
+  if (error instanceof CaseLibraryClientError) return error
+  if (error instanceof BrowserCaseImportError) {
+    return new CaseLibraryClientError(
+      error.code,
+      error.message,
+      error.status,
+      safeDiagnostics(error.diagnostics),
     )
   }
-  if (!response.ok) {
-    const envelope = value as ErrorEnvelope
-    throw new CaseLibraryClientError(
-      typeof envelope.error?.code === 'string' ? envelope.error.code : 'case-library-request-failed',
-      typeof envelope.error?.message === 'string'
-        ? envelope.error.message
-        : `The local detective host rejected the request (${response.status}).`,
-      response.status,
-      diagnostics(envelope.error?.diagnostics),
-    )
+  if (error instanceof Error) {
+    return new CaseLibraryClientError('case-library-request-failed', error.message, 500)
   }
-  return value as T
+  return new CaseLibraryClientError(
+    'case-library-request-failed',
+    'The browser case library could not complete the request.',
+    500,
+  )
 }
 
 export const caseLibraryClient = Object.freeze({
   async list(locale: string, signal?: AbortSignal): Promise<CaseCatalogResponse> {
-    const query = new URLSearchParams({ locale })
-    const response = await fetch(`/api/case-library?${query.toString()}`, {
-      headers: { accept: 'application/json' },
-      signal,
-    })
-    return responseJson<CaseCatalogResponse>(response)
+    try {
+      return await browserCaseLibrary.list(locale, signal)
+    } catch (error) {
+      throw clientError(error)
+    }
   },
 
   async importCase(
@@ -123,12 +111,10 @@ export const caseLibraryClient = Object.freeze({
     locale: string,
     signal?: AbortSignal,
   ): Promise<CaseImportResponse> {
-    const response = await fetch('/api/case-library/import', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify({ ...request, locale }),
-      signal,
-    })
-    return responseJson<CaseImportResponse>(response)
+    try {
+      return await browserCaseLibrary.importCase(request, locale, signal)
+    } catch (error) {
+      throw clientError(error)
+    }
   },
 })

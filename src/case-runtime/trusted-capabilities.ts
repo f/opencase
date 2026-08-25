@@ -1,5 +1,8 @@
 import type { CapabilityDefinition, CapabilityRef } from '../kernel'
-import { CAPABILITY_CATALOG } from '../capabilities'
+import {
+  PINNED_CAPABILITY_REFS,
+  type TrustedCapabilitySpecifier,
+} from '../capabilities/pinned-refs'
 
 import { caseCommandDeciders } from './deciders'
 
@@ -7,20 +10,11 @@ import { caseCommandDeciders } from './deciders'
  * Engine-owned allow-list. Digests are pinned independently from case input;
  * a case cannot bless an unknown implementation by supplying its own digest.
  */
-export type TrustedCapabilitySpecifier = `${string}@${number}`
+export type { TrustedCapabilitySpecifier } from '../capabilities/pinned-refs'
 
-export const TRUSTED_CAPABILITY_REFS = Object.freeze(
-  Object.fromEntries(
-    [...CAPABILITY_CATALOG.values()].map((manifest) => [
-      manifest.specifier,
-      Object.freeze({
-        id: manifest.id,
-        version: String(manifest.version),
-        digest: manifest.digest,
-      }),
-    ]),
-  ),
-) as Readonly<Record<TrustedCapabilitySpecifier, CapabilityRef>>
+export const TRUSTED_CAPABILITY_REFS = PINNED_CAPABILITY_REFS as Readonly<
+  Record<TrustedCapabilitySpecifier, CapabilityRef>
+>
 
 export const INVESTIGATION_CAPABILITY = TRUSTED_CAPABILITY_REFS['investigation@1']
 

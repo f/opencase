@@ -16,12 +16,19 @@ This repository remains **engine-first**, but now includes a working
 macOS-inspired detective desktop: draggable and resizable application
 windows, menu bar, Dock, casebook, case board, inbox, phone, files, research, and
 case-scoped layout persistence. Local player profiles keep separate progress
-and language preferences, while the trusted host can install complete GitHub
-case folders or small direct YAML cases. The browser consumes sanitized public
-manifests and runtime projections only. A trusted host connects those
-presentation components to `CaseSessionController` for authoritative commands
-and `kernel-save@1` persistence. Case semantics still live in YAML and fixed
-engine capabilities, not in case-specific React or TypeScript code.
+and language preferences. The production game is fully static: a browser
+application host loads built-in runtime bundles, runs the generic
+`CaseSessionController`, stores opaque `kernel-save@1` strings, and can install
+complete public GitHub case folders or small direct YAML cases without a game
+server. The shell still receives only sanitized manifests and runtime
+projections. Case semantics live in YAML and fixed engine capabilities, not in
+case-specific React or TypeScript code.
+
+This distribution makes a deliberate game-oriented tradeoff. A built-in static
+runtime bundle contains the complete lowered case mechanics, so a person who
+inspects downloaded JSON or JavaScript can find spoilers. The projection
+boundary remains an application correctness boundary—normal UI flow reveals
+only earned state—but it is not a secrecy boundary in the static build.
 
 ## Start here
 
@@ -33,11 +40,12 @@ npm run check
 npm run dev
 ```
 
-The detective desktop runs at <http://127.0.0.1:4173>. `npm run engine:check` is the
-case-independent synthetic engine gate. `npm run check` is the complete
-repository gate: engine tests, external detective scenarios, private case
-compilation, public-manifest generation, type checking, and the production
-build.
+The detective desktop runs at <http://127.0.0.1:4173>. Vite serves the same
+static browser application that the production build emits; gameplay does not
+depend on a local API. `npm run engine:check` is the case-independent synthetic
+engine gate. `npm run check` is the complete repository gate: engine tests,
+external detective scenarios, private case compilation, static runtime and
+manifest generation, type checking, and the production build.
 
 If you want to author a case rather than study the engine, continue with:
 
@@ -72,13 +80,17 @@ safe projection of that state.
 
 ```text
 cases/<slug>/
-├── case.yml + assets/ + i18n/ ──► private source IR ──► kernel IR ──► runtime
-│                              │                                  │
-│                              └── sanitize ──► public manifest   │ project
-│                                                                 ▼
-└── tests/*.yml ── ordered detective commands ──► player-safe runtime state
-                           │                              │
-                           └──────── public expectations ┘
+├── case.yml + assets/ + i18n/ ──► private source IR ──► kernel IR
+│                              │                         │
+│                              └── sanitize ──► public manifest
+│                                                        │
+└── tests/*.yml ── ordered detective commands ──► player-safe state
+                           │                         │
+                           └────── public expectations ┘
+
+kernel IR + presentations + content-addressed assets ──► static runtime bundle
+                                                            │
+browser session adapter ── generic commands ──► engine ── project ──► shell
 
 event log ──► event-only replay ──► the same authoritative state
 ```
@@ -157,16 +169,19 @@ catalogs, locale fallback, public manifests, and save-compatible digests.
 
 Settings manages browser-local detective profiles. Each profile stores only a
 display name, Turkish or English preference, and selected case. The profile ID
-is passed to the trusted host as an opaque save slot, so progress and shell
-sidecars remain separate for every profile and exact case build. Profiles are
-not accounts: there is no password, cloud sync, or automatic recovery.
+is passed to the browser session adapter as an opaque save slot, so progress
+and shell sidecars remain separate for every profile and exact case build.
+Profiles are not accounts: there is no password, cloud sync, or automatic
+recovery.
 
 The local case library accepts either a complete public GitHub package or one
 public direct YAML file. GitHub imports support `assets/`, `i18n/`, and authored
-`tests/`; the host pins the commit, compiles the package, and runs its scenarios.
-Direct YAML imports must be self-contained, use literal text, and declare no
-assets; they receive compiler and runtime-smoke verification only. Both paths
-fail closed before installation and cannot add executable engine code.
+`tests/`; the browser resolves the source to an exact commit, validates every
+downloaded Git blob, compiles the package, and runs its scenarios. Direct YAML
+imports must be self-contained, use literal text, and declare no assets; they
+receive compiler and runtime-smoke verification only. Both paths fail closed
+before installation and cannot add executable engine code. Installed package
+bundles and asset blobs are stored in IndexedDB.
 
 See [Local player profiles and case library](docs/player-profiles-and-case-library.md)
 for the player flow, accepted URL forms, storage model, network limits, and the
@@ -209,7 +224,12 @@ unlock graphs, reactions, outcome rules, capability locks, and private asset
 locators. It does not contain `tests/`. It carries hashes of the source,
 capability set, assets, and private IR.
 
-This artifact is trusted build/server input. **Never serve it to a player.**
+This source-level artifact is build input and is not copied to `dist/`. The
+fully static distribution does publish the lowered kernel IR, complete
+presentation catalogs, and all required local asset bytes in a separate
+runtime bundle. That bundle is intentionally inspectable. Do not pass either
+artifact to shell components as state; the browser session adapter keeps the
+active controller in a closure and gives the shell only projections.
 
 ### 4. Final kernel IR
 
@@ -230,7 +250,11 @@ private URLs, or provider references.
 
 `npm run generate:public` discovers kebab-case directories below `cases/`,
 builds them in a staging directory, rejects duplicate case IDs, and atomically
-replaces `public/generated/` only after the entire set succeeds.
+replaces `public/generated/` only after the entire set succeeds. Alongside the
+localized public manifests it emits one integrity-bound static runtime bundle
+per case and copies every required local asset to a content-addressed relative
+URL. The generated index itself uses relative URLs so the same directory works
+at an origin root or a GitHub Pages repository subpath.
 
 ### Contact discovery is case state
 
@@ -244,7 +268,7 @@ reaction make the contact public and persist it in the case save.
 The accepted command also projects its exact public contact delta. The app
 uses that opaque completion result to label the Forensics reply and Phone CTA;
 it does not inspect case action fields or infer the person from array order.
-Cosmetic chat history is scoped to the host's opaque run ID, while contact
+Cosmetic chat history is scoped to the session adapter's opaque run ID, while contact
 visibility itself remains authoritative runtime state.
 
 The compiler rejects a hidden callable actor with no complete lookup/reveal
@@ -434,7 +458,7 @@ meanings:
 
 - **case time** advances the fictional investigation timeline;
 - **active time** advances while the player is actively engaged;
-- **wall time** is sampled from the host's injected clock and supports offline
+- **wall time** is sampled from the execution adapter's injected clock and supports offline
   or real-world deadlines.
 
 Schedules choose one clock and an absolute due time or relative delay. They can
@@ -445,7 +469,7 @@ delivery safely reduces to a no-op.
 
 The runtime exposes explicit helpers to advance case time, advance active time,
 observe wall time, and resume a case. Tests inject clocks and IDs; production
-hosts must do the same through runtime dependencies.
+adapters must do the same through runtime dependencies.
 
 ## Versioned capabilities
 
@@ -497,8 +521,10 @@ should render only this projection and send intent back as commands.
 
 Revoking evidence blocks unobserved access. It does not make the player forget
 an artifact already observed: that card and its safe handles remain in the
-projection. The host authorizer must follow this projection policy and bind
-delivery to the final kernel digest.
+projection. The browser asset resolver follows this projection policy and binds
+its lookup to the exact runtime bundle and final kernel digest. In a fully
+static deployment that is a gameplay gate, not protection against somebody
+who inspects or downloads the generated files directly.
 
 ## Assets: authoring, validation, and delivery
 
@@ -511,34 +537,34 @@ digest, and exactly one private source descriptor:
 - an opaque provider/reference pair owned by a capability-locked adapter.
 
 Evidence links to asset IDs; it never embeds paths. `visibility: public` means
-the asset may be part of the static opening bootstrap when its evidence is also
-an opening grant. It does not bypass runtime evidence access. Private assets
-are never copied into the public static build.
+the asset may be referenced by the static opening bootstrap when its evidence
+is also an opening grant. It does not bypass runtime evidence access in the
+normal UI. Because later evidence must work without a server, the fully static
+build copies both opening and unlockable local assets to content-addressed
+files. Their URLs are discoverable in the runtime bundle, so asset visibility
+is not a confidentiality promise in this deployment mode.
 
 Local compilation rejects traversal, absolute paths, symlinks, non-files,
 extension/MIME mismatches, digest mismatches, oversized payloads, executable
 formats, and active SVG content. Defaults are 512 MiB per local asset, 2 GiB
 across a package, and 5 MiB for the conservative static SVG subset.
 
-Runtime delivery uses `createCaseAssetGateway`:
+Built-in static generation accepts package-local assets only. It validates
+their path, bytes, declared MIME type, size, and SHA-256 digest before copying
+them beside the runtime bundles. Remote HTTPS and provider-backed assets are
+rejected for built-in cases because a reproducible static build cannot depend
+on a runtime delivery service.
 
-1. The host supplies a handle from the current player projection together with
-   the session's case ID, case version, and final kernel digest.
-2. The gateway verifies that exact package/build binding and calls the host's
-   authorization function.
-3. A local source or explicitly injected HTTPS/provider adapter supplies one
-   byte stream. There is intentionally no default network fetcher.
-4. The gateway reads that stream once into an engine-owned cache while enforcing
-   limits, media magic, static SVG policy, and the declared digest.
-5. Only the verified, content-addressed, read-only cache file is returned.
+The browser GitHub importer can install package-local assets and explicitly
+authored HTTPS assets whose servers allow cross-origin browser requests. It
+downloads and verifies those bytes before placing them in IndexedDB; play uses
+browser object URLs for the stored blobs. Provider assets remain unsupported
+because they require credentials or a server adapter. The direct-YAML importer
+does not accept assets at all.
 
-The HTTP host must serve that returned file with its exact MIME type,
-`X-Content-Type-Options: nosniff`, the returned `Content-Disposition`, and Range
-support for media. HTTPS adapters are part of the trusted host boundary: they
-must enforce deadlines, cap redirects, resolve only public DNS on every hop,
-and reject loopback, private, and link-local targets. Internal adapter errors
-must be mapped to a uniform public response so locators and provider references
-cannot leak.
+`createCaseAssetGateway` remains available for a different deployment that has
+a trusted server and needs authorized streaming or provider adapters. It is not
+part of the fully static game's normal asset path.
 
 ## Persistence and replay
 
@@ -563,10 +589,11 @@ designed and tested.
 The application integration point is `CaseSessionController`. It keeps the
 authoritative `KernelSession` and event log in a private closure. A detective
 shell calls `getSnapshot(...)`, sends generic command intent through
-`dispatch(...)`, and receives only `case-runtime/public-v1`. A trusted host may
-call `serialize()` and place the resulting `kernel-save@1` bytes in its chosen
-storage. Restore creates a new controller only after the checksum, case build,
-capability locks, and complete event log have passed validation.
+`dispatch(...)`, and receives only `case-runtime/public-v1`. The browser session
+adapter calls `serialize()` and places the resulting opaque `kernel-save@1`
+string in `localStorage`. Restore creates a new controller only after the
+checksum, case build, capability locks, and complete event log have passed
+validation.
 
 For direct persistence, implement the generic `CaseSaveStorage` port. Its
 `read`, `write`, and `delete` methods receive an exact `{saveId, caseId,
@@ -575,16 +602,17 @@ save. The controller's `persist(...)` method captures and writes one immutable r
 `restoreCaseSessionControllerFromStorage(...)` reads the exact build slot and
 then performs the normal strict restore. For a true restart,
 `deleteCaseSessionFromStorage(runtime, storage, saveId)` deletes exactly that
-case/build/save slot. The host must then discard the old controller and create
-a new one; a restart is not a synthetic reset event appended to the old case.
+case/build/save slot. The adapter must then discard the old controller and
+create a new one; a restart is not a synthetic reset event appended to the old
+case.
 
-The opening phone call is a pre-session application step. The host first checks
-the exact build/save slot: a valid existing save restores and resumes its
-desktop, while an absent slot lets the application ring from a sanitized public
-manifest before any controller is created. No case clock, event, or detective
-decision is recorded merely because that call screen is visible. Accepting the
-call creates and persists a fresh controller; it must not overwrite an existing
-slot.
+The opening phone call is a pre-session application step. The browser session
+adapter first checks the exact profile/case/version/kernel-digest slot: a valid
+existing save restores and resumes its desktop, while an absent slot lets the
+application ring from a sanitized public manifest before any controller is
+created. No case clock, event, or detective decision is recorded merely because
+that call screen is visible. Accepting the call creates and persists a fresh
+controller; it must not overwrite an existing slot.
 Restart returns to that onboarding boundary after deleting both the exact
 engine save and the separately scoped desktop-layout snapshot. Clearing only
 window layout does not restart a case; deleting only the engine save is also
@@ -595,7 +623,7 @@ This boundary deliberately assigns different state to different owners:
 | Owner | State |
 | --- | --- |
 | Engine controller | Case clocks, observations, deductions, actor conversation states, schedules, conclusion, private capability state, event log |
-| Application host | Save location, autosave policy, profile-to-save-slot mapping, import/verification, encryption or account sync |
+| Browser application host | Runtime loading, save location, autosave policy, profile-to-save-slot mapping, import and verification |
 | Profile application | Local display name, preferred interface locale, selected case |
 | Detective shell | Open windows, bounds, focus order, minimized state, active tool, selected locale, case-board card positions and player-drawn links |
 
@@ -607,12 +635,13 @@ from the current public Phone and Finder models. Its separate sidecar stores
 only opaque card IDs, normalized coordinates, and connection endpoints. It
 never stores names, findings, authored asset locators, delivery URLs, or engine
 commands, and stale IDs are removed when they are no longer public.
-If a fully local build uses browser `localStorage`, it stores only the opaque
-serialized save string through this adapter—not projections, mutable evidence
-arrays, or private runtime objects. A hosted build that must protect hidden
-case information should keep the controller, private IR, and save storage out
-of the browser bundle entirely and pass only projections and command callbacks
-to the shell.
+The static game stores only the opaque serialized save string through the
+`CaseSaveStorage` browser adapter—not projections, mutable evidence arrays, or
+private runtime objects. Imported runtime bundles and verified asset blobs use
+IndexedDB instead. A different hosted deployment that must protect hidden case
+information would need to keep the controller, private IR, and save storage out
+of the browser entirely and pass only projections and command callbacks to the
+shell; the GitHub Pages build intentionally does not provide that secrecy.
 
 ## Authoring workflow
 
@@ -651,8 +680,10 @@ to the shell.
    npx tsx src/simulator/cli.ts cases/my-first-case
    ```
 
-7. Generate and inspect the public artifacts. Search them for private names,
-   truth, locators, conditions, and outcome logic before publishing:
+7. Generate and inspect the sanitized `*.public.json` manifests. Search those
+   manifests for private names, truth, locators, conditions, and outcome logic
+   before publishing. Do not apply that secrecy check to `*.runtime.json`:
+   static runtime bundles intentionally contain the complete game mechanics.
 
    ```bash
    npm run generate:public
@@ -670,16 +701,16 @@ corresponding gate without adding its slug to TypeScript or `package.json`.
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Generate public manifests and start the local detective desktop. |
+| `npm run dev` | Generate static case output and start the local detective desktop. |
 | `npm test` | Run compiler, kernel, runtime, persistence, simulator, and package tests. |
 | `npm run test:watch` | Run Vitest in watch mode. |
-| `npm run test:host` | Run the trusted local host, persistence, asset-delivery, and case-library API tests. |
+| `npm run test:host` | Run tests for the optional legacy server-host adapters. The static desktop does not require them. |
 | `npm run cases:test` | Discover packages below `cases/` and execute all private detective scenarios. |
 | `npm run cases:compile` | Discover and compile every package below `cases/`. |
 | `npm run examples:test` | Discover teaching packages and execute every detective scenario. |
 | `npm run examples:compile` | Discover and compile teaching packages into `.build/examples/`. |
 | `npm run skill:validate` | Validate the AI skill frontmatter and UI metadata. |
-| `npm run generate:public` | Atomically generate browser-safe manifests and opening assets. |
+| `npm run generate:public` | Atomically generate sanitized manifests, inspectable static runtime bundles, and content-addressed local assets. |
 | `npm run typecheck` | Build the TypeScript project graph without starting the app. |
 | `npm run build` | Generate public data, type-check, and create the Vite production build. |
 | `npm run engine:check` | Run only case-independent synthetic engine tests and type checking. |
@@ -694,10 +725,39 @@ corresponding gate without adding its slug to TypeScript or `package.json`.
 .build/cases/<slug>.public.json      # sanitized bootstrap manifest
 ```
 
-`.build/` is private build output and must not be copied to a web root.
-`public/generated/` contains the atomically generated public case index,
-bootstrap manifests, delivery manifests, and only eligible opening assets.
-`dist/` is the production detective-desktop build.
+`.build/` is compiler/debug output and is not copied to the web root.
+`public/generated/` contains the atomically generated case index, sanitized
+bootstrap manifests, asset delivery manifests, complete static runtime bundles,
+and every local asset required during play. Runtime bundles and later-game
+assets are inspectable and can reveal answers. `dist/` is the complete static
+detective-desktop build.
+
+## Static build and GitHub Pages
+
+```bash
+npm ci
+npm run check
+```
+
+The Vite build uses a relative base, and generated case manifests, runtime
+bundles, and asset URLs are relative to the files that reference them. The
+resulting `dist/` directory can therefore be served from `/`, a repository
+subpath such as `/dedektif/`, or another static mount point. No rewrite to
+`/api/*`, Node process, database service, or secret environment variable is
+needed for gameplay.
+
+`.github/workflows/deploy-pages.yml` checks and builds the project on pushes to
+`main`, uploads `dist/`, and deploys it with GitHub Pages' Actions workflow. The
+same workflow can be started manually. Repository Pages still has to allow
+GitHub Actions as its source, and availability for a private repository depends
+on the repository owner's GitHub plan and Pages settings.
+
+Browser URL imports have a separate network boundary. GitHub imports use the
+public GitHub REST API and immutable `raw.githubusercontent.com` URLs, and
+direct YAML or authored HTTPS assets are readable only when the remote server
+allows browser CORS. GitHub's unauthenticated API rate limit applies, so an
+import may need to be retried after its reset time. Built-in play remains local
+to the deployed static files after they load.
 
 ## Repository map
 
@@ -715,12 +775,13 @@ src/case-runtime/         Adapter, investigation capability, projection, session
 src/persistence/          Checksummed event-log saves and strict restore
 src/simulator/            External detective-test loader, runner, and replay checks
 src/case-package/         Package/asset validation, public build, asset gateway
+src/browser-host/         Static runtime/session adapter, browser imports and IndexedDB library
 src/shell/                Generic desktop/window manager and sanitized detective apps
 src/settings/             Profile, language, case-library, and storage workspace
 src/player-profiles.ts    Browser-local profile store; no engine or case imports
 src/assets/shell/         ImageGen-created application icon assets
-server/case-library/      Trusted remote import, verification, and immutable library
-server/demo-host/         Local session/save, asset, and case-library HTTP host
+server/case-library/      Optional server-host import implementation and compatibility tests
+server/demo-host/         Optional server-host session/asset adapter and compatibility tests
 src/App.tsx               Public-manifest desktop composition and case selector
 ```
 
@@ -735,7 +796,8 @@ The completion gate covers both the generic engine and the presentation shell:
 - event-only replay is deterministic;
 - case, active, and wall clocks behave independently;
 - capability, build, save, and asset digests are exact locks;
-- private case data and private asset locators stay outside public output;
+- sanitized manifests and shell projections exclude private mechanics, while
+  the static runtime bundle intentionally remains inspectable;
 - traversal, tampering, stale schedules, invalid saves, and unsafe media fail
   closed;
 - profile IDs partition exact save and presentation slots without becoming an
@@ -744,10 +806,9 @@ The completion gate covers both the generic engine and the presentation shell:
   explicitly weaker direct-YAML runtime smoke before they enter the library;
 - shell layout state contains only geometry, focus, open/minimized state, and
   z-order, while gameplay state remains in the engine event log;
-- the local game keeps its controller, private packages, saves, imports, and
-  asset authorization in the trusted host rather than duplicating state in
-  React.
+- the browser application host owns the controller, opaque saves, imports, and
+  asset resolution rather than duplicating gameplay state in React.
 
 The next gameplay UI should be a replaceable adapter over public manifests,
-runtime projections, commands, and authorized asset delivery. It should not add
+runtime projections, commands, and projected asset handles. It should not add
 new case truth or bypass the engine's state machine.
