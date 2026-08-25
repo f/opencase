@@ -124,19 +124,40 @@ npx tsx src/simulator/cli.ts cases/my-first-case
 
 ## Architecture
 
-```text
-case.yml + assets + i18n          tests/*.yml
-            │                         │
-            ▼                         ▼
-     package compiler           test runner
-            │                         │
-            ├── private kernel IR ◄───┘
-            └── public manifest
-                       │
-                       ▼
-browser host ── command ──► engine ── projection ──► desktop shell
-     │                       │
-     └──── opaque save ◄─────┘
+```mermaid
+flowchart LR
+    subgraph Authoring["Portable case package"]
+        Source["case.yml<br/>assets/<br/>i18n/"]
+        Tests["tests/*.yml"]
+    end
+
+    subgraph Build["Build and verification"]
+        Compiler["Package compiler"]
+        Kernel["Private kernel IR"]
+        Manifest["Player-safe public manifest"]
+        Bundle["Static runtime bundle"]
+        Runner["Case test runner"]
+    end
+
+    subgraph Play["Browser runtime"]
+        Host["Browser host"]
+        Engine["Deterministic engine"]
+        Save[("Opaque save")]
+        Shell["Desktop shell"]
+    end
+
+    Source --> Compiler
+    Tests --> Runner
+    Compiler --> Kernel
+    Kernel --> Runner
+    Compiler --> Manifest
+    Compiler --> Bundle
+    Manifest --> Host
+    Bundle --> Host
+    Host -->|generic command| Engine
+    Engine -->|player-safe projection| Shell
+    Engine -->|event log and snapshot| Save
+    Save -->|restore| Host
 ```
 
 The boundaries are strict:
