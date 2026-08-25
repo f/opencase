@@ -1,0 +1,14 @@
+schema: case-i18n/v0.1
+case: {id: examples.olive-oil-lot, version: 0.1.1}
+locale: tr
+messages:
+  case.title: Zeytinyağı Partisi
+  case.synopsis: >-
+    Mühürlü bir premium zeytinyağı numunesi beyan edilen profille uyuşmuyor.
+    Numuneyi doğrula, parti hacimlerini uzlaştır ve beyan edilmeyen maddeyi
+    üretim kayıtlarında izle.
+  opening.call: >-
+    RL-204-A perakende numunesinde premium beyanımız var, ancak rengi ve kokusu
+    kalite uyarısı doğurdu. Mühür sağlam. Etiketi veya dolum hattını suçlamadan
+    önce özgünlük panelini al ve tüm girdileri izle.
+  outcomes.traced_dilution.title: Seyreltme harman tankına kadar izlendi

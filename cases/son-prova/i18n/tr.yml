@@ -1,0 +1,233 @@
+schema: case-i18n/v0.1
+case: {id: official.son-prova, version: 0.4.1}
+locale: tr
+messages:
+  case.title: Son Prova
+  case.synopsis: >-
+    Yönetmen Orhan Demir prova sırasında açılan sahne kapağından düşerek ölür.
+    Çelişkili ifadeler, silinmek üzere olan dijital kayıtlar ve acele eden polis,
+    düşüşü kimin hazırladığını çözmek için çok az zaman bırakır.
+  opening.call: >-
+    Orhan Demir prova sırasında sahne kapağından düşerek öldü. Polis, elli beş
+    soruşturma dakikası içinde sahne amiri Baran'ı gözaltına alacak; Orhan'ın
+    yapım çalışma alanı da silinme kuyruğunda. Sahne inceleme raporunu ve
+    otomasyon dışa aktarımını açabilirim. Kayıtlar ve tanıklar kaybolmadan önce
+    neyi isteyeceğine ve kiminle konuşacağına sen karar ver.
+  affordances.request_scene_report.label: Ekin'den sahne kapağı inceleme raporunu iste
+  affordances.request_automation_export.label: Ekin'den sahne otomasyonu dışa aktarımını iste
+  affordances.request_victim_phone.label: Ekin'den Orhan'ın telefon çıkarımını iste
+  affordances.interview_baran_location.label: Kapak açıldığında nerede olduğunu Baran'a sor
+  affordances.request_baran_custody_packet.label: Ekin'den Baran'ın polis teslim dosyasını iste
+  affordances.interview_selin_alibi.label: Canlı yayın alibisini Selin'e açıklat
+  affordances.request_livestream_archive.label: Ekin'den Selin'in yayın arşivini iste
+  affordances.interview_leyla.label: Leyla'nın ilk ifadesini al
+  affordances.request_security_export.label: Ekin'den tiyatro güvenlik dışa aktarımını iste
+  affordances.search_remote_pairing.label: Destek arşivinde PROD-TAB-03 uzaktan eşlemesini ara
+  affordances.search_livestream_history.label: Röportaj yayın geçmişini ara
+  affordances.search_production_audit.label: Orhan'ın yapım çalışma alanında denetim ara
+  affordances.present_cafe_to_baran.label: Kafe videosunu Baran'a empatiyle göster
+  affordances.present_pin_to_leyla.label: Emniyet pimi fotoğrafını Leyla'ya empatiyle göster
+  affordances.preserve_workspace.label: Orhan'ın yapım çalışma alanını korumaya al
+  affordances.present_audit_to_selin.label: Orhan'ın denetim taslağıyla Selin'i yüzleştir — riskli
+  affordances.accuse_baran.label: Baran'ı şüpheli olarak kayda geçir — riskli
+  affordances.accuse_leyla.label: Leyla'yı şüpheli olarak kayda geçir — riskli
+  affordances.deduce_death_not_accident.label: Sahne kapağı arızasının kasıtlı olup olmadığını sına
+  affordances.deduce_baran_not_operator.label: Komutu Baran'ın verip veremeyeceğini sına
+  affordances.deduce_selin_alibi_false.label: Selin'in canlı yayınının önceden kaydedilip kaydedilmediğini sına
+  affordances.deduce_selin_prepared_murder.label: Tuzağı kimin hazırlayıp çalıştırdığını yeniden kur
+  affordances.deduce_selin_financial_motive.label: Orhan'ın mali bulgularından kimin çıkar sağladığını sına
+  affordances.deduce_selin_killed_orhan.label: Kanıtları fail teorisinde birleştir
+  affordances.deduce_death_not_accident.result: Emniyet pimi kırılmamış; bilerek çıkarılmış. Ardından sahne kapağına açılma komutu verilmiş. Orhan'ın ölümü kaza değildi.
+  affordances.deduce_baran_not_operator.result: Baran komut anında karşı kafedeydi. Komut kulisteki PROD-TAB-03 tabletinden geldi; kapağı Baran açmadı.
+  affordances.deduce_selin_alibi_false.result: Selin'in "canlı" yayını 20:24'te kaydedilmiş, 20:31'de yüklenmiş ve 21:05–21:17 için zamanlanmış. Selin'in canlı yayın mazereti yanlıştı.
+  affordances.deduce_selin_prepared_murder.result: Selin, Orhan'ı sahne kapağındaki X işaretinde kalmaya yönlendirdi. Kulis ve tablet kayıtları tuzağı Selin'in hazırlayıp çalıştırdığını gösteriyor.
+  affordances.deduce_selin_financial_motive.result: Mali kayıtlar, Orhan'ın bulgularından çıkar sağlayan kişinin Selin olduğunu gösteriyor. Selin'in Orhan'ı susturmak için mali bir nedeni vardı.
+  affordances.deduce_selin_killed_orhan.result: Kanıtlar aynı sonucu veriyor; Selin sahne kapağı tuzağını hazırladı, sahte yayınla kendine mazeret kurdu ve Orhan'ı öldürdü.
+  affordances.conclude_selin.label: Nihai sonuç olarak Selin'i bildir
+  affordances.conclude_baran.label: Nihai sonuç olarak Baran'ı bildir
+  affordances.conclude_leyla.label: Nihai sonuç olarak Leyla'yı bildir
+  affordances.request_scene_report.result: Ekin, inceleme raporunu ve çıkarılmış emniyet piminin fotoğrafını Dosyalar'a gönderdi.
+  affordances.request_automation_export.result: Sahne otomasyonu dışa aktarımı Dosyalar'da incelemeye hazır.
+  affordances.request_victim_phone.result: Orhan'ın telefon çıkarımı hazır. Mesajları artık incelenebilir.
+  affordances.interview_baran_location.result: Baran, kapak açıldığında karşı kafede olduğunu söylüyor.
+  affordances.request_baran_custody_packet.result: Ekin polis teslim dosyasını aldı. Dosyada, memurların Baran'ın konumunu doğrulamak için kullandığı kafe kaydı da var.
+  affordances.interview_selin_alibi.result: Selin, 21:05 ile 21:17 arasında canlı yayında olduğunu söylüyor.
+  affordances.request_livestream_archive.result: Selin'in yayın arşivi incelemeye hazır.
+  affordances.interview_leyla.result: Leyla, Orhan'la tartıştığını kabul ediyor fakat düşüş sırasında sahne solunda kaldığını söylüyor.
+  affordances.request_security_export.result: Tiyatro çıkış ve kulis erişim kayıtları incelemeye hazır.
+  affordances.search_remote_pairing.result: Uzaktan sahne kontrolü hakkında bir destek e-postası bulundu.
+  affordances.search_livestream_history.result: Selin'in röportajına ait yayın geçmişi bulundu.
+  affordances.search_production_audit.result: Orhan'ın yarım kalan mali denetimi çalışma alanında bulundu.
+  affordances.present_cafe_to_baran.result: Baran, konsol oturumunu açık bıraktığını kabul ediyor. Eski bir destek e-postasını da paylaşıyor.
+  affordances.present_pin_to_leyla.result: Leyla nerede durduğunu daha açık anlatıyor. Sahne solu erişim kaydı artık kullanılabilir.
+  affordances.preserve_workspace.result: Orhan'ın çalışma alanının korumalı yedeği alındı. Bekleyen silme işlemi iptal edildi.
+  affordances.preserve_workspace.confirmation: Çalışma alanı şimdi korumaya alınsın mı? Sabit bir yedek oluşturulacak ve silme sayacı iptal edilecek.
+  affordances.present_audit_to_selin.result: Selin hemen tepki veriyor. Çalışma alanı hareketleri, silme işleminin öne çekildiğini gösteriyor.
+  affordances.present_audit_to_selin.confirmation: Selin şimdi yüzleştirilsin mi? Bu onu uyarabilir; kayıtların silinmesini veya ayrılmasını hızlandırabilir.
+  affordances.accuse_baran.confirmation: Baran şüpheli olarak kayda geçirilsin mi? Yanlış suçlama güvenini zedeler ve bir kanıt yolunu kapatabilir.
+  affordances.accuse_leyla.confirmation: Leyla şüpheli olarak kayda geçirilsin mi? Yanlış suçlama güvenini zedeler ve bir kanıt yolunu kapatabilir.
+  affordances.conclude_selin.confirmation: Selin'i nihai sonuç olarak bildirip vakayı bitirmek istiyor musun?
+  affordances.conclude_baran.confirmation: Baran'ı nihai sonuç olarak bildirip vakayı bitirmek istiyor musun?
+  affordances.conclude_leyla.confirmation: Leyla'yı nihai sonuç olarak bildirip vakayı bitirmek istiyor musun?
+  evidence.threat_message.title: Leyla'nın tehdit mesajı
+  evidence.threat_message.description: Orhan'ın telefonundan çıkarılan sert bir mesaj.
+  evidence.threat_message.findings.sent_by: Mesajı Leyla gönderdi.
+  evidence.threat_message.findings.sent_at: Mesaj, açık tartışmalarından kısa süre sonra 20:44'te gönderildi.
+  evidence.threat_message.findings.text: "Mesajda ‘Bu gece o final oynanmayacak. Bunun hesabını vereceksin.’ yazıyor."
+  evidence.automation_log.title: Sahne otomasyonu günlüğü
+  evidence.automation_log.description: Kapağın açıldığı anda otomasyon sisteminde oluşan kayıt.
+  evidence.automation_log.findings.action: Sistem, sahne kapağını açma komutu aldı.
+  evidence.automation_log.findings.account: Komut Baran'ın konsol hesabını kullandı.
+  evidence.automation_log.findings.device: Komut kabindeki konsoldan değil, PROD-TAB-03 tabletinden geldi.
+  evidence.automation_log.findings.at: Komut 21:11:48'de verildi.
+  evidence.safety_report.title: Sahne kapağı güvenlik raporu
+  evidence.safety_report.description: Sahne kapağı mekanizmasının ilk fiziksel incelemesi.
+  evidence.safety_report.findings.failure_mode: Kapak, emniyet pimi çıkarıldığı için açıldı.
+  evidence.safety_report.findings.pin_damaged: Pim hasarsızdı; düşüş sırasında kırılmadı.
+  evidence.pin_photo.title: Çıkarılmış emniyet pimi fotoğrafı
+  evidence.pin_photo.description: Kapağın emniyet piminin nerede bulunduğunu gösteren olay yeri fotoğrafı.
+  evidence.pin_photo.findings.object: Fotoğraftaki parça sahne kapağının emniyet pimi.
+  evidence.pin_photo.findings.found_in: Pim, Leyla'nın kostüm kutusunun içinde bulundu.
+  evidence.livestream.title: Selin'in “canlı” röportajı
+  evidence.livestream.description: Selin'in alibi olarak gösterdiği herkese açık yayın.
+  evidence.livestream.findings.label: Oynatıcı yayını CANLI olarak gösteriyor.
+  evidence.livestream.findings.from: Yayın 21:05'te başladı.
+  evidence.livestream.findings.to: Yayın 21:17'de sona erdi.
+  evidence.cafe_video.title: Kafe güvenlik videosu
+  evidence.cafe_video.description: Prova sırasında karşı kafeden alınan görüntü.
+  evidence.cafe_video.findings.actor: Görüntüde Baran açıkça seçiliyor.
+  evidence.cafe_video.findings.place: Kayıt Baran'ı karşı kafeye yerleştiriyor.
+  evidence.cafe_video.findings.from: Baran 21:07'den itibaren görüntüde.
+  evidence.cafe_video.findings.to: 21:19'a kadar görüntüde kalıyor.
+  evidence.theater_exit_log.title: Tiyatro çıkış günlüğü
+  evidence.theater_exit_log.description: Düşüşten önceki çıkışları gösteren güvenlik sistemi kaydı.
+  evidence.theater_exit_log.findings.actor: Çıkış kaydı Baran'a ait.
+  evidence.theater_exit_log.findings.exited_at: Baran tiyatrodan 21:03'te çıktı.
+  evidence.tablet_inventory.title: Yapım tableti envanteri
+  evidence.tablet_inventory.description: Tiyatronun PROD-TAB-03 için tuttuğu cihaz atama kaydı.
+  evidence.tablet_inventory.findings.device: Kayıtlı cihaz PROD-TAB-03 tableti.
+  evidence.tablet_inventory.findings.assigned_to: Tablet Selin'e atanmış.
+  evidence.tablet_wifi.title: Tablet Wi-Fi geçmişi
+  evidence.tablet_wifi.description: Düşüş saatlerinde PROD-TAB-03 tabletinin ağ konumu geçmişi.
+  evidence.tablet_wifi.findings.device: Günlük PROD-TAB-03 cihazına ait.
+  evidence.tablet_wifi.findings.place: Tablet kulisten ağa bağlıydı.
+  evidence.tablet_wifi.findings.from: Kulisteki bağlantı 21:08'de başladı.
+  evidence.tablet_wifi.findings.to: Cihaz 21:14'e kadar orada bağlı kaldı.
+  evidence.support_mail.title: Uzaktan eşleme destek e-postası
+  evidence.support_mail.description: PROD-TAB-03'ün bir konsol oturumuyla eşlenmesi hakkındaki eski destek yanıtı.
+  evidence.support_mail.findings.device: Talimatlar PROD-TAB-03 için yazılmış.
+  evidence.support_mail.findings.paired_session: Tablet, Baran'ın konsol oturumuyla eşlenmiş.
+  evidence.support_mail.findings.capability: Bu eşleme sahne otomasyonunu uzaktan kontrol etmeyi sağlıyordu.
+  evidence.livestream_metadata.title: Röportaj videosu üst verisi
+  evidence.livestream_metadata.description: Selin'in yayınının kaynak videosuna gömülü kayıt bilgileri.
+  evidence.livestream_metadata.findings.recorded_at: Kaynak video Orhan ölmeden önce, 20:24'te kaydedildi.
+  evidence.livestream_metadata.findings.place: Video röportaj stüdyosunda kaydedildi.
+  evidence.livestream_history.title: Röportaj yayın geçmişi
+  evidence.livestream_history.description: Selin'in herkese açık yayınının hesap geçmişi.
+  evidence.livestream_history.findings.source_uploaded_at: Kaynak video 20:31'de yüklendi.
+  evidence.livestream_history.findings.delivery: Yayın canlı gönderilmedi; önceden zamanlandı.
+  evidence.livestream_history.findings.publish_window: Zamanlanan yayın aralığı 21:05 ile 21:17 arasındaydı.
+  evidence.tablet_presence.title: Tablet konum kaydı
+  evidence.tablet_presence.description: PROD-TAB-03 için kesin zamanlı ağ konumu kaydı.
+  evidence.tablet_presence.findings.device: Kayıt PROD-TAB-03 cihazını tanımlıyor.
+  evidence.tablet_presence.findings.place: Tablet kulisteydi.
+  evidence.tablet_presence.findings.at: Kapak komutunun gönderildiği 21:11:48 anında tablet oradaydı.
+  evidence.tablet_biometric_log.title: Tablet biyometri günlüğü
+  evidence.tablet_biometric_log.description: PROD-TAB-03 üzerinde tutulan yerel kilit açma geçmişi.
+  evidence.tablet_biometric_log.findings.device: Kilit açma kaydı PROD-TAB-03'e ait.
+  evidence.tablet_biometric_log.findings.unlocked_by: Tableti biyometrik kimliğiyle Selin açtı.
+  evidence.tablet_biometric_log.findings.at: Kilit, kapak komutundan on altı saniye önce 21:11:32'de açıldı.
+  evidence.backstage_access.title: Kulis erişim günlüğü
+  evidence.backstage_access.description: Prova ölümünden önceki tiyatro güvenlik kayıtları.
+  evidence.backstage_access.findings.actor: Erişim kaydı Selin'e ait.
+  evidence.backstage_access.findings.place: Kayıt onu kulise yerleştiriyor.
+  evidence.backstage_access.findings.from: Selin bölgeye 20:47'de girdi.
+  evidence.backstage_access.findings.to: 20:52'de çıktı.
+  evidence.orhan_phone_export.title: Orhan'ın telefon çıkarımı
+  evidence.orhan_phone_export.description: Kurbanın telefon verilerinin adli kopyası.
+  evidence.orhan_phone_export.findings.owner: Çıkarılan telefon Orhan'a aitti.
+  evidence.orhan_phone_export.findings.export_complete: Son mesajlar dahil olmak üzere çıkarım başarıyla tamamlandı.
+  evidence.positioning_message.title: Selin'in Orhan'a mesajı
+  evidence.positioning_message.description: Kapak açılmadan kısa süre önce Orhan'a gönderilen bir mesaj.
+  evidence.positioning_message.findings.sent_by: Mesajı Selin gönderdi.
+  evidence.positioning_message.findings.sent_at: Mesaj, düşüşten üç dakikadan az süre önce 21:09'da gönderildi.
+  evidence.positioning_message.findings.text: "Selin, Orhan'a ‘Karartmada X işaretinde kal. Sponsor videosu için kadraj alacağız.’ dedi."
+  evidence.stage_left_log.title: Sahne solu erişim günlüğü
+  evidence.stage_left_log.description: Orhan'ın düştüğü dakikaları kapsayan yerel erişim kaydı.
+  evidence.stage_left_log.findings.actor: Kayıttaki kişi Leyla.
+  evidence.stage_left_log.findings.place: Günlük onu sahne soluna yerleştiriyor.
+  evidence.stage_left_log.findings.from: Leyla 21:08'den itibaren oradaydı.
+  evidence.stage_left_log.findings.to: 21:13'e kadar orada kaldı.
+  evidence.audit_draft.title: Orhan'ın mali denetim taslağı
+  evidence.audit_draft.description: Orhan'ın yapım çalışma alanında bulunan yarım kalmış ifşa belgesi.
+  evidence.audit_draft.findings.payments_diverted_to: Yapım ödemeleri Kuzey Sahne Danışmanlık'a aktarıldı.
+  evidence.audit_draft.findings.disclosure_prepared_by: Bulguları açıklamak üzere Orhan hazırladı.
+  evidence.company_registry.title: Kuzey Sahne şirket kaydı
+  evidence.company_registry.description: Orhan'ın denetiminde adı geçen şirketin resmî sicil kaydı.
+  evidence.company_registry.findings.organization: Kayıtlı şirket Kuzey Sahne Danışmanlık.
+  evidence.company_registry.findings.controlled_by: Şirketi Selin kontrol ediyor.
+  evidence.workspace_admin_log.title: Çalışma alanı yönetim günlüğü
+  evidence.workspace_admin_log.description: Orhan'ın yapım çalışma alanındaki yönetici hareketleri.
+  evidence.workspace_admin_log.findings.actor: İşlemi Selin'in yönetici hesabı yaptı.
+  evidence.workspace_admin_log.findings.action: Yapılan işlem bir silme talebiydi.
+  evidence.workspace_admin_log.findings.target: Talep, Orhan'ın tüm yapım çalışma alanını hedefledi.
+  evidence.payment_ledger.title: Yapım ödeme defteri
+  evidence.payment_ledger.description: Yapımdan çıkan ödemelere ait sağlam kalan hesap kaydı.
+  evidence.payment_ledger.findings.payments_diverted_to: Defter, ödemelerin Kuzey Sahne Danışmanlık'a aktarıldığını doğruluyor.
+  deadlines.workspace_deletion.label: Orhan'ın çalışma alanının silinmesi
+  deadlines.baran_detention.label: Baran'ın polis tarafından gözaltına alınması
+  deadlines.selin_departure.label: Selin'in ayrılması
+  places.main_stage.name: Ana sahne
+  places.stage_left.name: Sahne solu
+  places.control_booth.name: Otomasyon kabini
+  places.backstage.name: Kulis
+  places.costume_room.name: Kostüm odası
+  places.interview_studio.name: Röportaj stüdyosu
+  places.opposite_cafe.name: Karşı Kafe
+  conversations.orhan.states.deceased.reason: Orhan hayatını kaybetti; onunla görüşülemez.
+  conversations.baran.states.detained.reason: Polis Baran'ı gözaltına aldı; artık kendisine soru yöneltilemiyor.
+  conversations.selin.states.escaped.reason: Selin olay yerinden ayrıldı ve kendisine ulaşılamıyor.
+  assessment.bands.exemplary: Örnek soruşturma
+  assessment.bands.strong_with_cost: Güçlü, fakat iz bırakan
+  assessment.bands.fragile: Sonuç var, yöntem kırılgan
+  assessment.bands.reconsider: Yöntem yeniden değerlendirilmeli
+  assessment.categories.evidence_reasoning: Kanıt ve muhakeme
+  assessment.categories.intervention_protection: Müdahale ve koruma
+  assessment.categories.procedure_people: Usul ve kişi etkisi
+  assessment.categories.time_management: Zaman yönetimi
+  assessment.criteria.baran_operator.met: Baran'ın otomasyon komutunu veremeyeceğini kanıtladın.
+  assessment.criteria.baran_operator.missed: Baran'ı otomasyon komutundan dışlayan kanıt zinciri kurulmadı.
+  assessment.criteria.culprit.met: Orhan'ı Selin'in öldürdüğünü tam kanıt zinciriyle ortaya koydun.
+  assessment.criteria.culprit.missed: Cinayetin sorumlusu kanıtlarla kesinleştirilmedi.
+  assessment.criteria.death_cause.met: Ölümün kaza olmadığını teknik kayıtlarla gösterdin.
+  assessment.criteria.death_cause.missed: Ölümün kasıtlı olup olmadığı kesinleştirilmedi.
+  assessment.criteria.financial_motive.met: Selin'in mali nedenini şirket ve ödeme kayıtlarıyla doğruladın.
+  assessment.criteria.financial_motive.missed: Mali neden kanıt zincirine bağlanmadı.
+  assessment.criteria.preparation.met: Selin'in sistemi cinayetten önce hazırladığını kanıtladın.
+  assessment.criteria.preparation.missed: Cinayetin önceden hazırlandığı ortaya konmadı.
+  assessment.criteria.selin_alibi.met: Selin'in canlı yayın alibisinin eski kayda dayandığını buldun.
+  assessment.criteria.selin_alibi.missed: Selin'in canlı yayın alibisi teknik olarak sınanmadı.
+  assessment.criteria.preserve_finance.met: Orhan'ın mali çalışma alanını silinmeden korudun.
+  assessment.criteria.preserve_finance.missed: Orhan'ın mali kayıtları korunamadı.
+  assessment.criteria.stop_selin.met: Selin olay yerinden ayrılmadan nihai işlemi tamamladın.
+  assessment.criteria.stop_selin.missed: Selin, nihai işlem tamamlanmadan olay yerinden ayrıldı.
+  assessment.criteria.clear_leyla.met: Leyla'yı hazırlık zinciriyle suçlamanın dışında tuttun.
+  assessment.criteria.clear_leyla.missed: Leyla gereksiz bir suçlamanın etkisinde kaldı veya onu aklayan zincir tamamlanmadı.
+  assessment.criteria.protect_baran.met: Baran'ı kanıtlarla akladın; suçlama ve gözaltı zararını önledin.
+  assessment.criteria.protect_baran.missed: Baran aklanmadan suçlandı, gözaltına alındı veya kanıt zinciri eksik kaldı.
+  assessment.criteria.avoid_detention.met: Baran'ın gözaltı süresi dolmadan kanıtı tamamladın.
+  assessment.criteria.avoid_detention.missed: Baran, soruşturma uzadığı için gözaltına alındı.
+  assessment.criteria.preserve_before_deletion.met: Silme süresi dolmadan çalışma alanı kaybını önledin.
+  assessment.criteria.preserve_before_deletion.missed: Silme süresi doldu ve mali çalışma alanı kaybedildi.
+  assessment.criteria.stop_departure.met: Selin'in ayrılma süresi dolmadan ilerledin.
+  assessment.criteria.stop_departure.missed: Selin soruşturma sonuçlanmadan olay yerinden ayrıldı.
+  outcomes.full_curtain.title: Tam Perde
+  outcomes.full_curtain.body: Selin, bütün vaka kanıtlanarak durduruldu. Orhan'ın mali kayıtları kurtuldu; Baran ve Leyla kurulan tuzağın bedelini ödemedi.
+  outcomes.bitter_applause.title: Acı Alkış
+  outcomes.bitter_applause.body: Selin durduruldu ve cinayet çözüldü, fakat süreçte masum biri suçlandı veya gözaltına alındı.
+  outcomes.truth_too_late.title: Gerçek Bulundu, Katil Kaçtı
+  outcomes.truth_too_late.body: Orhan'ı Selin'in öldürdüğünü kanıtladın, fakat sonuç onu durduramadan Selin ayrıldı.
+  outcomes.killer_found.title: Katil Bulundu
+  outcomes.killer_found.body: Selin tespit edilip durduruldu, fakat Orhan'ın mali kanıtları korunamadan kayboldu.
+  outcomes.wrong_stage.title: Yanlış Sahne
+  outcomes.wrong_stage.body: Selin gerçek plan gizli kalacak şekilde ayrılırken vaka Baran veya Leyla'nın üzerine kapandı.

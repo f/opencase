@@ -1,0 +1,15 @@
+schema: case-i18n/v0.1
+case: {id: examples.diverted-invoice, version: 0.1.0}
+locale: tr
+messages:
+  case.title: Yönü Değiştirilen Fatura
+  case.synopsis: >-
+    Rutin bir tedarikçi faturası, acil hesap değişikliği e-postasının ardından
+    yanlış alıcıya gider; bankanın geri çağırma süresi dolmak üzeredir.
+  opening.call: >-
+    8841 numaralı faturanın ödemesini gönderdim. Ardından tedarikçi banka
+    bilgilerinin hiç değişmediğini söyledi. Banka sekiz dakika daha geri
+    çağırma talebini inceleyebilir. E-postayı doğrulayıp hesap değişikliğini
+    izleyerek hangi transferi durdurmaları gerektiğini bulabilir misin?
+  outcomes.recalled.title: Transfer Geri Çağrıldı
+  outcomes.settled.title: Geri Çağırma Süresi Kaçtı

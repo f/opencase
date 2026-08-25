@@ -1,0 +1,13 @@
+schema: case-test/v0.1
+case: {id: community.fka.yedi-dakika, version: 0.4.1}
+
+scenario:
+  id: protected_contact_denial
+  perspective: detective
+  description: Guessing a protected actor ID receives only the generic unavailable denial.
+  steps:
+    - detective.act: {action: interview, actor: can, topic: identity}
+      expect:
+        result: {status: denied, code: actor-unavailable}
+        state:
+          final_conclusion: null

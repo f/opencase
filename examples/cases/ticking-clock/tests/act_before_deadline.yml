@@ -1,0 +1,42 @@
+schema: case-test/v0.1
+
+case:
+  id: examples.ticking-clock
+  version: 0.1.1
+
+scenario:
+  id: act_before_deadline
+  perspective: detective
+  description: Understand the risk, preserve the notebook, and prove the saved outcome closes the case.
+  steps:
+    - detective.observe: alarm_report
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            alarm_report: observed
+          observations:
+            alarm_report.source: pipe
+            alarm_report.threatened: notebook
+            alarm_report.room: archive
+
+    - detective.deduce: notebook_is_at_risk
+      expect:
+        result: {status: accepted}
+        state:
+          deductions:
+            notebook_is_at_risk: supported
+
+    - detective.act: {action: preserve, target: notebook}
+      expect:
+        result: {status: accepted}
+        state:
+          outcome: saved
+
+    - detective.advance: {clock: case-time, by: 2m}
+      expect:
+        result: {status: denied, code: case-ended}
+        state:
+          clocks:
+            case-time: 0s
+          outcome: saved

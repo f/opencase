@@ -1,0 +1,282 @@
+# Fictional teaching case inspired by a public-domain negative-evidence puzzle.
+schema: case-source/v0.1
+
+case:
+  id: examples.silent-stable
+  version: 0.1.0
+  title: {$text: case.title}
+  locale: en
+  duration: 20m
+  mode: elastic
+  final_conclusion: first-write-wins
+  time:
+    date: "2026-09-18"
+    timezone: Europe/London
+    starts_at: "21:20"
+  synopsis: {$text: case.synopsis}
+
+use: [investigation@1, artifacts@1, comms@1, virtual-web@1,
+      interview@1, casebook@1, generic-actions@1]
+
+authoring:
+  research_basis: public-domain-story-mechanics
+  predicate_focus:
+    - observed-zero-versus-unobserved
+    - boolean-equality
+    - array-membership
+
+assets:
+  stable-plan:
+    kind: image
+    source: {local: assets/stable-plan.png}
+    mime_type: image/png
+    visibility: public
+    integrity:
+      sha256: 19090ee6e88db8f69050c2e1470fd9da4a903a96b143b933d0fd9b7084b6117f
+  dog-monitor:
+    kind: image
+    source: {local: assets/dog-monitor.png}
+    mime_type: image/png
+    visibility: public
+    integrity:
+      sha256: af090e4d95273464fd0acf3f583d485879aa1577cfde5b812585a1bd295eb915
+  toll-still:
+    kind: image
+    source: {local: assets/toll-still.png}
+    mime_type: image/png
+    visibility: private
+    integrity:
+      sha256: c12556fe1b208aa51687b2c1430a64de122ddd42b0470c9fbb3380a8fc6e5db0
+
+cast:
+  mara: {name: Mara Vale, role: stable manager, client: true}
+  ivo: {name: Ivo Sen, role: groom}
+  ren: {name: Ren Duran, role: farrier}
+  nika: {name: Nika Cole, role: delivery driver}
+
+places:
+  northwind_stable: Northwind training stable
+  east_service_gate: East service gate
+  recovery_paddock: East Ridge recovery paddock
+  toll_road: East Ridge toll road
+
+things:
+  comet: {type: animal, name: Comet}
+  kennel_sensor: {type: device, name: Kennel acoustic monitor K-02}
+  gate_controller: {type: device, name: East gate credential reader}
+  farrier_van: {type: vehicle, name: Service van 14, owner: ren}
+
+truth:
+  events:
+    limp_noticed:
+      {at: "20:40", type: animal.injury-noticed, actor: ren, object: comet,
+       place: northwind_stable}
+    dog_recognized_visitor:
+      {at: "21:08", type: person.recognized-by-dog, actor: ren,
+       object: kennel_sensor,
+       place: east_service_gate}
+    gate_opened:
+      {at: "21:12:06", type: access.opened, actor: ren,
+       object: gate_controller, place: east_service_gate,
+       credential: farrier_service}
+    horse_departed:
+      {at: "21:16", type: movement.departed, actor: ren, object: comet,
+       place: northwind_stable, vehicle: farrier_van}
+    horse_arrived:
+      {at: "21:31", type: movement.arrived, actor: ren, object: comet,
+       place: recovery_paddock, vehicle: farrier_van}
+  facts:
+    dog_familiarity:
+      {relation: animal.familiar-with, animal: kennel_sensor, value: ren}
+    move_reason:
+      {relation: person.moved-for-safety, actor: ren, object: comet, value: true}
+
+perspectives:
+  mara:
+    knows: [horse_departed]
+    believes:
+      - {relation: person.took, actor: nika, object: comet, value: true,
+         confidence: 0.65, reason: delivery-van-seen-near-road}
+    says: {initial: [same-as-belief]}
+  ivo:
+    knows: [dog_recognized_visitor]
+    believes: []
+    says: {initial: []}
+  ren:
+    knows: [limp_noticed, dog_recognized_visitor, gate_opened,
+            horse_departed, horse_arrived]
+    believes:
+      - {relation: animal.safe-to-train, animal: comet, value: false,
+         confidence: 0.9}
+    says:
+      initial:
+        - {relation: person.moved, actor: ren, object: comet,
+           polarity: deny, intent: concealment}
+      trusted:
+        - {relation: person.moved, actor: ren, object: comet,
+           value: true, intent: protective-confession}
+  nika:
+    knows: []
+    believes: []
+    says: {initial: []}
+
+opening:
+  call:
+    from: mara
+    text: {$text: opening.call}
+  grants: [kennel_monitor, stable_plan]
+  starts: [transport_window]
+
+evidence:
+  kennel_monitor:
+    tool: image
+    at: start
+    assets: [dog-monitor]
+    reports:
+      {device: kennel_sensor, status: online, window_start: "21:00",
+       window_end: "21:20", bark_events: 0, dropout_seconds: 0}
+    reliability: signed-acoustic-summary
+
+  stable_plan:
+    tool: image
+    at: start
+    assets: [stable-plan]
+    reports:
+      {place: northwind_stable, gate: east_service_gate,
+       dog_covers_service_gate: true, road_destination: recovery_paddock}
+
+  familiarity_roster:
+    tool: document
+    unlock: {after: interview, actor: ivo, topic: dog-familiarity}
+    reports:
+      {device: kennel_sensor, familiar_roles: [manager, groom, farrier],
+       unfamiliar_driver: nika}
+
+  gate_log:
+    tool: log
+    unlock: {after: request, from: mara, topic: gate-export}
+    reports:
+      {gate: east_service_gate, opened_at: "21:12:06",
+       credential_role: farrier, credential_owner: ren, signature: verified}
+
+  toll_record:
+    tool: image
+    unlock: {after: search, query: "service-van 21:25"}
+    assets: [toll-still]
+    reports:
+      {vehicle: farrier_van, actor: ren, observed_at: "21:27:14",
+       route: recovery_paddock, axle_load_delta_kg: 438}
+
+  clinical_note:
+    tool: document
+    unlock:
+      after: present
+      target: ren
+      evidence: toll_record
+      tone: calm
+    reports:
+      {actor: ren, animal: comet, finding: front-leg-limp,
+       destination: recovery_paddock, intent: temporary-safety-move}
+
+  recovery_photo:
+    tool: image
+    unlock: {after: search, target: recovery_paddock}
+    reports:
+      {animal: comet, place: recovery_paddock, condition: safe,
+       observed_at: "21:34"}
+
+deductions:
+  visitor_was_familiar:
+    conclude: {entrant_class: familiar, outsider_entry: false}
+    prove:
+      any:
+        - terms: [kennel_monitor.bark_events, kennel_monitor.dropout_seconds,
+                  stable_plan.dog_covers_service_gate, familiarity_roster.familiar_roles]
+          checks:
+            - {ref: kennel_monitor.bark_events, equals: 0}
+            - {ref: kennel_monitor.dropout_seconds, equals: 0}
+            - {ref: stable_plan.dog_covers_service_gate, equals: true}
+            - {ref: familiarity_roster.familiar_roles, contains: farrier}
+
+  farrier_used_service_gate:
+    conclude: {actor: ren, gate: east_service_gate, access: authorized}
+    prove:
+      any:
+        - [gate_log.credential_owner, gate_log.opened_at,
+           familiarity_roster.familiar_roles]
+
+  farrier_moved_comet:
+    conclude: {actor: ren, object: comet, vehicle: farrier_van}
+    prove:
+      any:
+        - [gate_log.credential_owner, toll_record.vehicle,
+           toll_record.actor, toll_record.axle_load_delta_kg]
+    require: [visitor_was_familiar, farrier_used_service_gate]
+
+  move_was_protective:
+    conclude: {actor: ren, object: comet, intent: protect,
+               destination: recovery_paddock}
+    prove:
+      any:
+        - [clinical_note.finding, clinical_note.destination,
+           clinical_note.intent]
+    require: [farrier_moved_comet]
+
+  comet_is_safe:
+    conclude: {animal: comet, condition: safe, place: recovery_paddock}
+    prove:
+      any:
+        - [recovery_photo.animal, recovery_photo.condition,
+           recovery_photo.place]
+    require: [move_was_protective]
+
+flags: [comet_secured, transport_missed]
+
+reactions:
+  - id: secure_comet_at_recovery_paddock
+    on: {action: search, target: recovery_paddock}
+    when: {schedule-active: transport_window}
+    once: true
+    do:
+      - {cancel: transport_window}
+      - {mark: comet_secured}
+
+deadlines:
+  transport_window:
+    clock: case-time
+    after: 12m
+    offline: pause
+    cancel_on: comet_secured
+    do:
+      - {mark: transport_missed}
+      - {emit: horse-trail-moved}
+
+objectives:
+  classify_entrant: {supported: visitor_was_familiar}
+  identify_mover: {supported: farrier_moved_comet}
+  explain_intent: {supported: move_was_protective}
+  verify_safety: {supported: comet_is_safe}
+  secure_horse: {marked: comet_secured}
+
+outcomes:
+  safe_recovery:
+    title: {$text: outcomes.safe_recovery.title}
+    priority: 100
+    require: [classify_entrant, identify_mover, explain_intent,
+              verify_safety, secure_horse]
+    final_target: ren
+  right_person_wrong_story:
+    title: {$text: outcomes.right_person_wrong_story.title}
+    priority: 70
+    require: [identify_mover]
+    when_marked: transport_missed
+    final_target: ren
+  trail_moved:
+    title: {$text: outcomes.trail_moved.title}
+    priority: 40
+    require: [classify_entrant]
+    when_marked: transport_missed
+  wrong_driver:
+    title: {$text: outcomes.wrong_driver.title}
+    priority: 20
+    final_target: nika

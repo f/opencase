@@ -1,0 +1,40 @@
+schema: case-test/v0.1
+case: {id: community.fka.yedi-dakika, version: 0.4.1}
+
+scenario:
+  id: wrong_box
+  perspective: detective
+  steps:
+    - detective.act: {action: request, from: leyla, topic: lobby-video}
+    - detective.observe: lobby_video
+    - detective.act: {action: request, from: leyla, topic: camera-sync}
+    - detective.observe: camera_sync_notice
+    - detective.deduce: camera_time_corrected
+    - detective.act: {action: request, from: leyla, topic: printer-log}
+    - detective.observe: printer_log
+    - detective.deduce: mert_no_opportunity
+    - detective.act: {action: request, from: leyla, topic: access-log}
+    - detective.act: {action: request, from: leyla, topic: desk-camera}
+    - detective.observe: access_log
+    - detective.observe: desk_camera
+    - detective.deduce: nihan_took_file
+    - detective.act: {action: request, from: leyla, topic: facilities-chat}
+    - detective.observe: facilities_chat
+      expect:
+        result: {status: accepted}
+        state:
+          observations:
+            facilities_chat.asked_about: blue-confidential-box
+          deductions:
+            file_in_b17: unknown
+          affordances:
+            recover_box_b11: offered
+            search_building_route: offered
+
+    - detective.conclude: box_b11
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 13m}
+          final_conclusion: box_b11
+          outcome: wrong_box_result

@@ -1,0 +1,66 @@
+schema: case-test/v0.1
+
+case: {id: official.son-prova, version: 0.4.1}
+
+scenario:
+  id: detours_trigger_baran_detention
+  perspective: detective
+  description: Meaningful but unfocused actions consume enough investigation time for police to detain Baran at minute fifty-five.
+  steps:
+    - detective.act: {action: request, from: ekin, topic: scene-report}
+    - detective.observe: safety_report
+    - detective.observe: pin_photo
+    - detective.act: {action: request, from: ekin, topic: automation-export}
+    - detective.observe: automation_log
+
+    - detective.act: {action: interview, actor: leyla}
+    - detective.act: {action: interview, actor: selin, topic: alibi}
+    - detective.observe: livestream
+
+    - detective.act: {action: request, from: ekin, topic: victim-phone}
+    - detective.observe: orhan_phone_export
+    - detective.observe: positioning_message
+
+    - detective.act: {action: request, from: ekin, topic: security-export}
+    - detective.act: {action: search, query: "PROD-TAB-03 remote pairing"}
+    - detective.act: {action: search, query: "interview publication history"}
+    - detective.act: {action: search, query: "Orhan production audit"}
+    - detective.observe: audit_draft
+      expect:
+        state:
+          clocks: {case-time: 33m}
+          affordances:
+            preserve_workspace: offered
+            accuse_baran: offered
+            accuse_leyla: offered
+            interview_baran_location: offered
+
+    - detective.act: {action: report-suspect, target: baran}
+      expect: {state: {clocks: {case-time: 39m}}}
+    - detective.act: {action: report-suspect, target: leyla}
+      expect: {state: {clocks: {case-time: 44m}}}
+
+    - detective.act: {action: search, query: "stage hatch accident history"}
+    - detective.act: {action: search, query: "PROD-TAB-03 manufacturer"}
+    - detective.act: {action: search, query: "North Stage Consulting"}
+      expect:
+        state:
+          clocks: {case-time: 56m}
+          affordances:
+            interview_baran_location: hidden
+            present_cafe_to_baran: hidden
+
+    - detective.act: {action: preserve, target: production_workspace}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 58m}
+          affordances:
+            preserve_workspace: hidden
+            interview_baran_location: hidden
+            present_cafe_to_baran: hidden
+
+    - detective.act: {action: interview, actor: baran, topic: location}
+      expect:
+        result: {status: denied, code: affordance-unavailable}
+        state: {clocks: {case-time: 58m}}

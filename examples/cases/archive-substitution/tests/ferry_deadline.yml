@@ -1,0 +1,15 @@
+schema: case-test/v0.1
+case: {id: examples.archive-substitution, version: 0.1.0}
+
+scenario:
+  id: ferry_deadline
+  perspective: detective
+  description: Doing nothing until departure produces the explicit failure ending.
+  steps:
+    - detective.advance: {clock: case-time, by: 15m}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 15m}
+          final_conclusion: null
+          outcome: departed

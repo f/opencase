@@ -1,0 +1,918 @@
+# Human-authored package source. The compiler expands this into private IR.
+schema: case-source/v0.1
+
+case:
+  id: community.fka.yedi-dakika
+  version: 0.4.1
+  title: {$text: case.title}
+  locale: tr
+  duration: 40m
+  mode: elastic
+  final_conclusion: first-write-wins
+  time:
+    date: "2026-08-15"
+    timezone: Europe/Istanbul
+    starts_at: "21:10"
+  synopsis: {$text: case.synopsis}
+
+use: [investigation@1, comms@1, artifacts@1, virtual-web@1,
+      casebook@1, interview@1, media-forensics@1,
+      access-control@1, facility-logistics@1]
+
+authoring:
+  evidence_source_policy: implicit-per-evidence
+  tests_enforce_evidence_access: true
+
+assets:
+  lobby-cctv-still:
+    kind: image
+    source: {local: assets/lobby-cctv-still.png}
+    mime_type: image/png
+    visibility: public
+    integrity:
+      sha256: 9ce5fcd65c8a0da77db229a05fb12e44efd30583de4bd34a72fde9cdfc8c03c4
+
+cast:
+  leyla: {name: Leyla Erdem, role: genel-yayın-editörü, client: true}
+  mert: {name: Mert Aksoy, role: serbest-fotoğrafçı}
+  nihan: {name: Nihan Yalçın, role: yayın-koordinatörü}
+  can: {name: Can Koral, role: gizli-kaynak, protected: true}
+
+conversations:
+  leyla:
+    initial: available
+    channels: {interview: actor, request: from}
+    states:
+      available: {can_talk: true}
+  mert:
+    initial: available
+    channels: {interview: actor, apologize: target}
+    allow_while_unavailable: [apologize]
+    states:
+      available: {can_talk: true}
+      refusing:
+        can_talk: false
+        reason: {$text: conversations.mert.refusing.reason}
+  nihan:
+    initial: available
+    channels: {interview: actor, present: target}
+    states:
+      available: {can_talk: true}
+  can:
+    initial: unavailable
+    channels: {interview: actor}
+    states:
+      unavailable: {can_talk: false}
+
+# Public, case-authored actions. The shell shows only offered affordances; their
+# exact commands and case-time costs are interpreted by the generic runtime.
+affordances:
+  interview_leyla:
+    label: {$text: affordances.interview_leyla.label}
+    result: {$text: affordances.interview_leyla.result}
+    surface: phone
+    initial: offered
+    action: {action: interview, actor: leyla}
+    cost: {clock: case-time, by: 2m}
+    once: true
+  interview_nihan:
+    label: {$text: affordances.interview_nihan.label}
+    result: {$text: affordances.interview_nihan.result}
+    surface: phone
+    initial: offered
+    action: {action: interview, actor: nihan}
+    cost: {clock: case-time, by: 3m}
+    once: true
+  interview_mert_location:
+    label: {$text: affordances.interview_mert_location.label}
+    result: {$text: affordances.interview_mert_location.result}
+    surface: phone
+    initial: offered
+    action: {action: interview, actor: mert, topic: location}
+    cost: {clock: case-time, by: 3m}
+    once: true
+  request_lobby_video:
+    label: {$text: affordances.request_lobby_video.label}
+    result: {$text: affordances.request_lobby_video.result}
+    surface: phone
+    initial: offered
+    action: {action: request, from: leyla, topic: lobby-video}
+    cost: {clock: case-time, by: 2m}
+    once: true
+  request_camera_sync:
+    label: {$text: affordances.request_camera_sync.label}
+    result: {$text: affordances.request_camera_sync.result}
+    surface: phone
+    initial: withdrawn
+    action: {action: request, from: leyla, topic: camera-sync}
+    cost: {clock: case-time, by: 2m}
+    once: true
+  request_printer_log:
+    label: {$text: affordances.request_printer_log.label}
+    result: {$text: affordances.request_printer_log.result}
+    surface: phone
+    initial: offered
+    action: {action: request, from: leyla, topic: printer-log}
+    cost: {clock: case-time, by: 2m}
+    once: true
+  accuse_mert:
+    label: {$text: affordances.accuse_mert.label}
+    risk: consequential
+    confirmation: {$text: affordances.accuse_mert.confirmation}
+    surface: casebook
+    initial: withdrawn
+    action: {action: report-suspect, target: mert}
+    cost: {clock: case-time, by: 6m}
+    once: true
+  apologize_mert:
+    label: {$text: affordances.apologize_mert.label}
+    result: {$text: affordances.apologize_mert.result}
+    surface: phone
+    initial: withdrawn
+    action: {action: apologize, target: mert}
+    cost: {clock: case-time, by: 1m}
+    once: true
+  request_access_log:
+    label: {$text: affordances.request_access_log.label}
+    result: {$text: affordances.request_access_log.result}
+    surface: phone
+    initial: withdrawn
+    action: {action: request, from: leyla, topic: access-log}
+    cost: {clock: case-time, by: 2m}
+    once: true
+  request_desk_camera:
+    label: {$text: affordances.request_desk_camera.label}
+    result: {$text: affordances.request_desk_camera.result}
+    surface: phone
+    initial: withdrawn
+    action: {action: request, from: leyla, topic: desk-camera}
+    cost: {clock: case-time, by: 2m}
+    once: true
+  request_interview_draft:
+    label: {$text: affordances.request_interview_draft.label}
+    result: {$text: affordances.request_interview_draft.result}
+    surface: phone
+    initial: withdrawn
+    action: {action: request, from: leyla, topic: interview-draft}
+    cost: {clock: case-time, by: 2m}
+    once: true
+  request_facilities_chat:
+    label: {$text: affordances.request_facilities_chat.label}
+    result: {$text: affordances.request_facilities_chat.result}
+    surface: phone
+    initial: withdrawn
+    action: {action: request, from: leyla, topic: facilities-chat}
+    cost: {clock: case-time, by: 2m}
+    once: true
+  search_redaction_warning:
+    label: {$text: affordances.search_redaction_warning.label}
+    result: {$text: affordances.search_redaction_warning.result}
+    surface: web
+    initial: withdrawn
+    action: {action: search, query: "interview_draft_v12 redaction warning"}
+    exclusive: false
+    once: false
+  search_building_route:
+    label: {$text: affordances.search_building_route.label}
+    result: {$text: affordances.search_building_route.result}
+    surface: web
+    initial: withdrawn
+    action: {action: search, query: "confidential-blue-route floor-four"}
+    exclusive: false
+    once: false
+  present_draft_to_nihan:
+    label: {$text: affordances.present_draft_to_nihan.label}
+    result: {$text: affordances.present_draft_to_nihan.result}
+    surface: phone
+    initial: withdrawn
+    action: {action: present, target: nihan, evidence: interview_draft,
+             tone: empathetic}
+    exclusive: false
+    once: true
+  recover_box_b11:
+    label: {$text: affordances.recover_box_b11.label}
+    risk: terminal
+    confirmation: {$text: affordances.recover_box_b11.confirmation}
+    surface: casebook
+    initial: withdrawn
+    action: {action: submit-conclusion, target: box_b11}
+    cost: {clock: case-time, by: 1m}
+    once: true
+  conclude_mediate:
+    label: {$text: affordances.conclude_mediate.label}
+    risk: terminal
+    confirmation: {$text: affordances.conclude_mediate.confirmation}
+    surface: casebook
+    initial: withdrawn
+    action: {action: submit-conclusion, target: mediate}
+    cost: {clock: case-time, by: 1m}
+    once: true
+  conclude_security:
+    label: {$text: affordances.conclude_security.label}
+    risk: terminal
+    confirmation: {$text: affordances.conclude_security.confirmation}
+    surface: casebook
+    initial: withdrawn
+    action: {action: submit-conclusion, target: security}
+    cost: {clock: case-time, by: 1m}
+    once: true
+  deduce_camera_time:
+    label: {$text: affordances.deduce_camera_time.label}
+    result: {$text: affordances.deduce_camera_time.result}
+    surface: casebook
+    initial: withdrawn
+    deduction: camera_time_corrected
+    once: true
+  deduce_mert_no_opportunity:
+    label: {$text: affordances.deduce_mert_no_opportunity.label}
+    result: {$text: affordances.deduce_mert_no_opportunity.result}
+    surface: casebook
+    initial: withdrawn
+    deduction: mert_no_opportunity
+    once: true
+  deduce_nihan_took_file:
+    label: {$text: affordances.deduce_nihan_took_file.label}
+    result: {$text: affordances.deduce_nihan_took_file.result}
+    surface: casebook
+    initial: withdrawn
+    deduction: nihan_took_file
+    once: true
+  deduce_nihan_protected_source:
+    label: {$text: affordances.deduce_nihan_protected_source.label}
+    result: {$text: affordances.deduce_nihan_protected_source.result}
+    surface: casebook
+    initial: withdrawn
+    deduction: nihan_protected_source
+    once: true
+  deduce_file_in_b17:
+    label: {$text: affordances.deduce_file_in_b17.label}
+    result: {$text: affordances.deduce_file_in_b17.result}
+    surface: casebook
+    initial: withdrawn
+    deduction: file_in_b17
+    once: true
+  deduce_full_explanation:
+    label: {$text: affordances.deduce_full_explanation.label}
+    result: {$text: affordances.deduce_full_explanation.result}
+    surface: casebook
+    initial: withdrawn
+    deduction: full_explanation
+    once: true
+
+places:
+  newsroom: {$text: places.newsroom.name}
+  floor_four: {$text: places.floor_four.name}
+  lobby: {$text: places.lobby.name}
+  service_corridor: {$text: places.service_corridor.name}
+  karakoy_cafe: {$text: places.karakoy_cafe.name}
+  shredding_center: {$text: places.shredding_center.name}
+  finance_floor: {name: {$text: places.finance_floor.name}, hidden: true}
+
+things:
+  red_file: {type: document, name: Kırmızı röportaj dosyası}
+  interview_draft_v12: {type: document, name: Röportaj taslağı v12}
+  cam_l01: {type: device, name: Lobi kamerası CAM-L01}
+  cam_e04: {type: device, name: Editoryal masa kamerası CAM-E04}
+  printer_ed04: {type: device, name: Editoryal yazıcı PRN-ED04}
+  box_b17: {type: container, name: Mavi gizli evrak kutusu B-17}
+  box_b11: {type: container, name: Mavi gizli evrak kutusu B-11}
+  source_identity: {type: protected-data, name: Can Koral'ın kimliği, owner: can}
+  collection_vehicle: {type: vehicle, name: Gizli evrak aracı}
+
+# Canonical truth; never sent directly to the player.
+truth:
+  events:
+    redaction_warning_sent:
+      {at: "2026-08-12 16:26", type: message.sent, actor: nihan, to: leyla,
+       object: interview_draft_v12}
+    payment_argument:
+      {at: "20:52", type: interaction.argument, actors: [leyla, mert],
+       place: newsroom}
+    box_route_asked:
+      {from: "20:54", to: "20:56", type: information.requested, actor: nihan,
+       target: box_b17}
+    mert_exited:
+      {at: "20:57:03", type: movement.exited, actor: mert, place: lobby}
+    file_printed:
+      {at: "20:59:06", type: document.printed, actor: leyla,
+       object: red_file, device: printer_ed04}
+    file_at_desk:
+      {at: "21:02:09", type: object.present, object: red_file,
+       place: newsroom}
+    mert_at_cafe:
+      {at: "21:01:12", type: purchase.completed, actor: mert,
+       place: karakoy_cafe}
+    nihan_entered:
+      {at: "21:03:14", type: movement.entered, actor: nihan,
+       place: floor_four}
+    file_taken:
+      {at: "21:04:01", type: object.taken, actor: nihan,
+       object: red_file, place: newsroom}
+    file_hidden:
+      {at: "21:08:51", type: object.placed, actor: nihan,
+       object: red_file, in: box_b17, place: service_corridor}
+    document_pickup_scheduled:
+      {at: "18:00", type: collection.scheduled, actor: collection_vehicle,
+       object: box_b17, destination: shredding_center, execute_at: "21:45"}
+  facts:
+    camera_offset:
+      {relation: device.clock-offset, device: cam_l01, value: "+7m"}
+    source_exposed:
+      {relation: document.exposes, document: interview_draft_v12,
+       value: source_identity}
+    floor_four_box:
+      {relation: container.assigned-to, container: box_b17, value: floor_four}
+    finance_box:
+      {relation: container.assigned-to, container: box_b11, value: finance_floor}
+
+# Knowing, believing and saying are separate.
+perspectives:
+  leyla:
+    knows: [payment_argument, file_printed, document_pickup_scheduled]
+    believes:
+      - {relation: object.taken-by, object: red_file, value: mert,
+         confidence: 0.75,
+         reason: "Mert tartışmadan sonra çıktı ve kamera 21:04'ü gösteriyor."}
+    says: {initial: [same-as-belief]}
+
+  mert:
+    knows: [payment_argument, mert_exited, mert_at_cafe]
+    believes:
+      - {relation: device.timestamp-valid, device: cam_l01, value: false,
+         confidence: 0.8,
+         reason: "Kendi çıkış saatiyle görüntü damgası uyuşmuyor."}
+    says:
+      initial:
+        - {relation: movement.exited-at, actor: mert, place: lobby,
+           value: "20:57", intent: honest-statement}
+        - {relation: presence.at, actor: mert, place: karakoy_cafe,
+           at: "21:01", value: true, intent: honest-statement}
+
+  nihan:
+    knows: [redaction_warning_sent, box_route_asked, file_taken, file_hidden]
+    believes:
+      - {relation: person.endangered-by, actor: can,
+         object: interview_draft_v12, value: true, confidence: 1.0}
+    says:
+      initial:
+        - {relation: object.taken-by, object: red_file, value: nihan,
+           polarity: deny, intent: concealment}
+      trusted:
+        - {relation: object.taken-by, object: red_file, value: nihan,
+           intent: confession}
+        - {relation: object.location, object: red_file, value: box_b17,
+           intent: confession}
+
+opening:
+  call:
+    from: leyla
+    text: {$text: opening.call}
+  grants: []
+  starts: [document_pickup]
+
+# Dotted observation IDs are generated as evidence-id.field.
+evidence:
+  lobby_video:
+    tool: video
+    presentation:
+      title: {$text: evidence.lobby_video.title}
+      description: {$text: evidence.lobby_video.description}
+      findings:
+        actor: {$text: evidence.lobby_video.findings.actor}
+        screen_exit_at: {$text: evidence.lobby_video.findings.screen_exit_at}
+        continuity: {$text: evidence.lobby_video.findings.continuity}
+    unlock: {after: request, from: leyla, topic: lobby-video}
+    assets: [lobby-cctv-still]
+    reports:
+      {device: cam_l01, actor: mert, action: exit,
+       screen_exit_at: "21:04", continuity: unbroken}
+    omits: [actual-time]
+    reliability: misleading-clock
+
+  camera_sync_notice:
+    tool: email
+    presentation:
+      title: {$text: evidence.camera_sync_notice.title}
+      description: {$text: evidence.camera_sync_notice.description}
+      findings:
+        device: {$text: evidence.camera_sync_notice.findings.device}
+        clock_offset: {$text: evidence.camera_sync_notice.findings.clock_offset}
+        measured_at: {$text: evidence.camera_sync_notice.findings.measured_at}
+        correction_status: {$text: evidence.camera_sync_notice.findings.correction_status}
+    unlock: {after: request, from: leyla, topic: camera-sync}
+    reports:
+      {device: cam_l01, clock_offset: "+7m", measured_at: "18:12",
+       correction_status: pending}
+
+  printer_log:
+    tool: log
+    presentation:
+      title: {$text: evidence.printer_log.title}
+      description: {$text: evidence.printer_log.description}
+      findings:
+        object: {$text: evidence.printer_log.findings.object}
+        completed_at: {$text: evidence.printer_log.findings.completed_at}
+        pages: {$text: evidence.printer_log.findings.pages}
+        clock_source: {$text: evidence.printer_log.findings.clock_source}
+    unlock: {after: request, from: leyla, topic: printer-log}
+    reports:
+      {device: printer_ed04, object: red_file, completed_at: "20:59:06",
+       pages: 46, clock_source: central-time-server, signature: verified}
+
+  mert_receipt:
+    tool: image
+    presentation:
+      title: {$text: evidence.mert_receipt.title}
+      description: {$text: evidence.mert_receipt.description}
+      findings:
+        actor: {$text: evidence.mert_receipt.findings.actor}
+        place: {$text: evidence.mert_receipt.findings.place}
+        paid_at: {$text: evidence.mert_receipt.findings.paid_at}
+        payment: {$text: evidence.mert_receipt.findings.payment}
+    unlock: {after: interview, actor: mert, topic: location}
+    reports:
+      {actor: mert, place: karakoy_cafe, paid_at: "21:01:12",
+       payment: contactless}
+
+  access_log:
+    tool: log
+    presentation:
+      title: {$text: evidence.access_log.title}
+      description: {$text: evidence.access_log.description}
+      findings:
+        actor: {$text: evidence.access_log.findings.actor}
+        entered_at: {$text: evidence.access_log.findings.entered_at}
+        service_corridor_at: {$text: evidence.access_log.findings.service_corridor_at}
+    unlock: yedi.access-log-delivered
+    reports:
+      {actor: nihan, entered: floor_four, entered_at: "21:03:14",
+       service_corridor_at: "21:08:51"}
+
+  desk_camera:
+    tool: video
+    presentation:
+      title: {$text: evidence.desk_camera.title}
+      description: {$text: evidence.desk_camera.description}
+      findings:
+        visible_at: {$text: evidence.desk_camera.findings.visible_at}
+        file_removed_at: {$text: evidence.desk_camera.findings.file_removed_at}
+        direction: {$text: evidence.desk_camera.findings.direction}
+        visible_actor: {$text: evidence.desk_camera.findings.visible_actor}
+    unlock: yedi.desk-camera-delivered
+    reports:
+      {device: cam_e04, object: red_file, visible_at: "21:02:09",
+       file_removed_at: "21:04:01", direction: service_corridor,
+       visible_actor: unidentified-light-sleeve}
+
+  interview_draft:
+    tool: document
+    presentation:
+      title: {$text: evidence.interview_draft.title}
+      description: {$text: evidence.interview_draft.description}
+      findings:
+        document: {$text: evidence.interview_draft.findings.document}
+        source_identity_exposed: {$text: evidence.interview_draft.findings.source_identity_exposed}
+        exposed_person: {$text: evidence.interview_draft.findings.exposed_person}
+        exposed_locations: {$text: evidence.interview_draft.findings.exposed_locations}
+    unlock: yedi.interview-draft-delivered
+    reports:
+      {document: interview_draft_v12, source_identity_exposed: true,
+       exposed_person: can, exposed_locations: 2}
+
+  nihan_warning:
+    tool: email
+    presentation:
+      title: {$text: evidence.nihan_warning.title}
+      description: {$text: evidence.nihan_warning.description}
+      findings:
+        sent_by: {$text: evidence.nihan_warning.findings.sent_by}
+        sent_at: {$text: evidence.nihan_warning.findings.sent_at}
+        requested_redaction: {$text: evidence.nihan_warning.findings.requested_redaction}
+        acknowledged: {$text: evidence.nihan_warning.findings.acknowledged}
+    unlock: yedi.redaction-warning-found
+    reports:
+      {sent_by: nihan, sent_at: "2026-08-12 16:26",
+       requested_redaction: source_identity, acknowledged: false}
+
+  facilities_chat:
+    tool: message
+    presentation:
+      title: {$text: evidence.facilities_chat.title}
+      description: {$text: evidence.facilities_chat.description}
+      findings:
+        actor: {$text: evidence.facilities_chat.findings.actor}
+        asked_about: {$text: evidence.facilities_chat.findings.asked_about}
+        pickup_at: {$text: evidence.facilities_chat.findings.pickup_at}
+        lookup: {$text: evidence.facilities_chat.findings.lookup}
+    unlock: yedi.facilities-chat-delivered
+    reports:
+      {actor: nihan, asked_about: blue-confidential-box,
+       pickup_at: "21:45", lookup: confidential-blue-route}
+
+  building_route:
+    tool: browser
+    presentation:
+      title: {$text: evidence.building_route.title}
+      description: {$text: evidence.building_route.description}
+      findings:
+        place: {$text: evidence.building_route.findings.place}
+        department: {$text: evidence.building_route.findings.department}
+        box: {$text: evidence.building_route.findings.box}
+        pickup_at: {$text: evidence.building_route.findings.pickup_at}
+    unlock: yedi.building-route-found
+    reports:
+      {place: floor_four, department: newsroom, color: blue,
+       box: box_b17, pickup_at: "21:45"}
+
+  nihan_confession:
+    tool: interview
+    presentation:
+      title: {$text: evidence.nihan_confession.title}
+      description: {$text: evidence.nihan_confession.description}
+      findings:
+        took: {$text: evidence.nihan_confession.findings.took}
+        placed_in: {$text: evidence.nihan_confession.findings.placed_in}
+        intent: {$text: evidence.nihan_confession.findings.intent}
+    unlock: yedi.nihan-confessed
+    reports:
+      {actor: nihan, took: red_file, placed_in: box_b17,
+       intent: protect-source}
+
+  recovered_file:
+    tool: physical-evidence
+    presentation:
+      title: {$text: evidence.recovered_file.title}
+      description: {$text: evidence.recovered_file.description}
+      findings:
+        recovered_from: {$text: evidence.recovered_file.findings.recovered_from}
+        pages: {$text: evidence.recovered_file.findings.pages}
+        source_identity_exposed: {$text: evidence.recovered_file.findings.source_identity_exposed}
+        seal_intact: {$text: evidence.recovered_file.findings.seal_intact}
+    unlock: yedi.file-recovered
+    reports:
+      {object: red_file, recovered_from: box_b17, pages: 46,
+       source_identity_exposed: true, seal_intact: true}
+
+deductions:
+  camera_time_corrected:
+    use: media.timestamp-offset
+    with: {shown: lobby_video.screen_exit_at,
+           offset: camera_sync_notice.clock_offset}
+    conclude: {actor: mert, exited_at: "20:57"}
+    prove:
+      any:
+        - [lobby_video.screen_exit_at, camera_sync_notice.clock_offset]
+
+  mert_no_opportunity:
+    conclude: {actor: mert, opportunity_to_take: red_file, value: false}
+    prove:
+      any:
+        - [camera_time_corrected, printer_log.completed_at]
+
+  nihan_took_file:
+    conclude: {object: red_file, taken_by: nihan}
+    prove:
+      any:
+        - [access_log.entered_at, desk_camera.file_removed_at]
+
+  nihan_protected_source:
+    conclude: {actor: nihan, intent: protect-source, object: source_identity}
+    prove:
+      any:
+        - [interview_draft.source_identity_exposed,
+           nihan_warning.requested_redaction]
+        - [nihan_confession.intent, interview_draft.source_identity_exposed]
+
+  file_in_b17:
+    conclude: {object: red_file, location: box_b17}
+    prove:
+      any:
+        - [nihan_confession.placed_in, building_route.box]
+
+  full_explanation:
+    use: investigation.composite-explanation
+    conclude: {incident: red-file-missing, explanation: source-protection}
+    require: [mert_no_opportunity, nihan_took_file,
+              nihan_protected_source, file_in_b17]
+
+flags: [mert_accused, mert_apology, nihan_confessed, file_recovered,
+        file_destroyed, source_protected, nihan_protected, nihan_suspended,
+        wrong_box, deadline_expired]
+
+reactions:
+  # Free-form searches and presentations cost time whether or not they reveal
+  # a clue. Exact offered actions therefore cannot make failed attempts free.
+  - id: search-time-cost
+    on: {action: search}
+    do: [{spend: [case-time, 2m]}]
+
+  - id: presentation-time-cost
+    on: {action: present}
+    do: [{spend: [case-time, 2m]}]
+
+  - id: lobby-video-observed
+    on: {observed: lobby_video.screen_exit_at}
+    once: true
+    do: [{offer: request_camera_sync}, {offer: accuse_mert}]
+
+  - id: camera-sync-observed
+    on: {observed: camera_sync_notice.clock_offset}
+    once: true
+    do: [{offer: deduce_camera_time}]
+
+  - id: printer-observed-after-camera-correction
+    on: {observed: printer_log.completed_at}
+    when: {supported: camera_time_corrected}
+    once: true
+    do: [{offer: deduce_mert_no_opportunity}]
+
+  - id: camera-corrected-after-printer-observation
+    on: {supported: camera_time_corrected}
+    when: {observed: printer_log.completed_at}
+    once: true
+    do: [{offer: deduce_mert_no_opportunity}]
+
+  - on: {action: report-suspect, target: mert}
+    unless: {supported: mert_no_opportunity}
+    once: true
+    do: [{trust: [mert, -5]}, {mark: mert_accused},
+         {conversation: [mert, refusing]},
+         {withdraw: interview_mert_location}]
+
+  - on: {action: apologize, target: mert}
+    when:
+      all: [{marked: mert_accused}, {supported: mert_no_opportunity}]
+    once: true
+    do: [{trust: [mert, 2]}, {mark: mert_apology},
+         {conversation: [mert, available]},
+         {offer: interview_mert_location}]
+
+  - on: {supported: mert_no_opportunity}
+    once: true
+    do: [{offer: request_access_log}, {offer: request_desk_camera},
+         {withdraw: accuse_mert},
+         {if-marked: mert_accused, then: [{offer: apologize_mert}]}]
+
+  - id: access-log-requested
+    on: {action: request, from: leyla, topic: access-log}
+    when: {supported: mert_no_opportunity}
+    once: true
+    do: [{emit: yedi.access-log-delivered}]
+
+  - id: desk-camera-requested
+    on: {action: request, from: leyla, topic: desk-camera}
+    when: {supported: mert_no_opportunity}
+    once: true
+    do: [{emit: yedi.desk-camera-delivered}]
+
+  - id: access-observed-after-desk
+    on: {observed: access_log.entered_at}
+    when: {observed: desk_camera.file_removed_at}
+    once: true
+    do: [{offer: deduce_nihan_took_file}]
+
+  - id: desk-observed-after-access
+    on: {observed: desk_camera.file_removed_at}
+    when: {observed: access_log.entered_at}
+    once: true
+    do: [{offer: deduce_nihan_took_file}]
+
+  - on: {supported: nihan_took_file}
+    once: true
+    do: [{offer: request_interview_draft},
+         {offer: request_facilities_chat}]
+
+  - id: interview-draft-requested
+    on: {action: request, from: leyla, topic: interview-draft}
+    when: {supported: nihan_took_file}
+    once: true
+    do: [{emit: yedi.interview-draft-delivered}]
+
+  - id: interview-draft-observed
+    on: {observed: interview_draft.source_identity_exposed}
+    once: true
+    do: [{offer: search_redaction_warning}]
+
+  - id: facilities-chat-requested
+    on: {action: request, from: leyla, topic: facilities-chat}
+    when: {supported: nihan_took_file}
+    once: true
+    do: [{emit: yedi.facilities-chat-delivered}]
+
+  - id: facilities-chat-observed
+    on: {observed: facilities_chat.lookup}
+    once: true
+    do: [{offer: search_building_route},
+         {offer: recover_box_b11}]
+
+  - id: redaction-warning-found
+    on: {action: search, query: "interview_draft_v12 redaction warning"}
+    when: {observed: interview_draft.source_identity_exposed}
+    once: true
+    do: [{emit: yedi.redaction-warning-found},
+         {withdraw: search_redaction_warning}]
+
+  - id: redaction-warning-observed
+    on: {observed: nihan_warning.requested_redaction}
+    once: true
+    do: [{offer: deduce_nihan_protected_source}]
+
+  - id: building-route-found
+    on: {action: search, query: "confidential-blue-route floor-four"}
+    when: {observed: facilities_chat.lookup}
+    once: true
+    do: [{emit: yedi.building-route-found},
+         {withdraw: search_building_route}]
+
+  - id: confession-observed-after-route
+    on: {observed: nihan_confession.placed_in}
+    when: {observed: building_route.box}
+    once: true
+    do: [{offer: deduce_file_in_b17}]
+
+  - id: route-observed-after-confession
+    on: {observed: building_route.box}
+    when: {observed: nihan_confession.placed_in}
+    once: true
+    do: [{offer: deduce_file_in_b17}]
+
+  - on: {supported: nihan_protected_source}
+    once: true
+    do: [{offer: present_draft_to_nihan}]
+
+  - on: {action: present, target: nihan, evidence: interview_draft,
+         tone: empathetic}
+    when:
+      all: [{supported: nihan_took_file}, {supported: nihan_protected_source}]
+    once: true
+    do: [{trust: [nihan, 3]}, {mark: nihan_confessed},
+         {reveal: nihan.says.trusted}, {emit: yedi.nihan-confessed}]
+
+  - on: {supported: file_in_b17}
+    once: true
+    do: [{withdraw: recover_box_b11},
+         {offer: conclude_security},
+         {offer: deduce_full_explanation}]
+
+  - on: {supported: full_explanation}
+    once: true
+    do: [{offer: conclude_mediate}]
+
+  - on: {action: submit-conclusion, target: mediate}
+    when:
+      all: [{supported: nihan_took_file},
+            {supported: nihan_protected_source},
+            {supported: file_in_b17},
+            {schedule-active: document_pickup}]
+    once: true
+    do: [{cancel: document_pickup}, {mark: file_recovered},
+         {mark: source_protected}, {mark: nihan_protected},
+         {withdraw: conclude_security}, {emit: yedi.file-recovered}]
+
+  - on: {action: submit-conclusion, target: security}
+    when:
+      all: [{supported: nihan_took_file}, {supported: file_in_b17},
+            {schedule-active: document_pickup}]
+    once: true
+    do: [{cancel: document_pickup}, {mark: file_recovered},
+         {mark: nihan_suspended}, {trust: [nihan, -4]},
+         {withdraw: conclude_mediate}, {emit: yedi.file-recovered}]
+
+  - on: {action: submit-conclusion, target: box_b11}
+    unless: {supported: file_in_b17}
+    when: {schedule-active: document_pickup}
+    once: true
+    do: [{cancel: document_pickup}, {mark: wrong_box},
+         {mark: file_destroyed}]
+
+deadlines:
+  document_pickup:
+    label: {$text: deadlines.document_pickup.label}
+    clock: case-time
+    at: "21:45"
+    offline: pause
+    cancel_on: file_recovered
+    do: [{mark: file_destroyed}, {mark: deadline_expired},
+         {withdraw: recover_box_b11}, {withdraw: conclude_mediate},
+         {withdraw: conclude_security}, {emit: red-file-destroyed}]
+
+objectives:
+  explain: {supported: full_explanation}
+  clear_mert: {supported: mert_no_opportunity}
+  identify_nihan: {supported: nihan_took_file}
+  understand_motive: {supported: nihan_protected_source}
+  locate_file: {supported: file_in_b17}
+  recover_file: {marked: file_recovered}
+  protect_source: {marked: source_protected}
+  protect_nihan: {marked: nihan_protected}
+  avoid_false_accusation: {not-marked: mert_accused}
+
+# The runtime evaluates this private rubric only after the case closes. The
+# player receives resolved points and report copy, never these conditions.
+assessment:
+  max_score: 100
+  bands:
+    - {min_score: 90, label: {$text: assessment.bands.exemplary}}
+    - {min_score: 75, label: {$text: assessment.bands.strong_with_cost}}
+    - {min_score: 50, label: {$text: assessment.bands.fragile}}
+    - {min_score: 0, label: {$text: assessment.bands.reconsider}}
+  categories:
+    evidence_reasoning:
+      label: {$text: assessment.categories.evidence_reasoning}
+      criteria:
+        camera_time:
+          points: 5
+          when: {supported: camera_time_corrected}
+          met: {$text: assessment.criteria.camera_time.met}
+          missed: {$text: assessment.criteria.camera_time.missed}
+        full_chain:
+          points: 6
+          when: {supported: full_explanation}
+          met: {$text: assessment.criteria.full_chain.met}
+          missed: {$text: assessment.criteria.full_chain.missed}
+        identify_nihan:
+          points: 6
+          when: {supported: nihan_took_file}
+          met: {$text: assessment.criteria.identify_nihan.met}
+          missed: {$text: assessment.criteria.identify_nihan.missed}
+        locate_file:
+          points: 6
+          when: {supported: file_in_b17}
+          met: {$text: assessment.criteria.locate_file.met}
+          missed: {$text: assessment.criteria.locate_file.missed}
+        mert_opportunity:
+          points: 6
+          when: {supported: mert_no_opportunity}
+          met: {$text: assessment.criteria.mert_opportunity.met}
+          missed: {$text: assessment.criteria.mert_opportunity.missed}
+        source_motive:
+          points: 6
+          when: {supported: nihan_protected_source}
+          met: {$text: assessment.criteria.source_motive.met}
+          missed: {$text: assessment.criteria.source_motive.missed}
+    intervention_protection:
+      label: {$text: assessment.categories.intervention_protection}
+      criteria:
+        protect_nihan:
+          points: 7
+          when: {marked: nihan_protected}
+          met: {$text: assessment.criteria.protect_nihan.met}
+          missed: {$text: assessment.criteria.protect_nihan.missed}
+        protect_source:
+          points: 8
+          when: {marked: source_protected}
+          met: {$text: assessment.criteria.protect_source.met}
+          missed: {$text: assessment.criteria.protect_source.missed}
+        recover_file:
+          points: 10
+          when: {marked: file_recovered}
+          met: {$text: assessment.criteria.recover_file.met}
+          missed: {$text: assessment.criteria.recover_file.missed}
+    procedure_people:
+      label: {$text: assessment.categories.procedure_people}
+      criteria:
+        avoid_early_accusation:
+          points: 15
+          when: {not-marked: mert_accused}
+          met: {$text: assessment.criteria.avoid_early_accusation.met}
+          missed: {$text: assessment.criteria.avoid_early_accusation.missed}
+        keep_contact_open:
+          points: 10
+          when:
+            any: [{not-marked: mert_accused}, {marked: mert_apology}]
+          met: {$text: assessment.criteria.keep_contact_open.met}
+          missed: {$text: assessment.criteria.keep_contact_open.missed}
+    time_management:
+      label: {$text: assessment.categories.time_management}
+      criteria:
+        beat_pickup:
+          points: 10
+          when: {not-marked: deadline_expired}
+          met: {$text: assessment.criteria.beat_pickup.met}
+          missed: {$text: assessment.criteria.beat_pickup.missed}
+        correct_intervention:
+          points: 5
+          when: {not-marked: wrong_box}
+          met: {$text: assessment.criteria.correct_intervention.met}
+          missed: {$text: assessment.criteria.correct_intervention.missed}
+
+outcomes:
+  all_protected:
+    {title: {$text: outcomes.all_protected.title}, body: {$text: outcomes.all_protected.body}, priority: 100,
+     require: [explain, clear_mert, recover_file, protect_source,
+               protect_nihan, avoid_false_accusation],
+     final_target: mediate}
+  protected_with_scar:
+    {title: {$text: outcomes.protected_with_scar.title}, body: {$text: outcomes.protected_with_scar.body}, priority: 90,
+     require: [explain, clear_mert, recover_file, protect_source,
+               protect_nihan],
+     when_marked: mert_accused, final_target: mediate}
+  security_result:
+    {title: {$text: outcomes.security_result.title}, body: {$text: outcomes.security_result.body}, priority: 70,
+     require: [identify_nihan, locate_file, recover_file],
+     when_marked: nihan_suspended, final_target: security}
+  wrong_box_result:
+    {title: {$text: outcomes.wrong_box_result.title}, body: {$text: outcomes.wrong_box_result.body}, priority: 50, final_target: box_b11,
+     when_marked: wrong_box}
+  deadline_result:
+    {title: {$text: outcomes.deadline_result.title}, body: {$text: outcomes.deadline_result.body}, priority: 40, when_marked: deadline_expired}

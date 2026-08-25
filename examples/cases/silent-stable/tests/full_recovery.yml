@@ -1,0 +1,152 @@
+schema: case-test/v0.1
+
+case:
+  id: examples.silent-stable
+  version: 0.1.0
+
+scenario:
+  id: full_recovery
+  perspective: detective
+  description: Use the silent monitor, access trail, toll still, and clinical note to recover Comet.
+  steps:
+    - expect:
+        state:
+          evidence:
+            kennel_monitor: {status: available, assets: [dog-monitor]}
+            stable_plan: {status: available, assets: [stable-plan]}
+            toll_record: hidden
+          deductions:
+            visitor_was_familiar: unknown
+            farrier_moved_comet: unknown
+
+    - detective.observe: kennel_monitor
+      expect:
+        result: {status: accepted}
+        state:
+          observations:
+            kennel_monitor.status: online
+            kennel_monitor.bark_events: 0
+            kennel_monitor.dropout_seconds: 0
+
+    - detective.observe: stable_plan
+      expect:
+        result: {status: accepted}
+        state:
+          observations:
+            stable_plan.dog_covers_service_gate: true
+            stable_plan.road_destination: recovery_paddock
+
+    - detective.act:
+        {action: interview, actor: ivo, topic: dog-familiarity}
+      expect:
+        result: {status: accepted}
+        state:
+          evidence: {familiarity_roster: available}
+
+    - detective.observe: familiarity_roster
+      expect:
+        result: {status: accepted}
+        state:
+          observations:
+            familiarity_roster.familiar_roles: [manager, groom, farrier]
+            familiarity_roster.unfamiliar_driver: nika
+
+    - detective.deduce: visitor_was_familiar
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {visitor_was_familiar: supported}
+
+    - detective.act:
+        {action: request, from: mara, topic: gate-export}
+      expect:
+        result: {status: accepted}
+        state:
+          evidence: {gate_log: available}
+
+    - detective.observe: gate_log
+      expect:
+        result: {status: accepted}
+        state:
+          observations:
+            gate_log.credential_owner: ren
+            gate_log.opened_at: "21:12:06"
+
+    - detective.deduce: farrier_used_service_gate
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {farrier_used_service_gate: supported}
+
+    - detective.act:
+        {action: search, query: "service-van 21:25"}
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            toll_record: {status: available, assets: [toll-still]}
+
+    - detective.observe: toll_record
+      expect:
+        result: {status: accepted}
+        state:
+          observations:
+            toll_record.actor: ren
+            toll_record.route: recovery_paddock
+            toll_record.axle_load_delta_kg: 438
+
+    - detective.deduce: farrier_moved_comet
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {farrier_moved_comet: supported}
+
+    - detective.act:
+        {action: present, target: ren, evidence: toll_record, tone: calm}
+      expect:
+        result: {status: accepted}
+        state:
+          evidence: {clinical_note: available}
+
+    - detective.observe: clinical_note
+      expect:
+        result: {status: accepted}
+        state:
+          observations:
+            clinical_note.finding: front-leg-limp
+            clinical_note.destination: recovery_paddock
+            clinical_note.intent: temporary-safety-move
+
+    - detective.deduce: move_was_protective
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {move_was_protective: supported}
+
+    - detective.act: {action: search, target: recovery_paddock}
+      expect:
+        result: {status: accepted}
+        state:
+          evidence: {recovery_photo: available}
+
+    - detective.observe: recovery_photo
+      expect:
+        result: {status: accepted}
+        state:
+          observations:
+            recovery_photo.animal: comet
+            recovery_photo.condition: safe
+            recovery_photo.place: recovery_paddock
+
+    - detective.deduce: comet_is_safe
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {comet_is_safe: supported}
+
+    - detective.conclude: ren
+      expect:
+        result: {status: accepted}
+        state:
+          final_conclusion: ren
+          outcome: safe_recovery

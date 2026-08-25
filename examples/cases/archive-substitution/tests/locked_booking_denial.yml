@@ -1,0 +1,18 @@
+schema: case-test/v0.1
+case: {id: examples.archive-substitution, version: 0.1.0}
+
+scenario:
+  id: locked_booking_denial
+  perspective: detective
+  description: The ferry booking cannot be observed before the exact search grants it.
+  steps:
+    - detective.observe: terminal_booking
+      expect:
+        result: {status: denied, code: evidence-locked}
+        state:
+          evidence: {terminal_booking: hidden}
+          unknown_observations:
+            - terminal_booking.passenger_alias
+            - terminal_booking.departure_at
+          final_conclusion: null
+          outcome: null

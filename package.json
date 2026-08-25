@@ -1,0 +1,45 @@
+{
+  "name": "dedektif",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "cases:compile": "tsx scripts/compile-cases.ts cases",
+    "cases:test": "tsx src/simulator/cli.ts cases",
+    "examples:compile": "tsx scripts/compile-cases.ts --out-dir .build/examples examples/cases",
+    "examples:test": "tsx src/simulator/cli.ts examples/cases",
+    "skill:validate": "tsx scripts/validate-case-skill.ts skills/write-detective-case",
+    "engine:decoupling": "tsx scripts/check-engine-case-coupling.ts",
+    "generate:public": "tsx scripts/generate-public-manifests.ts",
+    "dev": "npm run generate:public && vite --host 127.0.0.1",
+    "test:host": "vitest run server/demo-host",
+    "build": "npm run generate:public && tsc -b && vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b",
+    "engine:check": "npm run test && npm run typecheck",
+    "content:check": "npm run engine:decoupling && npm run skill:validate && npm run examples:test && npm run examples:compile && npm run cases:test && npm run cases:compile && npm run build",
+    "check": "npm run engine:check && npm run content:check"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/instrument-sans": "^5.3.0",
+    "@fontsource/newsreader": "^5.3.0",
+    "ajv": "^8.20.0",
+    "lucide-static": "^1.34.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "yaml": "^2.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.0",
+    "happy-dom": "^20.11.6",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.0",
+    "vitest": "^3.2.4"
+  }
+}

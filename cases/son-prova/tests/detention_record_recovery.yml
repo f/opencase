@@ -1,0 +1,89 @@
+schema: case-test/v0.1
+
+case: {id: official.son-prova, version: 0.4.1}
+
+scenario:
+  id: detention_record_recovery
+  perspective: detective
+  description: Police intake records keep Baran's alibi recoverable when detention closes his interview.
+  steps:
+    - detective.act: {action: request, from: ekin, topic: scene-report}
+    - detective.observe: safety_report
+
+    - detective.act: {action: request, from: ekin, topic: automation-export}
+    - detective.observe: automation_log
+    - detective.observe: tablet_inventory
+    - detective.observe: tablet_biometric_log
+
+    - detective.act: {action: request, from: ekin, topic: victim-phone}
+    - detective.observe: orhan_phone_export
+    - detective.observe: positioning_message
+
+    - detective.act: {action: search, query: "PROD-TAB-03 remote pairing"}
+    - detective.observe: support_mail
+
+    - detective.act: {action: interview, actor: selin, topic: alibi}
+    - detective.observe: livestream
+    - detective.act: {action: search, query: "interview publication history"}
+    - detective.observe: livestream_history
+
+    - detective.act: {action: search, query: "Orhan production audit"}
+    - detective.observe: audit_draft
+    - detective.observe: company_registry
+    - detective.act: {action: preserve, target: production_workspace}
+
+    - detective.deduce: death_not_accident
+    - detective.deduce: selin_alibi_false
+    - detective.deduce: selin_prepared_murder
+    - detective.deduce: selin_financial_motive
+      expect:
+        state:
+          clocks: {case-time: 33m}
+          deductions:
+            death_not_accident: supported
+            selin_alibi_false: supported
+            selin_prepared_murder: supported
+            selin_financial_motive: supported
+          evidence: {cafe_video: hidden}
+
+    - detective.advance: {clock: case-time, by: 22m}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 55m}
+          affordances:
+            interview_baran_location: hidden
+            request_baran_custody_packet: offered
+          evidence: {cafe_video: hidden}
+
+    - detective.act: {action: interview, actor: baran, topic: location}
+      expect:
+        result: {status: denied, code: affordance-unavailable}
+        state: {clocks: {case-time: 55m}}
+
+    - detective.act: {action: request, from: ekin, topic: baran-custody-packet}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 57m}
+          evidence: {cafe_video: available}
+
+    - detective.observe: cafe_video
+      expect:
+        state: {affordances: {deduce_baran_not_operator: offered}}
+    - detective.deduce: baran_not_operator
+      expect:
+        state:
+          clocks: {case-time: 58m}
+          deductions: {baran_not_operator: supported}
+          affordances:
+            request_baran_custody_packet: hidden
+            deduce_selin_killed_orhan: offered
+    - detective.deduce: selin_killed_orhan
+    - detective.conclude: selin
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 60m}
+          final_conclusion: selin
+          outcome: bitter_applause

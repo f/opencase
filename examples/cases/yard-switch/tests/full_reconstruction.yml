@@ -1,0 +1,79 @@
+schema: case-test/v0.1
+case: {id: examples.yard-switch, version: 0.1.1}
+
+scenario:
+  id: full_reconstruction
+  perspective: detective
+  description: Preserve the volatile recorder, reconcile the clocks, request the switch record, and identify the routing cause.
+  steps:
+    - detective.observe: event_recorder
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            event_recorder:
+              status: observed
+              assets: [recorder-timeline]
+            recorder_clock_check: {status: available}
+          observations:
+            event_recorder.shown_movement_time: "14:25:10"
+            event_recorder.shown_brake_time: "14:25:40"
+
+    - detective.act:
+        {action: preserve, target: recorder_unit, evidence: event_recorder}
+      expect:
+        result: {status: accepted}
+
+    - detective.observe: recorder_clock_check
+    - detective.observe: switch_diagram
+    - detective.observe: route_authority
+
+    - detective.observe: maintenance_radio_log
+      expect:
+        result: {status: denied, code: evidence-locked}
+        state:
+          evidence: {maintenance_radio_log: {status: hidden}}
+
+    - detective.act: {action: request, topic: switch-records}
+      expect:
+        result: {status: accepted}
+        state:
+          evidence: {maintenance_radio_log: {status: available}}
+
+    - detective.observe: maintenance_radio_log
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            maintenance_radio_log:
+              status: observed
+              assets: [radio-maintenance-log]
+          observations:
+            maintenance_radio_log.switch_left_toward: service_c4
+            maintenance_radio_log.authority_issued_at: "14:24:00"
+
+    - detective.deduce: recorder_time_corrected
+    - detective.deduce: movement_preceded_authority
+    - detective.deduce: switch_left_for_service_track
+    - detective.deduce: routing_cause
+      expect:
+        result: {status: accepted}
+        state:
+          deductions:
+            recorder_time_corrected: supported
+            movement_preceded_authority: supported
+            switch_left_for_service_track: supported
+            routing_cause: supported
+
+    - detective.advance: {clock: case-time, by: 5m}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 5m}
+
+    - detective.conclude: hand_switch
+      expect:
+        result: {status: accepted}
+        state:
+          final_conclusion: hand_switch
+          outcome: sequence_reconstructed

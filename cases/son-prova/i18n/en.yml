@@ -1,0 +1,233 @@
+schema: case-i18n/v0.1
+case: {id: official.son-prova, version: 0.4.1}
+locale: en
+messages:
+  case.title: Final Rehearsal
+  case.synopsis: >-
+    Director Orhan Demir dies after falling through an open stage hatch during
+    rehearsal. Conflicting accounts, volatile digital records, and a rushed
+    police response leave little time to reconstruct who prepared the fall.
+  opening.call: >-
+    Orhan Demir died after falling through the stage hatch during rehearsal.
+    Police plan to detain stage manager Baran after fifty-five investigation
+    minutes, and Orhan's production workspace is queued for deletion. I can
+    release the scene report and automation export; choose what to request and
+    whom to question before the records and witnesses disappear.
+  affordances.request_scene_report.label: Request the stage-hatch scene report from Ekin
+  affordances.request_automation_export.label: Request the stage automation export from Ekin
+  affordances.request_victim_phone.label: Request Orhan's phone extraction from Ekin
+  affordances.interview_baran_location.label: Ask Baran where he was when the hatch opened
+  affordances.request_baran_custody_packet.label: Request Baran's police intake packet from Ekin
+  affordances.interview_selin_alibi.label: Ask Selin to explain her on-air alibi
+  affordances.request_livestream_archive.label: Request Selin's broadcast archive from Ekin
+  affordances.interview_leyla.label: Take Leyla's first statement
+  affordances.request_security_export.label: Request the theatre security export from Ekin
+  affordances.search_remote_pairing.label: Search support archives for PROD-TAB-03 remote pairing
+  affordances.search_livestream_history.label: Search the interview publication history
+  affordances.search_production_audit.label: Search Orhan's production workspace for an audit
+  affordances.present_cafe_to_baran.label: Show the café video to Baran empathetically
+  affordances.present_pin_to_leyla.label: Show the safety-pin photo to Leyla empathetically
+  affordances.preserve_workspace.label: Preserve Orhan's production workspace
+  affordances.present_audit_to_selin.label: Confront Selin with Orhan's audit draft — risky
+  affordances.accuse_baran.label: Record Baran as the suspect — risky
+  affordances.accuse_leyla.label: Record Leyla as the suspect — risky
+  affordances.deduce_death_not_accident.label: Test whether the hatch failure was deliberate
+  affordances.deduce_baran_not_operator.label: Test whether Baran could have issued the command
+  affordances.deduce_selin_alibi_false.label: Test whether Selin's live broadcast was prerecorded
+  affordances.deduce_selin_prepared_murder.label: Reconstruct who prepared and triggered the trap
+  affordances.deduce_selin_financial_motive.label: Test who benefited from Orhan's financial findings
+  affordances.deduce_selin_killed_orhan.label: Combine the evidence into a culprit theory
+  affordances.deduce_death_not_accident.result: The safety pin was not broken; it had been deliberately removed. An open command was then sent to the hatch. Orhan's death was not an accident.
+  affordances.deduce_baran_not_operator.result: Baran was at the café when the command was sent. It came from the PROD-TAB-03 tablet backstage; Baran did not open the hatch.
+  affordances.deduce_selin_alibi_false.result: Selin's "live" broadcast was recorded at 20:24, uploaded at 20:31, and scheduled for 21:05–21:17. Her live-broadcast alibi was false.
+  affordances.deduce_selin_prepared_murder.result: Selin directed Orhan to remain on the X mark over the hatch. The backstage and tablet records show that she prepared and triggered the trap.
+  affordances.deduce_selin_financial_motive.result: The financial records identify Selin as the person who benefited from Orhan's findings. She had a financial motive to silence him.
+  affordances.deduce_selin_killed_orhan.result: The evidence leads to one result; Selin prepared the hatch trap, created a false broadcast alibi, and killed Orhan.
+  affordances.conclude_selin.label: Submit Selin as the final conclusion
+  affordances.conclude_baran.label: Submit Baran as the final conclusion
+  affordances.conclude_leyla.label: Submit Leyla as the final conclusion
+  affordances.request_scene_report.result: Ekin sent the scene report and a photo of the removed safety pin to Files.
+  affordances.request_automation_export.result: The stage automation export is ready to inspect in Files.
+  affordances.request_victim_phone.result: Orhan's phone extraction is ready. Its messages can now be inspected.
+  affordances.interview_baran_location.result: Baran says he was at the café across the street when the hatch opened.
+  affordances.request_baran_custody_packet.result: Ekin obtained the police intake packet. It includes the café recording officers used to verify Baran's location.
+  affordances.interview_selin_alibi.result: Selin says she was live on air from 21:05 to 21:17.
+  affordances.request_livestream_archive.result: Selin's broadcast archive is ready to inspect.
+  affordances.interview_leyla.result: Leyla admits arguing with Orhan, but says she stayed at stage left during the fall.
+  affordances.request_security_export.result: The theatre exit and backstage access records are ready to inspect.
+  affordances.search_remote_pairing.result: A support email about remote stage control was found.
+  affordances.search_livestream_history.result: The publication history for Selin's interview was found.
+  affordances.search_production_audit.result: Orhan's unfinished financial audit was found in his workspace.
+  affordances.present_cafe_to_baran.result: Baran admits he left his console session open. He also provides an old support email.
+  affordances.present_pin_to_leyla.result: Leyla gives a fuller account of where she stood. A stage-left access record is now available.
+  affordances.preserve_workspace.result: A protected backup of Orhan's workspace was created. The queued deletion was cancelled.
+  affordances.preserve_workspace.confirmation: Preserve the workspace now? This creates a fixed backup and cancels its deletion timer.
+  affordances.present_audit_to_selin.result: Selin reacts immediately. Activity on the workspace shows that its deletion has been moved forward.
+  affordances.present_audit_to_selin.confirmation: Confront Selin now? This may alert her and speed up the loss of records or her departure.
+  affordances.accuse_baran.confirmation: Record Baran as the suspect? A false accusation will damage his trust and may close an evidence route.
+  affordances.accuse_leyla.confirmation: Record Leyla as the suspect? A false accusation will damage her trust and may close an evidence route.
+  affordances.conclude_selin.confirmation: Submit Selin as your final conclusion and end the case?
+  affordances.conclude_baran.confirmation: Submit Baran as your final conclusion and end the case?
+  affordances.conclude_leyla.confirmation: Submit Leyla as your final conclusion and end the case?
+  evidence.threat_message.title: Leyla's threatening message
+  evidence.threat_message.description: A hostile message recovered from Orhan's phone.
+  evidence.threat_message.findings.sent_by: Leyla sent the message.
+  evidence.threat_message.findings.sent_at: It was sent at 20:44, shortly after their public argument.
+  evidence.threat_message.findings.text: "The message says: ‘That finale will not happen tonight. You will answer for this.’"
+  evidence.automation_log.title: Stage automation log
+  evidence.automation_log.description: The automation system's record from the moment the hatch opened.
+  evidence.automation_log.findings.action: The system received a command to open the stage hatch.
+  evidence.automation_log.findings.account: The command used Baran's console account.
+  evidence.automation_log.findings.device: The command came from the PROD-TAB-03 tablet, not the booth console.
+  evidence.automation_log.findings.at: The command was issued at 21:11:48.
+  evidence.safety_report.title: Stage-hatch safety report
+  evidence.safety_report.description: The first physical inspection of the hatch mechanism.
+  evidence.safety_report.findings.failure_mode: The hatch failed because its safety pin had been removed.
+  evidence.safety_report.findings.pin_damaged: The pin was undamaged, so it did not break during the fall.
+  evidence.pin_photo.title: Photo of the removed safety pin
+  evidence.pin_photo.description: A scene photo showing where the hatch's safety pin was found.
+  evidence.pin_photo.findings.object: The photographed object is the stage hatch's safety pin.
+  evidence.pin_photo.findings.found_in: It was found inside Leyla's costume box.
+  evidence.livestream.title: Selin's “live” interview
+  evidence.livestream.description: The public broadcast Selin gives as her alibi.
+  evidence.livestream.findings.label: The player labels the broadcast as LIVE.
+  evidence.livestream.findings.from: The broadcast began at 21:05.
+  evidence.livestream.findings.to: The broadcast ended at 21:17.
+  evidence.cafe_video.title: Café security video
+  evidence.cafe_video.description: Video from the café across the street during the rehearsal.
+  evidence.cafe_video.findings.actor: Baran is clearly visible in the recording.
+  evidence.cafe_video.findings.place: The recording places him at the café across the street.
+  evidence.cafe_video.findings.from: Baran appears there from 21:07.
+  evidence.cafe_video.findings.to: He remains in view until 21:19.
+  evidence.theater_exit_log.title: Theatre exit log
+  evidence.theater_exit_log.description: A security-system record of departures before the fall.
+  evidence.theater_exit_log.findings.actor: The departure belongs to Baran.
+  evidence.theater_exit_log.findings.exited_at: Baran left the theatre at 21:03.
+  evidence.tablet_inventory.title: Production tablet inventory
+  evidence.tablet_inventory.description: The theatre's device assignment record for PROD-TAB-03.
+  evidence.tablet_inventory.findings.device: The listed device is the PROD-TAB-03 tablet.
+  evidence.tablet_inventory.findings.assigned_to: The tablet was assigned to Selin.
+  evidence.tablet_wifi.title: Tablet Wi-Fi history
+  evidence.tablet_wifi.description: Network location history for PROD-TAB-03 around the time of the fall.
+  evidence.tablet_wifi.findings.device: The log belongs to PROD-TAB-03.
+  evidence.tablet_wifi.findings.place: The tablet was connected from backstage.
+  evidence.tablet_wifi.findings.from: Its backstage connection began at 21:08.
+  evidence.tablet_wifi.findings.to: It stayed connected there until 21:14.
+  evidence.support_mail.title: Remote-pairing support email
+  evidence.support_mail.description: An old support reply about pairing PROD-TAB-03 with a console session.
+  evidence.support_mail.findings.device: The instructions are for PROD-TAB-03.
+  evidence.support_mail.findings.paired_session: The tablet had been paired with Baran's console session.
+  evidence.support_mail.findings.capability: That pairing allowed remote control of the stage automation.
+  evidence.livestream_metadata.title: Interview video metadata
+  evidence.livestream_metadata.description: Recording details embedded in the source video for Selin's broadcast.
+  evidence.livestream_metadata.findings.recorded_at: The source video was recorded at 20:24, before Orhan died.
+  evidence.livestream_metadata.findings.place: It was recorded in the interview studio.
+  evidence.livestream_history.title: Interview publication history
+  evidence.livestream_history.description: The account history behind Selin's public broadcast.
+  evidence.livestream_history.findings.source_uploaded_at: The source video was uploaded at 20:31.
+  evidence.livestream_history.findings.delivery: The broadcast was scheduled in advance, not sent live.
+  evidence.livestream_history.findings.publish_window: The scheduled publication window was 21:05 to 21:17.
+  evidence.tablet_presence.title: Tablet presence record
+  evidence.tablet_presence.description: A precise network-presence record for PROD-TAB-03.
+  evidence.tablet_presence.findings.device: The record identifies PROD-TAB-03.
+  evidence.tablet_presence.findings.place: The tablet was backstage.
+  evidence.tablet_presence.findings.at: It was there at exactly 21:11:48, when the hatch command was sent.
+  evidence.tablet_biometric_log.title: Tablet biometric log
+  evidence.tablet_biometric_log.description: The local unlock history stored on PROD-TAB-03.
+  evidence.tablet_biometric_log.findings.device: The unlock record belongs to PROD-TAB-03.
+  evidence.tablet_biometric_log.findings.unlocked_by: Selin unlocked the tablet with her biometric identity.
+  evidence.tablet_biometric_log.findings.at: The unlock happened at 21:11:32, sixteen seconds before the hatch command.
+  evidence.backstage_access.title: Backstage access log
+  evidence.backstage_access.description: Theatre security records from before the rehearsal death.
+  evidence.backstage_access.findings.actor: The access record belongs to Selin.
+  evidence.backstage_access.findings.place: It places her backstage.
+  evidence.backstage_access.findings.from: Selin entered the area at 20:47.
+  evidence.backstage_access.findings.to: She left at 20:52.
+  evidence.orhan_phone_export.title: Orhan's phone extraction
+  evidence.orhan_phone_export.description: A forensic copy of the victim's phone data.
+  evidence.orhan_phone_export.findings.owner: The extracted phone belonged to Orhan.
+  evidence.orhan_phone_export.findings.export_complete: The extraction completed successfully, including recent messages.
+  evidence.positioning_message.title: Selin's message to Orhan
+  evidence.positioning_message.description: A message sent to Orhan shortly before the hatch opened.
+  evidence.positioning_message.findings.sent_by: Selin sent the message.
+  evidence.positioning_message.findings.sent_at: It was sent at 21:09, less than three minutes before the fall.
+  evidence.positioning_message.findings.text: "Selin told Orhan: ‘Stay on the X mark during blackout. We need a frame for the sponsor video.’"
+  evidence.stage_left_log.title: Stage-left access log
+  evidence.stage_left_log.description: A local access record covering the minutes around Orhan's fall.
+  evidence.stage_left_log.findings.actor: The recorded person is Leyla.
+  evidence.stage_left_log.findings.place: The log places her at stage left.
+  evidence.stage_left_log.findings.from: Leyla was there from 21:08.
+  evidence.stage_left_log.findings.to: She remained there until 21:13.
+  evidence.audit_draft.title: Orhan's financial audit draft
+  evidence.audit_draft.description: An unfinished disclosure document found in Orhan's production workspace.
+  evidence.audit_draft.findings.payments_diverted_to: Production payments were diverted to North Stage Consulting.
+  evidence.audit_draft.findings.disclosure_prepared_by: Orhan prepared the findings for disclosure.
+  evidence.company_registry.title: North Stage company record
+  evidence.company_registry.description: The official registry entry for the company named in Orhan's audit.
+  evidence.company_registry.findings.organization: The registered company is North Stage Consulting.
+  evidence.company_registry.findings.controlled_by: Selin controls the company.
+  evidence.workspace_admin_log.title: Workspace administration log
+  evidence.workspace_admin_log.description: Administrative activity on Orhan's production workspace.
+  evidence.workspace_admin_log.findings.actor: Selin's administrator account performed the action.
+  evidence.workspace_admin_log.findings.action: The action was a deletion request.
+  evidence.workspace_admin_log.findings.target: The request targeted Orhan's entire production workspace.
+  evidence.payment_ledger.title: Production payment ledger
+  evidence.payment_ledger.description: A surviving account record of outgoing production payments.
+  evidence.payment_ledger.findings.payments_diverted_to: The ledger confirms that payments were diverted to North Stage Consulting.
+  deadlines.workspace_deletion.label: Orhan's workspace deletion
+  deadlines.baran_detention.label: Baran's police detention
+  deadlines.selin_departure.label: Selin's departure
+  places.main_stage.name: Main stage
+  places.stage_left.name: Stage left
+  places.control_booth.name: Automation booth
+  places.backstage.name: Backstage
+  places.costume_room.name: Costume room
+  places.interview_studio.name: Interview studio
+  places.opposite_cafe.name: Café across the street
+  conversations.orhan.states.deceased.reason: Orhan is deceased and cannot be interviewed.
+  conversations.baran.states.detained.reason: Police detained Baran; he is no longer reachable for questioning.
+  conversations.selin.states.escaped.reason: Selin has left the scene and cannot be reached.
+  assessment.bands.exemplary: Model investigation
+  assessment.bands.strong_with_cost: Strong, but left a mark
+  assessment.bands.fragile: A result with a fragile method
+  assessment.bands.reconsider: Method needs review
+  assessment.categories.evidence_reasoning: Evidence and reasoning
+  assessment.categories.intervention_protection: Intervention and protection
+  assessment.categories.procedure_people: Procedure and people
+  assessment.categories.time_management: Time management
+  assessment.criteria.baran_operator.met: You proved that Baran could not have issued the automation command.
+  assessment.criteria.baran_operator.missed: The evidence chain excluding Baran from the automation command was not completed.
+  assessment.criteria.culprit.met: You established with a complete evidence chain that Selin killed Orhan.
+  assessment.criteria.culprit.missed: The person responsible for the murder was not established with evidence.
+  assessment.criteria.death_cause.met: You used the technical records to show that the death was not an accident.
+  assessment.criteria.death_cause.missed: Whether the death was deliberate remained unresolved.
+  assessment.criteria.financial_motive.met: You verified Selin's financial motive through company and payment records.
+  assessment.criteria.financial_motive.missed: The financial motive was not connected to the evidence chain.
+  assessment.criteria.preparation.met: You proved that Selin prepared the system before the murder.
+  assessment.criteria.preparation.missed: Advance preparation for the murder was not established.
+  assessment.criteria.selin_alibi.met: You found that Selin's livestream alibi relied on an older recording.
+  assessment.criteria.selin_alibi.missed: Selin's livestream alibi was not tested technically.
+  assessment.criteria.preserve_finance.met: You preserved Orhan's financial workspace before it was deleted.
+  assessment.criteria.preserve_finance.missed: Orhan's financial records were not preserved.
+  assessment.criteria.stop_selin.met: You completed the final action before Selin left the scene.
+  assessment.criteria.stop_selin.missed: Selin left before the final action could stop her.
+  assessment.criteria.clear_leyla.met: You kept Leyla outside the accusation by completing the preparation chain.
+  assessment.criteria.clear_leyla.missed: Leyla carried an unnecessary accusation, or the chain clearing her was incomplete.
+  assessment.criteria.protect_baran.met: You cleared Baran with evidence and prevented accusation or detention harm.
+  assessment.criteria.protect_baran.missed: Baran was accused, detained, or left without the evidence chain that cleared him.
+  assessment.criteria.avoid_detention.met: You completed the evidence before Baran's detention deadline.
+  assessment.criteria.avoid_detention.missed: Baran was detained because the investigation took too long.
+  assessment.criteria.preserve_before_deletion.met: You prevented the workspace loss before the deletion deadline.
+  assessment.criteria.preserve_before_deletion.missed: The deletion deadline passed and the financial workspace was lost.
+  assessment.criteria.stop_departure.met: You progressed before Selin's departure deadline.
+  assessment.criteria.stop_departure.missed: Selin left before the investigation was completed.
+  outcomes.full_curtain.title: Full Curtain
+  outcomes.full_curtain.body: Selin is stopped with the full case proved. Orhan's financial records survive, and neither Baran nor Leyla pays for the setup.
+  outcomes.bitter_applause.title: Bitter Applause
+  outcomes.bitter_applause.body: Selin is stopped and the murder is solved, but an innocent person was accused or detained along the way.
+  outcomes.truth_too_late.title: Truth Found, Killer Gone
+  outcomes.truth_too_late.body: You proved that Selin killed Orhan, but she left before the conclusion could stop her.
+  outcomes.killer_found.title: Killer Identified
+  outcomes.killer_found.body: Selin is identified and stopped, but Orhan's financial evidence was lost before it could be preserved.
+  outcomes.wrong_stage.title: Wrong Stage
+  outcomes.wrong_stage.body: The case closes on Baran or Leyla while Selin leaves with the real plan hidden.

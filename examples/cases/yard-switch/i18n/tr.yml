@@ -1,0 +1,14 @@
+schema: case-i18n/v0.1
+case: {id: examples.yard-switch, version: 0.1.1}
+locale: tr
+messages:
+  case.title: Makas Hattı
+  case.synopsis: >-
+    Bir lokomotif güzergâh izni verilmeden önce dolu servis hattına girdi.
+    Kayıt silinmeden önce saatleri, makas konumunu ve telsiz sırasını uzlaştır.
+  opening.call: >-
+    406 numaralı lokomotif C-4 servis hattındaki ekipmana ramak kala durdu.
+    Saha makası, kayıt cihazı ve izin saatleri uyuşmuyor; kayıt beş vaka
+    dakikası içinde üzerine yazılacak. Kaydı koru ve olay sırasını kur.
+  outcomes.record_overwritten.title: Kayıt üzerine yazıldı
+  outcomes.sequence_reconstructed.title: Olay sırası yeniden kuruldu

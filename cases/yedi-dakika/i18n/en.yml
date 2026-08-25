@@ -1,0 +1,187 @@
+schema: case-i18n/v0.1
+case: {id: community.fka.yedi-dakika, version: 0.4.1}
+locale: en
+messages:
+  case.title: Seven Minutes
+  case.synopsis: >-
+    A red interview file disappears from a newsroom. The lobby recording first
+    points to photographer Mert after an argument with the editor, but the
+    video, printer, and building records disagree about the timing. The file is
+    among confidential boxes due for pickup at 21:45.
+  opening.call: >-
+    The red file is gone. Mert argued with me over his unpaid fee and walked
+    out; the lobby camera shows him leaving, but I have not exported any record
+    yet. The file contains the only clean copy of an unpublished interview.
+    The blue confidential boxes will be collected at 21:45 and taken straight
+    to the shredder. I can access the newsroom systems; tell me which record
+    you want first.
+  places.newsroom.name: Newsroom
+  places.floor_four.name: Fourth floor
+  places.lobby.name: Lobby
+  places.service_corridor.name: Service corridor
+  places.karakoy_cafe.name: Karaköy Coffee
+  places.shredding_center.name: Central shredding facility
+  places.finance_floor.name: Finance floor
+  conversations.mert.refusing.reason: Mert refuses to speak after being accused.
+  affordances.interview_leyla.label: Take Leyla's initial statement
+  affordances.interview_nihan.label: Ask Nihan about the missing file
+  affordances.interview_mert_location.label: Ask Mert where he went after the argument
+  affordances.request_lobby_video.label: Ask Leyla for the lobby camera recording
+  affordances.request_camera_sync.label: Request the CAM-L01 clock synchronization report
+  affordances.request_printer_log.label: Request the central printer job log
+  affordances.accuse_mert.label: Record Mert as the suspect — risky
+  affordances.apologize_mert.label: Apologize to Mert for the false accusation
+  affordances.request_access_log.label: Request the fourth-floor access log
+  affordances.request_desk_camera.label: Request the editorial desk camera recording
+  affordances.request_interview_draft.label: Request interview draft v12
+  affordances.request_facilities_chat.label: Request the confidential-box correspondence
+  affordances.search_redaction_warning.label: Search the mail archive for the redaction warning
+  affordances.search_building_route.label: Look up the confidential blue box's building route
+  affordances.present_draft_to_nihan.label: Show Nihan the draft empathetically
+  affordances.recover_box_b11.label: Send an emergency recovery order for box B-11 — risky
+  affordances.conclude_mediate.label: Order a mediated recovery that protects the file and source
+  affordances.conclude_security.label: Send security to recover box B-17
+  affordances.deduce_camera_time.label: Synchronize the camera clock and calculate the real exit time
+  affordances.deduce_mert_no_opportunity.label: Test whether Mert had an opportunity to take the file
+  affordances.deduce_nihan_took_file.label: Infer who took the file from the fourth-floor records
+  affordances.deduce_nihan_protected_source.label: Evaluate Nihan's real motive
+  affordances.deduce_file_in_b17.label: Match the confession to the building route
+  affordances.deduce_full_explanation.label: Assemble the complete explanation
+  affordances.deduce_camera_time.result: The camera was seven minutes fast. Mert's real exit time was 20:57.
+  affordances.deduce_mert_no_opportunity.result: Mert left the building at 20:57; printing of the red file finished at 20:59:06. He had no opportunity to take it.
+  affordances.deduce_nihan_took_file.result: Nihan entered the fourth floor seconds before the file was removed. The access and camera records confirm that she took the red file.
+  affordances.deduce_nihan_protected_source.result: The draft exposed the confidential source, and Nihan had already asked for that information to be removed. She took the file to protect the source.
+  affordances.deduce_file_in_b17.result: The box in Nihan's confession matches the fourth-floor box in the building route. The red file is in box B-17.
+  affordances.deduce_full_explanation.result: Mert left before the file was printed. Nihan took it to protect the confidential source and placed it in box B-17.
+  affordances.interview_leyla.result: Leyla says Mert argued about his unpaid fee and left near the time the file disappeared.
+  affordances.interview_nihan.result: Nihan denies taking the file and gives no clear reason for being on the fourth floor.
+  affordances.interview_mert_location.result: Mert says he left at 20:57 and paid at Karaköy Coffee minutes later. He sends his receipt.
+  affordances.request_lobby_video.result: The lobby recording is ready to inspect in Files.
+  affordances.request_camera_sync.result: The maintenance email about CAM-L01's clock is ready to inspect.
+  affordances.request_printer_log.result: The verified central printer record is ready to inspect.
+  affordances.accuse_mert.confirmation: Record Mert as the suspect? He may refuse further questions, and a false accusation will remain part of the case.
+  affordances.apologize_mert.result: Mert accepts the apology and is willing to speak again, although some trust is lost.
+  affordances.request_access_log.result: The fourth-floor access record is ready to inspect.
+  affordances.request_desk_camera.result: The editorial desk camera recording is ready to inspect.
+  affordances.request_interview_draft.result: Interview draft v12 is ready to inspect.
+  affordances.request_facilities_chat.result: The facilities correspondence about confidential boxes is ready to inspect.
+  affordances.search_redaction_warning.result: An unanswered redaction warning from Nihan was found in the mail archive.
+  affordances.search_building_route.result: The building route for the fourth floor's confidential blue box was found.
+  affordances.present_draft_to_nihan.result: Nihan admits taking the file to protect the exposed source and says she placed it in box B-17.
+  affordances.recover_box_b11.confirmation: Send the recovery order for B-11 and end the case? If the box number is wrong, the real file will be destroyed.
+  affordances.conclude_mediate.confirmation: Order the mediated recovery and end the case? This protects the source and avoids treating Nihan as a thief.
+  affordances.conclude_security.confirmation: Send security to B-17 and end the case? The file should be recovered, but Nihan will be suspended and the source may be exposed.
+  evidence.lobby_video.title: Lobby camera recording
+  evidence.lobby_video.description: CAM-L01 footage showing Mert leaving the building after the argument.
+  evidence.lobby_video.findings.actor: The person leaving is Mert.
+  evidence.lobby_video.findings.screen_exit_at: The camera timestamp shows Mert exiting at 21:04.
+  evidence.lobby_video.findings.continuity: The recording is continuous, with no missing frames around the exit.
+  evidence.camera_sync_notice.title: CAM-L01 clock notice
+  evidence.camera_sync_notice.description: A maintenance email about the lobby camera's clock synchronization.
+  evidence.camera_sync_notice.findings.device: The notice applies to lobby camera CAM-L01.
+  evidence.camera_sync_notice.findings.clock_offset: Its clock was seven minutes fast.
+  evidence.camera_sync_notice.findings.measured_at: The offset was measured at 18:12 on the same day.
+  evidence.camera_sync_notice.findings.correction_status: The correction was still pending when the file disappeared.
+  evidence.printer_log.title: Central printer log
+  evidence.printer_log.description: A signed job record from editorial printer PRN-ED04.
+  evidence.printer_log.findings.object: The completed job was the red interview file.
+  evidence.printer_log.findings.completed_at: Printing finished at 20:59:06.
+  evidence.printer_log.findings.pages: The job contained 46 pages.
+  evidence.printer_log.findings.clock_source: The printer used the central time server, so its timestamp is reliable.
+  evidence.mert_receipt.title: Mert's café receipt
+  evidence.mert_receipt.description: A payment receipt sent by Mert after his interview.
+  evidence.mert_receipt.findings.actor: The payment belongs to Mert.
+  evidence.mert_receipt.findings.place: It was made at Karaköy Coffee.
+  evidence.mert_receipt.findings.paid_at: The payment completed at 21:01:12.
+  evidence.mert_receipt.findings.payment: It was a contactless payment, creating an automatic timestamp.
+  evidence.access_log.title: Fourth-floor access log
+  evidence.access_log.description: Building access records from the minutes when the file vanished.
+  evidence.access_log.findings.actor: The recorded badge belongs to Nihan.
+  evidence.access_log.findings.entered_at: Nihan entered the fourth floor at 21:03:14.
+  evidence.access_log.findings.service_corridor_at: Her badge reached the service corridor at 21:08:51.
+  evidence.desk_camera.title: Editorial desk camera
+  evidence.desk_camera.description: CAM-E04 footage covering the desk where the red file was left.
+  evidence.desk_camera.findings.visible_at: The red file was still on the desk at 21:02:09.
+  evidence.desk_camera.findings.file_removed_at: Someone removed it at 21:04:01.
+  evidence.desk_camera.findings.direction: The person carried the file toward the service corridor.
+  evidence.desk_camera.findings.visible_actor: Only a light-colored sleeve is visible; the person's face is not.
+  evidence.interview_draft.title: Interview draft v12
+  evidence.interview_draft.description: The missing red file's digital draft.
+  evidence.interview_draft.findings.document: This is version 12 of the unpublished interview.
+  evidence.interview_draft.findings.source_identity_exposed: The draft exposes the confidential source's identity.
+  evidence.interview_draft.findings.exposed_person: The exposed source is Can Koral.
+  evidence.interview_draft.findings.exposed_locations: It also names two places connected to the source.
+  evidence.nihan_warning.title: Nihan's redaction warning
+  evidence.nihan_warning.description: An email asking Leyla to remove source details from interview draft v12.
+  evidence.nihan_warning.findings.sent_by: Nihan sent the warning.
+  evidence.nihan_warning.findings.sent_at: She sent it on 12 August at 16:26.
+  evidence.nihan_warning.findings.requested_redaction: She specifically asked for the source's identity to be removed.
+  evidence.nihan_warning.findings.acknowledged: Leyla never acknowledged the warning.
+  evidence.facilities_chat.title: Confidential-box correspondence
+  evidence.facilities_chat.description: Nihan's earlier messages with building facilities.
+  evidence.facilities_chat.findings.actor: Nihan asked the facilities team for information.
+  evidence.facilities_chat.findings.asked_about: She asked about a blue confidential-document box.
+  evidence.facilities_chat.findings.pickup_at: The boxes are due for pickup at 21:45.
+  evidence.facilities_chat.findings.lookup: Facilities told her to use the confidential blue route lookup.
+  evidence.building_route.title: Confidential blue box route
+  evidence.building_route.description: The building's routing entry for confidential boxes on the fourth floor.
+  evidence.building_route.findings.place: The route starts on the fourth floor.
+  evidence.building_route.findings.department: It belongs to the newsroom department.
+  evidence.building_route.findings.box: The fourth-floor blue confidential box is B-17.
+  evidence.building_route.findings.pickup_at: Box B-17 will be collected at 21:45.
+  evidence.nihan_confession.title: Nihan's confession
+  evidence.nihan_confession.description: Nihan's full statement after she is shown the exposed source details.
+  evidence.nihan_confession.findings.took: Nihan admits taking the red file.
+  evidence.nihan_confession.findings.placed_in: She says she placed it in confidential box B-17.
+  evidence.nihan_confession.findings.intent: She acted to protect the source, not to steal the interview.
+  evidence.recovered_file.title: Recovered red file
+  evidence.recovered_file.description: The physical interview file removed from the confidential collection route.
+  evidence.recovered_file.findings.recovered_from: The file was recovered from box B-17.
+  evidence.recovered_file.findings.pages: All 46 pages are present.
+  evidence.recovered_file.findings.source_identity_exposed: The pages still expose the confidential source's identity.
+  evidence.recovered_file.findings.seal_intact: The box seal was intact before recovery.
+  deadlines.document_pickup.label: Confidential-box pickup
+  assessment.bands.exemplary: Model investigation
+  assessment.bands.strong_with_cost: Strong, but left a mark
+  assessment.bands.fragile: A result with a fragile method
+  assessment.bands.reconsider: Method needs review
+  assessment.categories.evidence_reasoning: Evidence and reasoning
+  assessment.categories.intervention_protection: Intervention and protection
+  assessment.categories.procedure_people: Procedure and people
+  assessment.categories.time_management: Time management
+  assessment.criteria.camera_time.met: You verified the seven-minute difference in the camera clock.
+  assessment.criteria.camera_time.missed: You continued without matching the camera clock to real time.
+  assessment.criteria.full_chain.met: You explained why the file was taken with a complete evidence chain.
+  assessment.criteria.full_chain.missed: The full explanation was not established with evidence.
+  assessment.criteria.identify_nihan.met: You confirmed with two records that Nihan took the file.
+  assessment.criteria.identify_nihan.missed: Who took the file was not established.
+  assessment.criteria.locate_file.met: You found that the red file was in box B-17.
+  assessment.criteria.locate_file.missed: The file's real location was not proved.
+  assessment.criteria.mert_opportunity.met: You showed that Mert had no opportunity to take the file.
+  assessment.criteria.mert_opportunity.missed: Mert's opportunity was not tested against the records.
+  assessment.criteria.source_motive.met: You established that Nihan was trying to protect the source.
+  assessment.criteria.source_motive.missed: The reason for Nihan's behavior remained unexplained.
+  assessment.criteria.protect_nihan.met: You protected Nihan from unnecessary institutional damage.
+  assessment.criteria.protect_nihan.missed: Nihan carried the cost of the investigation even if the file was recovered.
+  assessment.criteria.protect_source.met: The confidential source's identity was protected before publication.
+  assessment.criteria.protect_source.missed: The confidential source's identity remained exposed.
+  assessment.criteria.recover_file.met: You recovered the red file before collection time.
+  assessment.criteria.recover_file.missed: The red file was not recovered.
+  assessment.criteria.avoid_early_accusation.met: You did not start action against Mert before building the evidence chain.
+  assessment.criteria.avoid_early_accusation.missed: You reported Mert as a suspect before completing the deduction that cleared him.
+  assessment.criteria.keep_contact_open.met: The line of communication with Mert was open when the case ended.
+  assessment.criteria.keep_contact_open.missed: Contact with Mert was never repaired after the early accusation.
+  assessment.criteria.beat_pickup.met: You acted before the confidential-record pickup time.
+  assessment.criteria.beat_pickup.missed: The 21:45 deadline passed and the boxes were collected.
+  assessment.criteria.correct_intervention.met: You did not direct the emergency action to the wrong box.
+  assessment.criteria.correct_intervention.missed: The emergency order was sent to B-11 instead of B-17.
+  outcomes.all_protected.title: Names Removed
+  outcomes.all_protected.body: The file is recovered through mediation. Mert is cleared, Nihan is protected, and the source details are removed before publication.
+  outcomes.protected_with_scar.title: Right Result, Late Apology
+  outcomes.protected_with_scar.body: The file and source are protected, but Mert leaves the case carrying a false accusation that came before the evidence.
+  outcomes.security_result.title: File Found, Damage Done
+  outcomes.security_result.body: Security recovers the file from B-17, but Nihan is suspended and the confidential source remains exposed.
+  outcomes.wrong_box_result.title: B-11
+  outcomes.wrong_box_result.body: The emergency order targets the finance box. The real file stays in B-17 and is destroyed at pickup.
+  outcomes.deadline_result.title: "21:45"
+  outcomes.deadline_result.body: The collection vehicle takes the confidential boxes. The red file reaches the shredder before it can be recovered.

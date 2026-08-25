@@ -1,0 +1,66 @@
+schema: case-test/v0.1
+case: {id: community.fka.yedi-dakika, version: 0.4.1}
+
+scenario:
+  id: action_costs_reach_deadline
+  perspective: detective
+  description: Optional interviews, a false accusation, and unfocused searches consume enough time for the pickup to happen.
+  steps:
+    - detective.act: {action: interview, actor: leyla}
+    - detective.act: {action: interview, actor: nihan}
+    - detective.act: {action: interview, actor: mert, topic: location}
+      expect:
+        state:
+          clocks: {case-time: 8m}
+
+    - detective.act: {action: request, from: leyla, topic: lobby-video}
+    - detective.observe: lobby_video
+    - detective.act: {action: report-suspect, target: mert}
+      expect:
+        state:
+          clocks: {case-time: 16m}
+
+    - detective.act: {action: request, from: leyla, topic: camera-sync}
+    - detective.observe: camera_sync_notice
+    - detective.deduce: camera_time_corrected
+    - detective.act: {action: request, from: leyla, topic: printer-log}
+    - detective.observe: printer_log
+    - detective.deduce: mert_no_opportunity
+    - detective.act: {action: apologize, target: mert}
+      expect:
+        state:
+          clocks: {case-time: 21m}
+
+    - detective.act: {action: request, from: leyla, topic: access-log}
+    - detective.act: {action: request, from: leyla, topic: desk-camera}
+    - detective.observe: access_log
+    - detective.observe: desk_camera
+    - detective.deduce: nihan_took_file
+    - detective.act: {action: request, from: leyla, topic: interview-draft}
+    - detective.observe: interview_draft
+    - detective.act: {action: request, from: leyla, topic: facilities-chat}
+      expect:
+        state:
+          clocks: {case-time: 29m}
+
+    - detective.observe: facilities_chat
+    - detective.act:
+        action: search
+        query: "interview_draft_v12 redaction warning"
+    - detective.act: {action: search, query: "blue box pickup manifest"}
+      expect:
+        state:
+          clocks: {case-time: 33m}
+          final_conclusion: null
+          outcome: null
+    - detective.act: {action: search, query: "newsroom archive index"}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 35m}
+          final_conclusion: null
+          outcome: deadline_result
+          affordances:
+            recover_box_b11: hidden
+            conclude_mediate: hidden
+            conclude_security: hidden

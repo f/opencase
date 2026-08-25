@@ -1,0 +1,555 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://karanlik-oda.local/schema/case-source.v0.1.schema.json",
+  "title": "dedektif human-authored case source",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "case",
+    "use",
+    "cast",
+    "places",
+    "things",
+    "truth",
+    "perspectives",
+    "opening",
+    "evidence",
+    "deductions",
+    "flags",
+    "reactions",
+    "deadlines",
+    "objectives",
+    "outcomes"
+  ],
+  "properties": {
+    "schema": {"const": "case-source/v0.1"},
+    "case": {"$ref": "#/definitions/case"},
+    "use": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z][a-z0-9-]*@[1-9][0-9]*$"}
+    },
+    "authoring": {"type": "object"},
+    "assessment": {"$ref": "#/definitions/assessment"},
+    "assets": {
+      "type": "object",
+      "propertyNames": {"$ref": "#/definitions/id"},
+      "additionalProperties": {"$ref": "#/definitions/asset"}
+    },
+    "cast": {"$ref": "#/definitions/namedMap"},
+    "conversations": {"$ref": "#/definitions/map"},
+    "affordances": {
+      "type": "object",
+      "propertyNames": {"$ref": "#/definitions/id"},
+      "additionalProperties": {"$ref": "#/definitions/affordance"}
+    },
+    "places": {"$ref": "#/definitions/namedMap"},
+    "things": {"$ref": "#/definitions/namedMap"},
+    "truth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["events", "facts"],
+      "properties": {
+        "events": {"$ref": "#/definitions/nonEmptyMap"},
+        "facts": {"$ref": "#/definitions/map"}
+      }
+    },
+    "perspectives": {"$ref": "#/definitions/map"},
+    "opening": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["call", "grants", "starts"],
+      "properties": {
+        "call": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["from", "text"],
+          "properties": {
+            "from": {"$ref": "#/definitions/id"},
+            "text": {"$ref": "#/definitions/translatableText"}
+          }
+        },
+        "grants": {"$ref": "#/definitions/idList"},
+        "starts": {"$ref": "#/definitions/idList"}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/definitions/evidence"}
+    },
+    "deductions": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/definitions/deduction"}
+    },
+    "flags": {"$ref": "#/definitions/idList"},
+    "reactions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["on", "do"],
+        "properties": {
+          "id": {"$ref": "#/definitions/id"},
+          "priority": {"type": "integer"},
+          "on": {"type": "object"},
+          "when": {"type": "object"},
+          "unless": {"type": "object"},
+          "once": {"type": "boolean"},
+          "do": {"type": "array", "items": {"type": "object"}}
+        },
+        "additionalProperties": false
+      }
+    },
+    "deadlines": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/definitions/deadline"}
+    },
+    "objectives": {"$ref": "#/definitions/nonEmptyMap"},
+    "outcomes": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/definitions/outcome"}
+    }
+  },
+  "definitions": {
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$"},
+    "translationKey": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*(?:\\.[a-z][a-z0-9_-]*)+$"
+    },
+    "textReference": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["$text"],
+          "properties": {"$text": {"$ref": "#/definitions/translationKey"}}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["$t"],
+          "properties": {"$t": {"$ref": "#/definitions/translationKey"}}
+        }
+      ]
+    },
+    "translatableText": {
+      "oneOf": [
+        {"type": "string", "minLength": 1},
+        {"$ref": "#/definitions/textReference"}
+      ]
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_score", "bands", "categories"],
+      "properties": {
+        "max_score": {"type": "integer", "minimum": 1},
+        "bands": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/definitions/assessmentBand"}
+        },
+        "categories": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"$ref": "#/definitions/id"},
+          "additionalProperties": {"$ref": "#/definitions/assessmentCategory"}
+        }
+      }
+    },
+    "assessmentBand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min_score", "label"],
+      "properties": {
+        "min_score": {"type": "integer", "minimum": 0},
+        "label": {"$ref": "#/definitions/translatableText"}
+      }
+    },
+    "assessmentCategory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "criteria"],
+      "properties": {
+        "label": {"$ref": "#/definitions/translatableText"},
+        "criteria": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"$ref": "#/definitions/id"},
+          "additionalProperties": {"$ref": "#/definitions/assessmentCriterion"}
+        }
+      }
+    },
+    "assessmentCriterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["points", "when", "met", "missed"],
+      "properties": {
+        "points": {"type": "integer", "minimum": 1},
+        "when": {"type": "object", "minProperties": 1},
+        "met": {"$ref": "#/definitions/translatableText"},
+        "missed": {"$ref": "#/definitions/translatableText"}
+      }
+    },
+    "caseAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action"],
+      "properties": {
+        "action": {"type": "string", "minLength": 1},
+        "target": {"type": "string", "minLength": 1},
+        "actor": {"type": "string", "minLength": 1},
+        "from": {"type": "string", "minLength": 1},
+        "topic": {"type": "string", "minLength": 1},
+        "evidence": {"type": "string", "minLength": 1},
+        "tone": {"type": "string", "minLength": 1},
+        "query": {"type": "string", "minLength": 1},
+        "ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "affordance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "surface", "initial"],
+      "properties": {
+        "label": {"$ref": "#/definitions/translatableText"},
+        "result": {"$ref": "#/definitions/translatableText"},
+        "risk": {"enum": ["normal", "consequential", "terminal"]},
+        "confirmation": {"$ref": "#/definitions/translatableText"},
+        "surface": {"enum": ["phone", "web", "files", "casebook"]},
+        "initial": {"enum": ["offered", "withdrawn"]},
+        "action": {"$ref": "#/definitions/caseAction"},
+        "deduction": {"$ref": "#/definitions/id"},
+        "exclusive": {"type": "boolean"},
+        "cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["clock", "by"],
+          "properties": {
+            "clock": {"const": "case-time"},
+            "by": {"$ref": "#/definitions/duration"}
+          }
+        },
+        "once": {"type": "boolean"}
+      },
+      "oneOf": [
+        {"required": ["action"], "not": {"required": ["deduction"]}},
+        {"required": ["deduction"], "not": {"required": ["action"]}}
+      ]
+    },
+    "idList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/definitions/id"}
+    },
+    "map": {"type": "object", "additionalProperties": true},
+    "nonEmptyMap": {"type": "object", "minProperties": 1, "additionalProperties": true},
+    "namedMap": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"$ref": "#/definitions/id"},
+      "additionalProperties": {
+        "anyOf": [
+          {"$ref": "#/definitions/translatableText"},
+          {"type": "object", "minProperties": 1}
+        ]
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "title", "locale", "duration", "mode", "final_conclusion", "time", "synopsis"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"},
+        "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"},
+        "title": {"$ref": "#/definitions/translatableText"},
+        "locale": {"type": "string", "pattern": "^[a-z]{2}(?:-[A-Z]{2})?$"},
+        "duration": {"$ref": "#/definitions/duration"},
+        "mode": {"enum": ["elastic", "strict"]},
+        "final_conclusion": {"enum": ["first-write-wins", "replaceable"]},
+        "time": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["date", "timezone", "starts_at"],
+          "properties": {
+            "date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+            "timezone": {"type": "string", "minLength": 1},
+            "starts_at": {"$ref": "#/definitions/time"}
+          }
+        },
+        "synopsis": {"$ref": "#/definitions/translatableText"}
+      }
+    },
+    "duration": {"type": "string", "pattern": "^[1-9][0-9]*(?:s|m|h|d)$"},
+    "time": {"type": "string", "pattern": "^(?:[01][0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?$"},
+    "unlock": {
+      "anyOf": [
+        {"type": "string", "minLength": 1},
+        {"type": "object", "minProperties": 1}
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "reports"],
+      "properties": {
+        "tool": {"type": "string", "minLength": 1},
+        "presentation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["title", "findings"],
+          "properties": {
+            "title": {"$ref": "#/definitions/translatableText"},
+            "description": {"$ref": "#/definitions/translatableText"},
+            "findings": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": {"$ref": "#/definitions/translatableText"}
+            }
+          }
+        },
+        "at": {"const": "start"},
+        "unlock": {"$ref": "#/definitions/unlock"},
+        "expires_with": {"$ref": "#/definitions/id"},
+        "reports": {"type": "object", "minProperties": 1},
+        "assets": {"$ref": "#/definitions/idList"},
+        "omits": {"type": "array", "items": {"type": "string"}},
+        "reliability": {"type": "string", "minLength": 1}
+      },
+      "oneOf": [
+        {"required": ["at"], "not": {"required": ["unlock"]}},
+        {"required": ["unlock"], "not": {"required": ["at"]}}
+      ]
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "source", "mime_type", "visibility", "integrity"],
+      "properties": {
+        "kind": {"enum": ["image", "audio", "video", "document", "file"]},
+        "source": {
+          "type": "object",
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "required": ["local"],
+              "properties": {"local": {"type": "string", "minLength": 1}}
+            },
+            {
+              "additionalProperties": false,
+              "required": ["https"],
+              "properties": {"https": {"type": "string", "pattern": "^https://[^\\s]+$"}}
+            },
+            {
+              "additionalProperties": false,
+              "required": ["provider", "ref"],
+              "properties": {
+                "provider": {"$ref": "#/definitions/id"},
+                "ref": {"type": "string", "minLength": 1, "maxLength": 1024}
+              }
+            }
+          ]
+        },
+        "mime_type": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$"
+        },
+        "visibility": {"enum": ["public", "private"]},
+        "integrity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sha256"],
+          "properties": {"sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+        }
+      }
+    },
+    "deduction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conclude"],
+      "properties": {
+        "use": {"type": "string", "minLength": 1},
+        "with": {"type": "object"},
+        "conclude": {"type": "object", "minProperties": 1},
+        "prove": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["any"],
+          "properties": {
+            "any": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"$ref": "#/definitions/proofAlternative"}
+            }
+          }
+        },
+        "require": {"$ref": "#/definitions/idList"}
+      },
+      "anyOf": [
+        {"required": ["use", "with"]},
+        {"required": ["prove"]},
+        {"required": ["require"]}
+      ]
+    },
+    "proofAlternative": {
+      "oneOf": [
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["terms", "checks"],
+          "properties": {
+            "terms": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 1}
+            },
+            "checks": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"$ref": "#/definitions/proofCheck"}
+            }
+          }
+        }
+      ]
+    },
+    "proofCheck": {
+      "oneOf": [
+        {"$ref": "#/definitions/equalsCheck"},
+        {"$ref": "#/definitions/notEqualsCheck"},
+        {"$ref": "#/definitions/lessThanCheck"},
+        {"$ref": "#/definitions/greaterThanCheck"},
+        {"$ref": "#/definitions/containsCheck"},
+        {"$ref": "#/definitions/countCheck"},
+        {"$ref": "#/definitions/beforeCheck"},
+        {"$ref": "#/definitions/afterCheck"}
+      ]
+    },
+    "equalsCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "equals"],
+      "properties": {"ref": {"type": "string", "minLength": 1}, "equals": {}}
+    },
+    "notEqualsCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "not_equals"],
+      "properties": {"ref": {"type": "string", "minLength": 1}, "not_equals": {}}
+    },
+    "lessThanCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "less_than"],
+      "properties": {
+        "ref": {"type": "string", "minLength": 1},
+        "less_than": {"type": "number"}
+      }
+    },
+    "greaterThanCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "greater_than"],
+      "properties": {
+        "ref": {"type": "string", "minLength": 1},
+        "greater_than": {"type": "number"}
+      }
+    },
+    "containsCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "contains"],
+      "properties": {"ref": {"type": "string", "minLength": 1}, "contains": {}}
+    },
+    "countCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "count"],
+      "properties": {
+        "ref": {"type": "string", "minLength": 1},
+        "count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "timeOperand": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ref"],
+          "properties": {"ref": {"type": "string", "minLength": 1}}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value"],
+          "properties": {"value": {"type": "string", "minLength": 1}}
+        }
+      ]
+    },
+    "beforeCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "before"],
+      "properties": {
+        "ref": {"type": "string", "minLength": 1},
+        "before": {"$ref": "#/definitions/timeOperand"}
+      }
+    },
+    "afterCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "after"],
+      "properties": {
+        "ref": {"type": "string", "minLength": 1},
+        "after": {"$ref": "#/definitions/timeOperand"}
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "priority"],
+      "properties": {
+        "title": {"$ref": "#/definitions/translatableText"},
+        "body": {"$ref": "#/definitions/translatableText"},
+        "priority": {"type": "number"},
+        "require": {"$ref": "#/definitions/idList"},
+        "unless": {"$ref": "#/definitions/idList"},
+        "final_target": {
+          "oneOf": [
+            {"$ref": "#/definitions/id"},
+            {"$ref": "#/definitions/idList"}
+          ]
+        },
+        "when_marked": {"$ref": "#/definitions/id"},
+        "when_any_marked": {"$ref": "#/definitions/idList"}
+      }
+    },
+    "deadline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clock", "offline", "do"],
+      "properties": {
+        "label": {"$ref": "#/definitions/translatableText"},
+        "clock": {"enum": ["wall", "case-time"]},
+        "after": {"$ref": "#/definitions/duration"},
+        "at": {"$ref": "#/definitions/time"},
+        "offline": {"enum": ["on-resume-once", "pause", "continue"]},
+        "cancel_on": {"$ref": "#/definitions/id"},
+        "do": {"type": "array", "minItems": 1, "items": {"type": "object"}}
+      },
+      "oneOf": [
+        {"required": ["after"], "not": {"required": ["at"]}},
+        {"required": ["at"], "not": {"required": ["after"]}}
+      ]
+    }
+  }
+}

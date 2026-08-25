@@ -1,0 +1,4 @@
+schema: case-i18n/v0.1
+case: {id: examples.ticking-clock, version: 0.1.1}
+locale: en
+messages: {}

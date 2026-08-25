@@ -1,0 +1,15 @@
+schema: case-i18n/v0.1
+case: {id: examples.archive-substitution, version: 0.1.0}
+locale: en
+messages:
+  case.title: The Hollow Return
+  case.synopsis: >-
+    A rare map folio comes back as a convincing substitute while the reader
+    named in the ledger appears to be preparing to leave by ferry.
+  opening.call: >-
+    The map folio AM-42 was returned, but its paper, binding, and inventory
+    label do not match our catalog image. The ledger names Eli Mercer, and the
+    last ferry leaves in fifteen minutes. Can you identify the reader and find
+    the original before departure?
+  outcomes.recovered.title: Original Folio Recovered
+  outcomes.departed.title: The Ferry Departed

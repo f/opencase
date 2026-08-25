@@ -1,0 +1,226 @@
+# Fictional food-fraud composite. See README.md for the official source notes.
+schema: case-source/v0.1
+
+case:
+  id: examples.olive-oil-lot
+  version: 0.1.1
+  title: {$text: case.title}
+  locale: en
+  duration: 25m
+  mode: elastic
+  final_conclusion: replaceable
+  time:
+    date: "2026-03-12"
+    timezone: UTC
+    starts_at: "09:15"
+  synopsis: {$text: case.synopsis}
+
+use: [investigation@1, comms@1, artifacts@1, virtual-web@1]
+
+assets:
+  lot-label:
+    kind: image
+    source: {local: assets/lot-label.png}
+    mime_type: image/png
+    visibility: public
+    integrity:
+      sha256: 96742dd140945d7de3d76c76ff8d821227f1e797802a08ca0284eefd720cccae
+  lab-panel:
+    kind: image
+    source: {local: assets/lab-panel.png}
+    mime_type: image/png
+    visibility: private
+    integrity:
+      sha256: c9d49cc4d7c78a6679ec058643a9f1e355c2fc37796dedf03219bacbbd6e28bc
+  batch-ledger:
+    kind: image
+    source: {local: assets/batch-ledger.png}
+    mime_type: image/png
+    visibility: private
+    integrity:
+      sha256: fc6e0417b10a77425c15c56d6dac11002f9cc305c9ae2aec39818bf4e8f15ec6
+
+cast:
+  lina: {name: Lina Morel, role: distributor quality lead, client: true}
+  omer: {name: Omer Saye, role: laboratory analyst}
+  rina: {name: Rina Voss, role: blending supervisor}
+
+places:
+  sample_room: Sample room
+  quality_lab: Quality laboratory
+  blending_hall: Blending hall
+
+things:
+  sealed_bottle: {type: container, name: Sealed bottle RL-204-A}
+  blending_tank: {type: mechanism, name: Blending tank B-7}
+  bottling_line: {type: mechanism, name: Bottling line 2}
+  lot_ledger: {type: document, name: RL-204 intake ledger}
+
+truth:
+  events:
+    premium_received:
+      {at: "06:40", type: material.received, actor: rina,
+       target: blending_tank, place: blending_hall}
+    industrial_base_added:
+      {at: "07:15", type: material.added, actor: rina,
+       target: blending_tank, place: blending_hall}
+    lot_bottled:
+      {at: "08:05", type: product.bottled, actor: rina,
+       target: bottling_line, object: sealed_bottle, place: blending_hall}
+    sample_sealed:
+      {at: "08:40", type: sample.sealed, actor: lina,
+       object: sealed_bottle, place: sample_room}
+  facts:
+    premium_input:
+      {relation: batch.input-volume, batch: blending_tank, material: premium-reserve,
+       value: 300-L}
+    base_input:
+      {relation: batch.input-volume, batch: blending_tank, material: industrial-base,
+       value: 900-L}
+    packaged_output:
+      {relation: batch.output-volume, batch: blending_tank, value: 1200-L}
+
+perspectives:
+  lina:
+    knows: [sample_sealed]
+    believes:
+      - {relation: label.incorrect, object: sealed_bottle, value: true,
+         confidence: 0.55}
+    says: {initial: []}
+  omer:
+    knows: []
+    believes: []
+    says: {initial: []}
+  rina:
+    knows: [premium_received, industrial_base_added, lot_bottled]
+    believes: []
+    says: {initial: []}
+
+opening:
+  call:
+    from: lina
+    text: {$text: opening.call}
+  grants: [label_photo, custody_seal]
+  starts: []
+
+evidence:
+  label_photo:
+    tool: image
+    at: start
+    assets: [lot-label]
+    reports:
+      object: sealed_bottle
+      lot: rl-204
+      declared_grade: premium-extra-virgin
+      declared_origin: north-valley
+
+  custody_seal:
+    tool: document
+    at: start
+    reports:
+      sample: sealed_bottle
+      lot: rl-204
+      seal_intact: true
+      collected_at: "08:40"
+
+  authenticity_panel:
+    tool: document
+    unlock: {request: authenticity-panel}
+    assets: [lab-panel]
+    reports:
+      sample: sealed_bottle
+      reference_match: false
+      profile: lower-grade-carrier-detected
+      estimated_undeclared_fraction: 0.75
+
+  batch_ledger:
+    tool: document
+    unlock: {search: "RL-204 intake ledger"}
+    assets: [batch-ledger]
+    reports:
+      document: lot_ledger
+      tank: blending_tank
+      premium_input_l: 300
+      source_lot: qx-91
+      additional_input_l: 900
+      output_l: 1200
+      handoff: bottling_line
+
+  supplier_invoice:
+    tool: document
+    unlock: {after: observe, ref: batch_ledger.source_lot}
+    reports:
+      source_lot: qx-91
+      invoiced_grade: industrial-base
+      received_volume: 900-L
+      destination: blending_tank
+
+deductions:
+  sample_is_traceable:
+    conclude: {sample: sealed_bottle, traceable_to_lot: rl-204}
+    prove:
+      any:
+        - terms: [label_photo.lot, custody_seal.lot, custody_seal.seal_intact]
+          checks:
+            - {ref: custody_seal.seal_intact, equals: true}
+
+  undeclared_oil_detected:
+    conclude:
+      {lot: rl-204, contains_undeclared_material: true,
+       estimated_fraction: 0.75}
+    require: [sample_is_traceable]
+    prove:
+      any:
+        - terms: [authenticity_panel.reference_match,
+                  authenticity_panel.profile,
+                  authenticity_panel.estimated_undeclared_fraction]
+          checks:
+            - {ref: authenticity_panel.reference_match, equals: false}
+            - {ref: authenticity_panel.estimated_undeclared_fraction,
+               greater_than: 0.5}
+
+  output_exceeds_premium_input:
+    conclude:
+      {lot: rl-204, premium_input_l: 300, packaged_output_l: 1200,
+       unexplained_without_second_input_l: 900}
+    prove:
+      any:
+        - terms: [batch_ledger.premium_input_l,
+                  batch_ledger.additional_input_l,
+                  batch_ledger.output_l]
+          checks:
+            - {ref: batch_ledger.additional_input_l, greater_than: 0}
+            - {ref: batch_ledger.output_l, greater_than: 300}
+
+  adulteration_confirmed:
+    use: investigation.composite-explanation
+    conclude: {incident: lot_bottled, explanation: undeclared-dilution}
+    require: [undeclared_oil_detected, output_exceeds_premium_input]
+
+  source_traced_to_tank:
+    conclude:
+      {source_lot: qx-91, grade: industrial-base, destination: blending_tank}
+    prove:
+      any:
+        - [batch_ledger.tank, batch_ledger.source_lot,
+           supplier_invoice.invoiced_grade, supplier_invoice.destination]
+
+flags: [bottling_line_named]
+reactions:
+  - id: record_premature_bottling_conclusion
+    on: {action: submit-conclusion, target: bottling_line}
+    once: true
+    do: [{mark: bottling_line_named}]
+deadlines: {}
+
+objectives:
+  verify_sample: {supported: sample_is_traceable}
+  establish_undeclared_material: {supported: adulteration_confirmed}
+  trace_source: {supported: source_traced_to_tank}
+
+outcomes:
+  traced_dilution:
+    title: {$text: outcomes.traced_dilution.title}
+    priority: 100
+    require: [verify_sample, establish_undeclared_material, trace_source]
+    final_target: blending_tank

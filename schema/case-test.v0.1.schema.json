@@ -1,0 +1,332 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://karanlik-oda.local/schema/case-test.v0.1.schema.json",
+  "title": "dedektif detective-perspective case test",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "case", "scenario"],
+  "properties": {
+    "schema": {"const": "case-test/v0.1"},
+    "case": {"$ref": "#/definitions/caseIdentity"},
+    "scenario": {"$ref": "#/definitions/scenario"}
+  },
+  "definitions": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "caseId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "positiveDuration": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*(?:s|m|h|d)$"
+    },
+    "elapsedDuration": {
+      "type": "string",
+      "pattern": "^(?:0s|[1-9][0-9]*(?:s|m|h|d))$"
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caseIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": {"$ref": "#/definitions/caseId"},
+        "version": {"$ref": "#/definitions/version"}
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "perspective", "steps"],
+      "properties": {
+        "id": {"$ref": "#/definitions/id"},
+        "perspective": {"const": "detective"},
+        "description": {"$ref": "#/definitions/nonEmptyString"},
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "contains": {
+            "type": "object",
+            "required": ["expect"]
+          },
+          "items": {"$ref": "#/definitions/step"}
+        }
+      }
+    },
+    "step": {
+      "oneOf": [
+        {"$ref": "#/definitions/observeStep"},
+        {"$ref": "#/definitions/actStep"},
+        {"$ref": "#/definitions/deduceStep"},
+        {"$ref": "#/definitions/concludeStep"},
+        {"$ref": "#/definitions/advanceStep"},
+        {"$ref": "#/definitions/resumeStep"},
+        {"$ref": "#/definitions/expectStep"}
+      ]
+    },
+    "observeStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["detective.observe"],
+      "properties": {
+        "detective.observe": {"$ref": "#/definitions/id"},
+        "expect": {"$ref": "#/definitions/expectation"}
+      }
+    },
+    "actStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["detective.act"],
+      "properties": {
+        "detective.act": {"$ref": "#/definitions/caseAction"},
+        "expect": {"$ref": "#/definitions/expectation"}
+      }
+    },
+    "deduceStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["detective.deduce"],
+      "properties": {
+        "detective.deduce": {"$ref": "#/definitions/id"},
+        "expect": {"$ref": "#/definitions/expectation"}
+      }
+    },
+    "concludeStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["detective.conclude"],
+      "properties": {
+        "detective.conclude": {"$ref": "#/definitions/nonEmptyString"},
+        "expect": {"$ref": "#/definitions/expectation"}
+      }
+    },
+    "advanceStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["detective.advance"],
+      "properties": {
+        "detective.advance": {"$ref": "#/definitions/advance"},
+        "expect": {"$ref": "#/definitions/expectation"}
+      }
+    },
+    "resumeStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["detective.resume"],
+      "properties": {
+        "detective.resume": {"$ref": "#/definitions/resume"},
+        "expect": {"$ref": "#/definitions/expectation"}
+      }
+    },
+    "expectStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expect"],
+      "properties": {
+        "expect": {"$ref": "#/definitions/stateOnlyExpectation"}
+      }
+    },
+    "caseAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action"],
+      "properties": {
+        "action": {"$ref": "#/definitions/nonEmptyString"},
+        "target": {"$ref": "#/definitions/nonEmptyString"},
+        "actor": {"$ref": "#/definitions/nonEmptyString"},
+        "from": {"$ref": "#/definitions/nonEmptyString"},
+        "topic": {"$ref": "#/definitions/nonEmptyString"},
+        "evidence": {"$ref": "#/definitions/nonEmptyString"},
+        "tone": {"$ref": "#/definitions/nonEmptyString"},
+        "query": {"$ref": "#/definitions/nonEmptyString"},
+        "ref": {"$ref": "#/definitions/nonEmptyString"}
+      }
+    },
+    "advance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clock", "by"],
+      "properties": {
+        "clock": {"enum": ["wall", "active", "case-time"]},
+        "by": {"$ref": "#/definitions/positiveDuration"}
+      }
+    },
+    "resume": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["after"],
+      "properties": {
+        "after": {"$ref": "#/definitions/positiveDuration"}
+      }
+    },
+    "expectation": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "result": {"$ref": "#/definitions/resultExpectation"},
+        "state": {"$ref": "#/definitions/stateExpectation"}
+      }
+    },
+    "stateOnlyExpectation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state"],
+      "properties": {
+        "state": {"$ref": "#/definitions/stateExpectation"}
+      }
+    },
+    "resultExpectation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status"],
+          "properties": {"status": {"const": "accepted"}}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "code"],
+          "properties": {
+            "status": {"const": "denied"},
+            "code": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
+          }
+        }
+      ]
+    },
+    "stateExpectation": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "status": {"enum": ["active", "ended"]},
+        "clocks": {"$ref": "#/definitions/clockExpectations"},
+        "affordances": {"$ref": "#/definitions/affordanceExpectations"},
+        "evidence": {"$ref": "#/definitions/evidenceExpectations"},
+        "observations": {"$ref": "#/definitions/observationExpectations"},
+        "unknown_observations": {"$ref": "#/definitions/idList"},
+        "deductions": {"$ref": "#/definitions/deductionExpectations"},
+        "final_conclusion": {
+          "anyOf": [
+            {"$ref": "#/definitions/nonEmptyString"},
+            {"type": "null"}
+          ]
+        },
+        "outcome": {
+          "anyOf": [
+            {"$ref": "#/definitions/id"},
+            {"type": "null"}
+          ]
+        },
+        "assessment": {
+          "anyOf": [
+            {"$ref": "#/definitions/assessmentExpectation"},
+            {"type": "null"}
+          ]
+        }
+      }
+    },
+    "assessmentExpectation": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "score": {"type": "integer", "minimum": 0},
+        "max_score": {"type": "integer", "minimum": 1},
+        "band_label": {"$ref": "#/definitions/nonEmptyString"}
+      }
+    },
+    "clockExpectations": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "wall": {"$ref": "#/definitions/elapsedDuration"},
+        "active": {"$ref": "#/definitions/elapsedDuration"},
+        "case-time": {"$ref": "#/definitions/elapsedDuration"}
+      }
+    },
+    "affordanceExpectations": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"$ref": "#/definitions/id"},
+      "additionalProperties": {"enum": ["offered", "hidden"]}
+    },
+    "evidenceExpectations": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"$ref": "#/definitions/id"},
+      "additionalProperties": {"$ref": "#/definitions/evidenceExpectation"}
+    },
+    "evidenceExpectation": {
+      "oneOf": [
+        {"enum": ["hidden", "available", "observed"]},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status"],
+          "properties": {
+            "status": {"enum": ["hidden", "available", "observed"]},
+            "assets": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {"$ref": "#/definitions/id"}
+            }
+          }
+        }
+      ]
+    },
+    "observationExpectations": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"$ref": "#/definitions/observationId"},
+      "additionalProperties": {"$ref": "#/definitions/jsonValue"}
+    },
+    "observationId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "idList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/definitions/observationId"}
+    },
+    "deductionExpectations": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"$ref": "#/definitions/id"},
+      "additionalProperties": {"enum": ["supported", "unknown"]}
+    },
+    "jsonValue": {
+      "anyOf": [
+        {"type": "string"},
+        {"type": "number"},
+        {"type": "boolean"},
+        {"type": "null"},
+        {
+          "type": "array",
+          "items": {"$ref": "#/definitions/jsonValue"}
+        },
+        {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/definitions/jsonValue"}
+        }
+      ]
+    }
+  }
+}

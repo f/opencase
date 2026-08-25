@@ -1,0 +1,4 @@
+schema: case-i18n/v0.1
+case: {id: examples.first-clue, version: 0.1.0}
+locale: en
+messages: {}

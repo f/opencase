@@ -1,0 +1,28 @@
+schema: case-test/v0.1
+
+case:
+  id: examples.ticking-clock
+  version: 0.1.1
+
+scenario:
+  id: repeat_observation_is_denied
+  perspective: detective
+  description: A detective cannot observe the same evidence twice.
+  steps:
+    - detective.observe: alarm_report
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            alarm_report: observed
+
+    - detective.observe: alarm_report
+      expect:
+        result:
+          status: denied
+          code: evidence-already-observed
+        state:
+          evidence:
+            alarm_report: observed
+          observations:
+            alarm_report.threatened: notebook

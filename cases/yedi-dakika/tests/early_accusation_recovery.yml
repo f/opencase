@@ -1,0 +1,79 @@
+schema: case-test/v0.1
+case: {id: community.fka.yedi-dakika, version: 0.4.1}
+
+scenario:
+  id: early_accusation_recovery
+  perspective: detective
+  steps:
+    - detective.act: {action: request, from: leyla, topic: lobby-video}
+    - detective.observe: lobby_video
+
+    - detective.act: {action: report-suspect, target: mert}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 8m}
+          evidence:
+            access_log: hidden
+            desk_camera: hidden
+          affordances:
+            interview_mert_location: hidden
+            apologize_mert: hidden
+
+    - detective.act: {action: request, from: leyla, topic: camera-sync}
+    - detective.observe: camera_sync_notice
+    - detective.deduce: camera_time_corrected
+    - detective.act: {action: request, from: leyla, topic: printer-log}
+    - detective.observe: printer_log
+    - detective.deduce: mert_no_opportunity
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {mert_no_opportunity: supported}
+          affordances:
+            apologize_mert: offered
+            request_access_log: offered
+            request_desk_camera: offered
+
+    - detective.act: {action: apologize, target: mert}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 13m}
+
+    - detective.act: {action: request, from: leyla, topic: access-log}
+    - detective.act: {action: request, from: leyla, topic: desk-camera}
+    - detective.observe: access_log
+    - detective.observe: desk_camera
+    - detective.deduce: nihan_took_file
+    - detective.act: {action: request, from: leyla, topic: interview-draft}
+    - detective.observe: interview_draft
+    - detective.act:
+        action: search
+        query: "interview_draft_v12 redaction warning"
+    - detective.observe: nihan_warning
+    - detective.deduce: nihan_protected_source
+    - detective.act: {action: request, from: leyla, topic: facilities-chat}
+    - detective.observe: facilities_chat
+    - detective.act:
+        action: present
+        target: nihan
+        evidence: interview_draft
+        tone: empathetic
+    - detective.observe: nihan_confession
+    - detective.act:
+        action: search
+        query: "confidential-blue-route floor-four"
+    - detective.observe: building_route
+    - detective.deduce: file_in_b17
+    - detective.deduce: full_explanation
+    - detective.conclude: mediate
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 28m}
+          final_conclusion: mediate
+          outcome: protected_with_scar
+          assessment: {score: 85, max_score: 100}
+          deductions: {full_explanation: supported}
+          evidence: {recovered_file: available}

@@ -1,0 +1,84 @@
+# Adds one ImageGen-produced, verified local evidence photograph.
+schema: case-source/v0.1
+
+case:
+  id: examples.evidence-image
+  version: 0.1.0
+  title: Locker Four
+  locale: en
+  duration: 5m
+  mode: elastic
+  final_conclusion: first-write-wins
+  time:
+    date: "2026-01-01"
+    timezone: UTC
+    starts_at: "11:00"
+  synopsis: A torn note points to the locker holding a missing key.
+
+use: [investigation@1, artifacts@1]
+
+assets:
+  locker-note:
+    kind: image
+    source: {local: assets/locker-note.png}
+    mime_type: image/png
+    visibility: public
+    integrity:
+      sha256: 844989f41cae4e244c0455771e5773f7a95d2d4f2b766a06c081b9b40a0c6df4
+
+cast:
+  caretaker: {name: Caretaker, role: client, client: true}
+
+places:
+  station: Old station
+
+things:
+  torn_note: {type: document, name: Torn note}
+  locker_4: {type: container, name: Locker 4}
+  missing_key: {type: object, name: Missing key}
+
+truth:
+  events:
+    note_found:
+      {at: "10:59", type: document.found, actor: caretaker,
+       object: torn_note, place: station}
+  facts:
+    key_location: {relation: object.inside, object: missing_key, value: locker_4}
+
+perspectives:
+  caretaker:
+    knows: [note_found]
+    believes: []
+    says: {initial: []}
+
+opening:
+  call:
+    from: caretaker
+    text: I found a torn note beside the empty key hook.
+  grants: [note_scan]
+  starts: []
+
+evidence:
+  note_scan:
+    tool: image
+    at: start
+    assets: [locker-note]
+    reports: {document: torn_note, text: "LOCKER 4", ink: blue}
+
+deductions:
+  search_locker_four:
+    conclude: {object: missing_key, likely_location: locker_4}
+    prove:
+      any:
+        - [note_scan.text]
+
+flags: []
+reactions: []
+deadlines: {}
+
+objectives:
+  identify_locker: {supported: search_locker_four}
+
+outcomes:
+  locker_identified:
+    {title: Locker identified, priority: 100, require: [identify_locker]}

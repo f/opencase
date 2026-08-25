@@ -1,0 +1,227 @@
+# Fictional rail-safety composite. See README.md for the official source notes.
+schema: case-source/v0.1
+
+case:
+  id: examples.yard-switch
+  version: 0.1.1
+  title: {$text: case.title}
+  locale: en
+  duration: 15m
+  mode: elastic
+  final_conclusion: first-write-wins
+  time:
+    date: "2026-04-18"
+    timezone: UTC
+    starts_at: "14:30"
+  synopsis: {$text: case.synopsis}
+
+use: [investigation@1, comms@1, artifacts@1]
+
+assets:
+  switch-plan:
+    kind: image
+    source: {local: assets/switch-plan.png}
+    mime_type: image/png
+    visibility: public
+    integrity:
+      sha256: 6cf6827cf4cdc74a3a876c0ca9f83046462facb09596669c1379d20bc4a65a4b
+  recorder-timeline:
+    kind: image
+    source: {local: assets/recorder-timeline.png}
+    mime_type: image/png
+    visibility: public
+    integrity:
+      sha256: e8a5499b75ed0f5b5b3298cd08cc56de93093e37476ba10f9c0fdfab2fd51ebd
+  radio-maintenance-log:
+    kind: image
+    source: {local: assets/radio-maintenance-log.png}
+    mime_type: image/png
+    visibility: private
+    integrity:
+      sha256: 9e5aa753fbf3fe825c93777158998875ce58ab866ace4a741b0f16b9c043279b
+
+cast:
+  ines: {name: Ines Vale, role: safety officer, client: true}
+  ari: {name: Ari Doran, role: locomotive operator}
+  noor: {name: Noor Hale, role: movement controller}
+  teva: {name: Teva Lin, role: maintenance lead}
+
+places:
+  meridian_yard: Meridian Yard
+  main_route: Main route
+  service_c4: Service siding C-4
+
+things:
+  locomotive_406: {type: vehicle, name: Locomotive 406}
+  hand_switch: {type: mechanism, name: Hand switch 12}
+  recorder_unit: {type: device, name: Event recorder unit}
+  route_order: {type: document, name: Route authority order}
+
+truth:
+  events:
+    maintenance_released:
+      {at: "14:18:00", type: maintenance.released, actor: teva,
+       target: hand_switch, place: meridian_yard}
+    radio_hold_issued:
+      {at: "14:20:30", type: movement.held, actor: noor,
+       target: locomotive_406, place: meridian_yard}
+    movement_started:
+      {at: "14:23:10", type: vehicle.moved, actor: ari,
+       object: locomotive_406, place: meridian_yard}
+    emergency_brake_applied:
+      {at: "14:23:40", type: vehicle.braked, actor: ari,
+       object: locomotive_406, place: service_c4}
+    route_authorized:
+      {at: "14:24:00", type: movement.authorized, actor: noor,
+       object: route_order, place: meridian_yard}
+  facts:
+    released_switch_position:
+      {relation: mechanism.selected-route, mechanism: hand_switch, value: service_c4}
+    recorder_clock_error:
+      {relation: device.clock-offset, device: recorder_unit, value: "+2m"}
+
+perspectives:
+  ines:
+    knows: [emergency_brake_applied]
+    believes: []
+    says: {initial: []}
+  ari:
+    knows: [movement_started, emergency_brake_applied]
+    believes:
+      - {relation: movement.authorized, object: route_order, value: true,
+         confidence: 0.6}
+    says: {initial: []}
+  noor:
+    knows: [radio_hold_issued, route_authorized]
+    believes: []
+    says: {initial: []}
+  teva:
+    knows: [maintenance_released]
+    believes: []
+    says: {initial: []}
+
+opening:
+  call:
+    from: ines
+    text: {$text: opening.call}
+  grants: [switch_diagram, event_recorder, route_authority]
+  starts: [recorder_overwrite]
+
+evidence:
+  switch_diagram:
+    tool: image
+    at: start
+    assets: [switch-plan]
+    reports:
+      switch: hand_switch
+      main_route: main_route
+      diverging_route: service_c4
+      photographed_position: service_c4
+
+  event_recorder:
+    tool: log
+    at: start
+    assets: [recorder-timeline]
+    expires_with: recorder_overwrite
+    reports:
+      device: recorder_unit
+      shown_movement_time: "14:25:10"
+      shown_brake_time: "14:25:40"
+      brake_applied: true
+
+  route_authority:
+    tool: document
+    at: start
+    reports:
+      order: route_order
+      authorized_after: "14:24:00"
+      route: main_route
+
+  recorder_clock_check:
+    tool: log
+    unlock: {after: observe, ref: event_recorder.shown_brake_time}
+    reports:
+      device: recorder_unit
+      clock_offset: "+2m"
+      comparison_clock: control-clock
+
+  maintenance_radio_log:
+    tool: log
+    unlock: {request: switch-records}
+    assets: [radio-maintenance-log]
+    reports:
+      field_release_at: "14:18:00"
+      switch_left_toward: service_c4
+      hold_announced_at: "14:20:30"
+      authority_issued_at: "14:24:00"
+      reset_acknowledged_at: "14:24:20"
+
+deductions:
+  recorder_time_corrected:
+    conclude:
+      {device: recorder_unit, actual_movement_time: "14:23:10",
+       actual_brake_time: "14:23:40"}
+    prove:
+      any:
+        - [event_recorder.shown_movement_time, event_recorder.shown_brake_time,
+           recorder_clock_check.clock_offset]
+
+  movement_preceded_authority:
+    conclude:
+      {movement: movement_started, occurred_before: route_authorized, authorized: false}
+    require: [recorder_time_corrected]
+    prove:
+      any:
+        - [route_authority.authorized_after, maintenance_radio_log.authority_issued_at]
+
+  switch_left_for_service_track:
+    conclude: {mechanism: hand_switch, selected_route: service_c4}
+    prove:
+      any:
+        - [switch_diagram.photographed_position,
+           maintenance_radio_log.switch_left_toward]
+
+  routing_cause:
+    use: investigation.composite-explanation
+    conclude:
+      {incident: emergency_brake_applied,
+       explanation: movement-entered-before-switch-reset}
+    require: [movement_preceded_authority, switch_left_for_service_track]
+
+flags: [recorder_preserved, recorder_lost]
+
+reactions:
+  - id: preserve_recorder_export
+    on: {action: preserve, target: recorder_unit, evidence: event_recorder}
+    when: {schedule-active: recorder_overwrite}
+    once: true
+    do:
+      - {cancel: recorder_overwrite}
+      - {mark: recorder_preserved}
+
+deadlines:
+  recorder_overwrite:
+    clock: case-time
+    after: 5m
+    offline: pause
+    cancel_on: recorder_preserved
+    do:
+      - {mark: recorder_lost}
+      - {emit: recorder-data-overwritten}
+
+objectives:
+  preserve_record: {marked: recorder_preserved}
+  establish_sequence: {supported: movement_preceded_authority}
+  establish_route: {supported: switch_left_for_service_track}
+  explain_intrusion: {supported: routing_cause}
+
+outcomes:
+  record_overwritten:
+    title: {$text: outcomes.record_overwritten.title}
+    priority: 200
+    when_marked: recorder_lost
+  sequence_reconstructed:
+    title: {$text: outcomes.sequence_reconstructed.title}
+    priority: 100
+    require: [preserve_record, establish_sequence, establish_route, explain_intrusion]
+    final_target: hand_switch

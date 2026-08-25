@@ -1,0 +1,15 @@
+schema: case-i18n/v0.1
+case: {id: examples.yard-switch, version: 0.1.1}
+locale: en
+messages:
+  case.title: Yard Switch
+  case.synopsis: >-
+    A locomotive entered an occupied service siding before route authority was
+    issued. Reconcile the clocks, switch position, and radio order before the
+    recorder overwrites itself.
+  opening.call: >-
+    Locomotive 406 stopped just short of equipment on Service C-4. The field
+    switch, recorder, and authority clocks disagree, and the recorder export
+    will overwrite in five case minutes. Preserve it and reconstruct the order.
+  outcomes.record_overwritten.title: Recorder overwritten
+  outcomes.sequence_reconstructed.title: Sequence reconstructed

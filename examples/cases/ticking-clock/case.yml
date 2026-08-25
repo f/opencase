@@ -1,0 +1,94 @@
+# Adds a schedule and a reaction while keeping the investigation tiny.
+schema: case-source/v0.1
+
+case:
+  id: examples.ticking-clock
+  version: 0.1.1
+  title: The Leaking Pipe
+  locale: en
+  duration: 5m
+  mode: elastic
+  final_conclusion: first-write-wins
+  time:
+    date: "2026-01-01"
+    timezone: UTC
+    starts_at: "10:00"
+  synopsis: Water will soak an archive notebook unless it is preserved quickly.
+
+use: [investigation@1, artifacts@1]
+
+cast:
+  guard: {name: Night guard, role: client, client: true}
+
+places:
+  archive: Archive room
+
+things:
+  notebook: {type: document, name: Shift notebook}
+  pipe: {type: mechanism, name: Leaking pipe}
+
+truth:
+  events:
+    leak_started:
+      {at: "10:00", type: water.leaking, actor: pipe, object: notebook, place: archive}
+  facts: {}
+
+perspectives:
+  guard:
+    knows: [leak_started]
+    believes: []
+    says: {initial: []}
+
+opening:
+  call:
+    from: guard
+    text: The pipe is leaking. The notebook will be soaked in two minutes.
+  grants: [alarm_report]
+  starts: [water_reaches_notebook]
+
+evidence:
+  alarm_report:
+    tool: document
+    at: start
+    reports: {source: pipe, threatened: notebook, room: archive}
+
+deductions:
+  notebook_is_at_risk:
+    conclude: {object: notebook, at_risk: true}
+    prove:
+      any:
+        - [alarm_report.threatened]
+
+flags: [notebook_saved, notebook_soaked]
+
+reactions:
+  - id: preserve_notebook
+    on: {action: preserve, target: notebook}
+    when: {schedule-active: water_reaches_notebook}
+    once: true
+    do:
+      - {cancel: water_reaches_notebook}
+      - {mark: notebook_saved}
+
+deadlines:
+  water_reaches_notebook:
+    clock: case-time
+    after: 2m
+    offline: pause
+    cancel_on: notebook_saved
+    do:
+      - {mark: notebook_soaked}
+      - {emit: notebook-soaked}
+
+objectives:
+  understand_risk: {supported: notebook_is_at_risk}
+  save_notebook: {marked: notebook_saved}
+  lose_notebook: {marked: notebook_soaked}
+
+outcomes:
+  saved:
+    {title: Notebook saved, priority: 100,
+     require: [understand_risk, save_notebook]}
+  soaked:
+    {title: Notebook soaked, priority: 50,
+     require: [understand_risk, lose_notebook]}

@@ -1,0 +1,225 @@
+# Fictional composite inspired by public FBI business-email-compromise guidance.
+schema: case-source/v0.1
+
+case:
+  id: examples.diverted-invoice
+  version: 0.1.0
+  title: {$text: case.title}
+  locale: en
+  duration: 20m
+  mode: elastic
+  final_conclusion: first-write-wins
+  time:
+    date: "2026-08-17"
+    timezone: UTC
+    starts_at: "09:52"
+  synopsis: {$text: case.synopsis}
+
+use: [investigation@1, comms@1, artifacts@1, finance@1, casebook@1]
+
+authoring:
+  inspiration: fictional-composite
+  teaching_focus: [lookalike-domain, payment-change, urgent-recall]
+
+assets:
+  email-header-photo:
+    kind: image
+    source: {local: assets/email-header.png}
+    mime_type: image/png
+    visibility: public
+    integrity:
+      sha256: ab88281b7aaedd50c9f0dca79dcc1af53381e700962587660ef3c8a6688ede7f
+  invoice-comparison-photo:
+    kind: image
+    source: {local: assets/invoice-comparison.png}
+    mime_type: image/png
+    visibility: public
+    integrity:
+      sha256: af66833e523f7a1e49be332f7b1212c00c338a3ca7a82ea0df14ec55cd009b13
+  recall-clock-photo:
+    kind: image
+    source: {local: assets/recall-clock.png}
+    mime_type: image/png
+    visibility: public
+    integrity:
+      sha256: 3ffc671bf9bd71f8e820b1d6e0eec1936f1bca85e4aa5a8c2cc49dd0a913c427
+
+cast:
+  maya: {name: Maya Chen, role: accounts payable lead, client: true}
+  lena: {name: Lena Ortiz, role: supplier account manager}
+  intruder: {name: Unknown sender, role: email impersonator, hidden: true}
+
+places:
+  buyer_office: Northwind Components office
+  supplier_office: Redwood Fabrication office
+  bank_operations: Bank fraud operations desk
+
+things:
+  invoice_8841: {type: document, name: Invoice 8841}
+  supplier_master: {type: document, name: Verified supplier master record}
+  wire_transfer: {type: transaction, name: Outgoing transfer WIRE-9012}
+  normal_account: {type: account, name: Supplier account ACCT-2044, owner: lena}
+  diverted_account: {type: account, name: New beneficiary ACCT-7719}
+
+truth:
+  events:
+    invoice_issued:
+      {at: "08:45", type: invoice.issued, actor: lena,
+       object: invoice_8841, place: supplier_office}
+    spoof_message_sent:
+      {at: "09:12", type: message.sent, actor: intruder,
+       object: invoice_8841, place: buyer_office}
+    payment_released:
+      {at: "09:48", type: payment.released, actor: maya,
+       object: wire_transfer, target: diverted_account, place: buyer_office}
+  facts:
+    verified_domain:
+      {relation: organization.email-domain, organization: redwood-fabrication,
+       value: redwood-fabrication.example}
+    normal_route:
+      {relation: supplier.paid-to, supplier: redwood-fabrication,
+       value: normal_account}
+
+perspectives:
+  maya:
+    knows: [payment_released]
+    believes:
+      - {relation: message.sent-by, object: invoice_8841, value: lena,
+         confidence: 0.7, reason: The display name matched the supplier.}
+    says: {initial: [same-as-belief]}
+  lena:
+    knows: [invoice_issued]
+    believes: []
+    says:
+      initial:
+        - {relation: account.change-requested, object: normal_account,
+           value: false, intent: honest-statement}
+  intruder:
+    knows: [spoof_message_sent]
+    believes: []
+    says: {initial: []}
+
+opening:
+  call:
+    from: maya
+    text: {$text: opening.call}
+  grants: [spoof_email, supplier_record, wire_notice]
+  starts: [settlement_window]
+
+evidence:
+  spoof_email:
+    tool: email
+    at: start
+    assets: [email-header-photo]
+    reports:
+      {display_name: redwood-fabrication,
+       from_domain: redwood-fabricati0n.example,
+       reply_to_domain: redwood-fabricati0n.example,
+       requested_account: diverted_account, urgency: same-day}
+
+  supplier_record:
+    tool: document
+    at: start
+    assets: [invoice-comparison-photo]
+    reports:
+      {supplier: redwood-fabrication,
+       official_domain: redwood-fabrication.example,
+       normal_account: normal_account, route_change_notified: false}
+
+  wire_notice:
+    tool: log
+    at: start
+    assets: [recall-clock-photo]
+    reports:
+      {transfer: wire_transfer, sent_to: diverted_account,
+       sent_at: "09:48", settlement_status: pending,
+       review_window: 8m}
+
+  bank_trace:
+    tool: account-history
+    unlock: {after: supported, ref: bec_confirmed}
+    reports:
+      {transfer: wire_transfer, receiving_account: diverted_account,
+       owner_matches_supplier: false, recall_eligible: true,
+       action_channel: bank-fraud-desk}
+
+deductions:
+  sender_domain_is_lookalike:
+    conclude:
+      {message: spoof_email, domain_relation: one-character-lookalike,
+       authentic: false}
+    prove:
+      any:
+        - [spoof_email.from_domain, supplier_record.official_domain]
+
+  payment_route_was_changed:
+    conclude:
+      {object: invoice_8841, route_changed_from: normal_account,
+       route_changed_to: diverted_account}
+    prove:
+      any:
+        - [spoof_email.requested_account, supplier_record.normal_account,
+           supplier_record.route_change_notified]
+
+  transfer_reached_wrong_beneficiary:
+    conclude: {transfer: wire_transfer, beneficiary: diverted_account}
+    prove:
+      any:
+        - [wire_notice.sent_to, supplier_record.normal_account]
+
+  bec_confirmed:
+    use: investigation.composite-explanation
+    conclude:
+      {incident: diverted-invoice,
+       explanation: lookalike-domain-and-routing-change}
+    require: [sender_domain_is_lookalike, payment_route_was_changed,
+              transfer_reached_wrong_beneficiary]
+
+  recall_is_possible:
+    conclude: {transfer: wire_transfer, immediate_recall: possible}
+    prove:
+      any:
+        - [bank_trace.recall_eligible, bank_trace.owner_matches_supplier,
+           wire_notice.settlement_status]
+
+flags: [funds_recalled, funds_settled]
+
+reactions:
+  - id: recall_before_settlement
+    on: {action: submit-conclusion, target: wire_transfer}
+    when:
+      all:
+        - {supported: bec_confirmed}
+        - {supported: recall_is_possible}
+        - {schedule-active: settlement_window}
+    once: true
+    do:
+      - {cancel: settlement_window}
+      - {mark: funds_recalled}
+
+deadlines:
+  settlement_window:
+    clock: case-time
+    after: 8m
+    offline: pause
+    cancel_on: funds_recalled
+    do:
+      - {mark: funds_settled}
+      - {emit: transfer-settled}
+
+objectives:
+  identify_fraud: {supported: bec_confirmed}
+  establish_recall: {supported: recall_is_possible}
+  recover_funds: {marked: funds_recalled}
+  miss_recall: {marked: funds_settled}
+
+outcomes:
+  recalled:
+    title: {$text: outcomes.recalled.title}
+    priority: 100
+    require: [identify_fraud, establish_recall, recover_funds]
+    final_target: wire_transfer
+  settled:
+    title: {$text: outcomes.settled.title}
+    priority: 40
+    when_marked: funds_settled

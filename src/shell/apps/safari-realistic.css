@@ -1,0 +1,651 @@
+.safari-app {
+  --safari-bg: #f5f5f7;
+  --safari-bar: rgba(234, 234, 236, 0.96);
+  --safari-field: rgba(255, 255, 255, 0.84);
+  --safari-line: rgba(24, 25, 29, 0.14);
+  --safari-line-soft: rgba(24, 25, 29, 0.08);
+  --safari-text: #1d1d1f;
+  --safari-muted: #6e6e73;
+  --safari-blue: #0a67c7;
+  --safari-blue-soft: #e9f3ff;
+  container-type: inline-size;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--safari-bg);
+  color: var(--safari-text);
+  font-family: var(--font-ui, "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+.safari-app *,
+.safari-app *::before,
+.safari-app *::after { box-sizing: border-box; }
+
+.safari-app button,
+.safari-app input { color: inherit; font: inherit; }
+
+.safari-app button:focus-visible,
+.safari-app input:focus-visible {
+  outline: 3px solid rgba(10, 103, 199, 0.3);
+  outline-offset: 2px;
+}
+
+.safari-app button:disabled { cursor: default; }
+
+.safari-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  opacity: 0.8;
+  pointer-events: none;
+  user-select: none;
+}
+
+.safari-chrome {
+  position: relative;
+  z-index: 5;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.48), transparent 42%),
+    var(--safari-bar);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.09);
+  backdrop-filter: saturate(150%) blur(22px);
+}
+
+.safari-tabs {
+  display: grid;
+  grid-template-columns: 42px minmax(128px, 260px) 38px;
+  min-width: 0;
+  height: 35px;
+  align-items: end;
+  gap: 5px;
+  padding: 5px 9px 0;
+  border-bottom: 1px solid var(--safari-line-soft);
+}
+
+.safari-chrome-button {
+  position: relative;
+  display: grid;
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+}
+
+.safari-chrome-button:not(:disabled):hover { background: rgba(0, 0, 0, 0.07); }
+.safari-chrome-button:disabled { opacity: 0.38; }
+.safari-sidebar-button,
+.safari-new-tab { align-self: center; }
+.safari-sidebar-button > .safari-icon { width: 17px; height: 17px; }
+.safari-new-tab > .safari-icon { width: 15px; height: 15px; }
+
+.safari-tab {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 18px;
+  height: 29px;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 0 9px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom-color: rgba(255, 255, 255, 0.75);
+  border-radius: 9px 9px 0 0;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.75) inset;
+  font-size: 0.72rem;
+  font-weight: 550;
+}
+
+.safari-tab__favicon {
+  width: 16px;
+  height: 16px;
+  filter: invert(32%) sepia(91%) saturate(1450%) hue-rotate(183deg) brightness(87%) contrast(98%);
+  opacity: 0.92;
+}
+
+.safari-tab__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.safari-tab__close {
+  width: 13px;
+  height: 13px;
+  justify-self: center;
+  opacity: 0.52;
+}
+
+.safari-toolbar {
+  display: grid;
+  grid-template-columns: auto minmax(160px, 1fr) 56px;
+  min-width: 0;
+  height: 48px;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+}
+
+.safari-history-controls { display: flex; gap: 1px; }
+.safari-back > .safari-icon,
+.safari-forward > .safari-icon { width: 18px; height: 18px; }
+
+.safari-address {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) 26px;
+  width: min(100%, 620px);
+  min-width: 0;
+  align-items: center;
+  justify-self: center;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 9px;
+  background: var(--safari-field);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.06) inset, 0 1px 0 rgba(255, 255, 255, 0.68);
+}
+
+.safari-address:focus-within {
+  border-color: rgba(10, 103, 199, 0.5);
+  box-shadow: 0 0 0 3px rgba(10, 103, 199, 0.13);
+}
+
+.safari-security-mark {
+  width: 11px;
+  height: 11px;
+  justify-self: end;
+  opacity: 0.55;
+}
+
+.safari-address input {
+  min-width: 0;
+  height: 31px;
+  padding: 0 7px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 0.76rem;
+  font-weight: 520;
+  text-align: center;
+}
+
+.safari-address input::placeholder { color: #85868a; font-weight: 450; }
+
+.safari-address__go {
+  position: relative;
+  width: 26px;
+  height: 29px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.safari-address__go:not(:disabled):hover { background: var(--safari-blue-soft); }
+.safari-address__go:disabled { opacity: 0.32; }
+.safari-address__go > .safari-icon { width: 14px; height: 14px; margin: auto; }
+
+.safari-viewport {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: #fff;
+}
+
+.safari-suggestions {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 57px;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--safari-line);
+  background: rgba(248, 248, 250, 0.92);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.035);
+  backdrop-filter: blur(18px);
+}
+
+.safari-suggestions > header { display: flex; align-items: center; gap: 9px; white-space: nowrap; }
+.safari-suggestions > header > span:last-child { display: grid; }
+.safari-suggestions strong { font-size: 0.7rem; font-weight: 680; }
+.safari-suggestions small { color: var(--safari-muted); font-size: 0.58rem; }
+
+.safari-suggestions__mark,
+.safari-suggestion__search,
+.safari-search-logo,
+.safari-no-results__mark {
+  width: 19px;
+  height: 19px;
+  filter: invert(32%) sepia(91%) saturate(1450%) hue-rotate(183deg) brightness(87%) contrast(98%);
+  opacity: 0.92;
+}
+
+.safari-suggestions > div {
+  display: flex;
+  min-width: 0;
+  gap: 7px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.safari-suggestion {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-width: max-content;
+  min-height: 37px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.11);
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  text-align: left;
+}
+
+.safari-suggestion:not(:disabled):hover { border-color: rgba(10, 103, 199, 0.34); background: var(--safari-blue-soft); }
+
+.safari-suggestion__search { width: 14px; height: 14px; }
+.safari-suggestion small { padding-left: 4px; border-left: 1px solid var(--safari-line); }
+.safari-suggestion.is-consequential,
+.safari-suggestion.is-terminal { border-color: rgba(185, 72, 48, 0.32); }
+
+.safari-start-page {
+  min-height: 100%;
+  padding: clamp(24px, 6cqi, 62px);
+  background:
+    radial-gradient(circle at 50% -20%, rgba(102, 169, 233, 0.18), transparent 43%),
+    linear-gradient(180deg, #eef1f6, #f8f8fa 68%);
+}
+
+.safari-start-page__hero {
+  display: flex;
+  max-width: 880px;
+  align-items: center;
+  gap: 15px;
+  margin: 0 auto clamp(24px, 5cqi, 44px);
+}
+
+.safari-start-page__hero p,
+.safari-start-page__hero h1 { margin: 0; }
+
+.safari-start-page__hero p {
+  margin-bottom: 2px;
+  color: var(--safari-muted);
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.safari-start-page__hero h1 {
+  font-size: clamp(1.65rem, 5cqi, 3.1rem);
+  font-weight: 640;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.safari-start-page__compass {
+  display: grid;
+  flex: 0 0 auto;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border: 2px solid rgba(10, 103, 199, 0.25);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 22px rgba(21, 74, 126, 0.1);
+}
+
+.safari-start-page__compass > .safari-icon {
+  width: 30px;
+  height: 30px;
+  filter: invert(32%) sepia(91%) saturate(1450%) hue-rotate(183deg) brightness(87%) contrast(98%);
+  opacity: 0.92;
+}
+
+.safari-start-section,
+.safari-privacy-report { max-width: 880px; margin-inline: auto; }
+.safari-start-section + .safari-start-section { margin-top: 29px; }
+
+.safari-start-section > h2 {
+  margin: 0 0 13px;
+  font-size: 0.82rem;
+  font-weight: 690;
+  letter-spacing: -0.01em;
+}
+
+.safari-start-suggestions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.safari-start-suggestions button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 57px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 5px 16px rgba(22, 34, 51, 0.06);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+
+.safari-start-suggestions button:not(:disabled):hover {
+  border-color: rgba(10, 103, 199, 0.28);
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+.safari-start-suggestion__icon {
+  display: grid;
+  width: 31px;
+  height: 31px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--safari-blue);
+}
+
+.safari-start-suggestion__icon > .safari-icon { width: 16px; height: 16px; filter: invert(1); opacity: 1; }
+
+.safari-start-suggestions button > strong {
+  overflow: hidden;
+  font-size: 0.74rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+}
+
+.safari-start-suggestions button > small { color: var(--safari-muted); }
+
+.safari-favorites {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.safari-favorites li {
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+  gap: 3px;
+  padding: 5px;
+  text-align: center;
+}
+
+.safari-favorites li > span {
+  display: grid;
+  width: 45px;
+  height: 45px;
+  margin-bottom: 4px;
+  place-items: center;
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.42), transparent), #566f89;
+  box-shadow: 0 4px 12px rgba(23, 39, 55, 0.13), 0 0 0 1px rgba(0, 0, 0, 0.08) inset;
+}
+
+.safari-favorites li > span > .safari-icon { width: 22px; height: 22px; filter: invert(1); opacity: 0.96; }
+
+.safari-favorites li:nth-child(2) > span { background-color: #a6574d; }
+.safari-favorites li:nth-child(3) > span { background-color: #477e6a; }
+.safari-favorites li:nth-child(4) > span { background-color: #665d82; }
+
+.safari-favorites strong { overflow: hidden; max-width: 100%; font-size: 0.7rem; text-overflow: ellipsis; white-space: nowrap; }
+.safari-favorites small { color: var(--safari-muted); font-size: 0.58rem; }
+
+.safari-privacy-report {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 34px;
+  padding: 13px 15px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.54);
+}
+
+.safari-privacy-report > span:last-child { display: grid; gap: 2px; }
+.safari-privacy-report strong { font-size: 0.72rem; }
+.safari-privacy-report small { color: var(--safari-muted); font-size: 0.62rem; line-height: 1.4; }
+
+.safari-privacy-shield {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  filter: invert(32%) sepia(91%) saturate(1450%) hue-rotate(183deg) brightness(87%) contrast(98%);
+  opacity: 0.92;
+}
+
+.safari-search-page {
+  min-height: 100%;
+  padding: clamp(24px, 5cqi, 56px) clamp(20px, 7cqi, 86px);
+  background: #fff;
+}
+
+.safari-search-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  max-width: 760px;
+  align-items: center;
+  gap: 16px;
+  margin: 0 auto 6px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--safari-line-soft);
+}
+
+.safari-search-header p,
+.safari-search-header h1 { margin: 0; }
+.safari-search-header p { color: var(--safari-muted); font-size: 0.65rem; font-weight: 620; }
+.safari-search-header h1 { overflow: hidden; font-size: clamp(1.2rem, 3cqi, 1.7rem); font-weight: 630; letter-spacing: -0.025em; text-overflow: ellipsis; white-space: nowrap; }
+.safari-search-header > small { color: var(--safari-muted); white-space: nowrap; }
+
+.safari-search-logo { width: 31px; height: 31px; }
+
+.safari-results { max-width: 760px; margin: 0 auto; }
+.safari-results ol { margin: 0; padding: 0; list-style: none; }
+.safari-results li { border-bottom: 1px solid var(--safari-line-soft); }
+
+.safari-results article {
+  position: relative;
+  padding: 20px 46px 20px 0;
+}
+
+.safari-result__source { display: flex; align-items: center; gap: 9px; }
+
+.safari-result__source > span {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--safari-line);
+  border-radius: 50%;
+  background: #f4f4f6;
+}
+
+.safari-result__source > span > .safari-icon { width: 14px; height: 14px; opacity: 0.58; }
+
+.safari-result__source p { display: grid; min-width: 0; gap: 1px; margin: 0; }
+.safari-result__source strong { font-size: 0.69rem; font-weight: 620; }
+.safari-result__source small { overflow: hidden; color: var(--safari-muted); font-size: 0.6rem; text-overflow: ellipsis; white-space: nowrap; }
+
+.safari-results h2 {
+  margin: 9px 0 0;
+  font-size: clamp(1.08rem, 2.5cqi, 1.42rem);
+  font-weight: 590;
+  letter-spacing: -0.025em;
+  line-height: 1.18;
+}
+
+.safari-results h2 button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #0758ae;
+  cursor: pointer;
+  font-weight: inherit;
+  text-align: left;
+}
+
+.safari-results h2 button:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.safari-result__excerpt {
+  max-width: 68ch;
+  margin: 7px 0 0;
+  color: #4b4c50;
+  font-size: 0.78rem;
+  line-height: 1.48;
+}
+
+.safari-bookmark {
+  position: absolute;
+  top: 22px;
+  right: 4px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--safari-muted);
+  cursor: pointer;
+}
+
+.safari-bookmark:not(:disabled):hover { background: var(--safari-blue-soft); }
+.safari-bookmark:disabled { opacity: 0.35; }
+
+.safari-bookmark > .safari-icon { width: 17px; height: 17px; margin: auto; opacity: 0.58; }
+.safari-bookmark.is-saved > .safari-icon { filter: invert(32%) sepia(91%) saturate(1450%) hue-rotate(183deg) brightness(87%) contrast(98%); opacity: 0.95; }
+
+.safari-no-results {
+  display: grid;
+  min-height: 230px;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  color: var(--safari-muted);
+  text-align: center;
+}
+
+.safari-no-results__mark { width: 34px; height: 34px; margin-bottom: 8px; filter: none; opacity: 0.5; }
+.safari-no-results strong { color: var(--safari-text); font-size: 0.88rem; }
+.safari-no-results p { margin: 0; font-size: 0.68rem; }
+
+.safari-webpage { min-height: 100%; background: #fff; }
+
+.safari-webpage__sitebar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 39px;
+  align-items: center;
+  gap: 9px;
+  padding: 6px clamp(15px, 4cqi, 38px);
+  border-bottom: 1px solid var(--safari-line-soft);
+  color: var(--safari-muted);
+  font-size: 0.62rem;
+}
+
+.safari-webpage__sitebar > span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.safari-site-icon {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 5px;
+  border: 1px solid var(--safari-line);
+  background: #f4f4f6;
+}
+
+.safari-site-icon > .safari-icon { width: 13px; height: 13px; opacity: 0.58; }
+
+.safari-reader-mark {
+  width: 18px;
+  height: 18px;
+  opacity: 0.6;
+}
+
+.safari-article {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: clamp(30px, 7cqi, 74px) clamp(22px, 6cqi, 68px);
+}
+
+.safari-article > header {
+  padding-bottom: clamp(22px, 4cqi, 34px);
+  border-bottom: 1px solid var(--safari-line);
+}
+
+.safari-article > header p,
+.safari-article > header h1 { margin: 0; }
+.safari-article > header p { color: #33745b; font-size: 0.65rem; font-weight: 650; }
+
+.safari-article > header h1 {
+  margin-top: 10px;
+  font-family: var(--font-editorial, "Newsreader", Georgia, serif);
+  font-size: clamp(2rem, 6cqi, 4.3rem);
+  font-weight: 520;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+}
+
+.safari-article > header > span { display: block; margin-top: 13px; color: var(--safari-muted); font-size: 0.72rem; }
+
+.safari-article__copy {
+  max-width: 65ch;
+  margin: 27px auto 0;
+  font-family: var(--font-editorial, "Newsreader", Georgia, serif);
+}
+
+.safari-article__copy p {
+  margin: 0 0 1.25em;
+  font-size: clamp(1.04rem, 2.35cqi, 1.2rem);
+  line-height: 1.68;
+}
+
+@container (max-width: 590px) {
+  .safari-tabs { grid-template-columns: 34px minmax(110px, 1fr) 32px; }
+  .safari-toolbar { grid-template-columns: auto minmax(120px, 1fr); }
+  .safari-toolbar__spacer { display: none; }
+  .safari-suggestions { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .safari-suggestions > header { display: none; }
+  .safari-start-suggestions { grid-template-columns: minmax(0, 1fr); }
+  .safari-favorites { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .safari-search-page { padding-inline: 18px; }
+  .safari-search-header { grid-template-columns: auto minmax(0, 1fr); }
+  .safari-search-header > small { display: none; }
+}
+
+@container (max-width: 430px) {
+  .safari-tabs { display: none; }
+  .safari-toolbar { height: 44px; padding-inline: 6px; }
+  .safari-history-controls .safari-forward { display: none; }
+  .safari-address input { text-align: left; }
+  .safari-start-page { padding: 22px 17px; }
+  .safari-start-page__compass { width: 43px; height: 43px; }
+  .safari-start-page__compass > .safari-icon { width: 24px; height: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .safari-start-suggestions button { transition: none; }
+}

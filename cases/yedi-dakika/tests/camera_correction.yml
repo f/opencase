@@ -1,0 +1,49 @@
+schema: case-test/v0.1
+case: {id: community.fka.yedi-dakika, version: 0.4.1}
+
+scenario:
+  id: camera_correction
+  perspective: detective
+  steps:
+    - detective.act: {action: request, from: leyla, topic: lobby-video}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 2m}
+          evidence: {lobby_video: available}
+
+    - detective.observe: lobby_video
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            lobby_video: {status: observed}
+          affordances:
+            request_camera_sync: offered
+          observations:
+            lobby_video.screen_exit_at: "21:04"
+
+    - detective.act: {action: request, from: leyla, topic: camera-sync}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 4m}
+          evidence: {camera_sync_notice: available}
+
+    - detective.observe: camera_sync_notice
+      expect:
+        result: {status: accepted}
+        state:
+          affordances:
+            deduce_camera_time: offered
+          observations:
+            camera_sync_notice.clock_offset: "+7m"
+
+    - detective.deduce: camera_time_corrected
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {camera_time_corrected: supported}
+          affordances:
+            deduce_camera_time: hidden
+          outcome: null

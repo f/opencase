@@ -1,0 +1,646 @@
+.casebook-app {
+  --casebook-accent: #d69b16;
+  --casebook-accent-soft: #fff1bd;
+  --casebook-line: rgba(60, 54, 42, 0.13);
+  --casebook-secondary: #746f66;
+  --casebook-sidebar: #eeeae2;
+  background: #fbfaf7;
+  color: #282622;
+  font-family: var(--font-ui);
+}
+
+.casebook-app::after {
+  display: none;
+}
+
+.casebook-app > .detective-app__header {
+  min-height: 58px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(247, 245, 240, 0.92);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(24px) saturate(1.25);
+}
+
+.casebook-app .detective-app__heading {
+  padding: 8px 18px;
+}
+
+.casebook-app .detective-app__heading p {
+  margin-bottom: 2px;
+  color: #8a6410;
+  font-family: var(--font-ui);
+  font-size: 0.66rem;
+  font-weight: 610;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.casebook-app .detective-app__heading h2 {
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.012em;
+  line-height: 1.15;
+}
+
+.casebook-app .detective-app__meta,
+.casebook-app .detective-app__toolbar {
+  padding: 0 13px;
+  border-left: 0;
+}
+
+.casebook-app .detective-stamp {
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.055);
+  color: #605c55;
+  font-family: var(--font-ui);
+  font-size: 0.62rem;
+  font-weight: 560;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.casebook-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.casebook-toolbar > span {
+  position: relative;
+  display: grid;
+  width: 27px;
+  height: 26px;
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+  place-items: center;
+}
+
+.casebook-toolbar > span > img {
+  display: block;
+  width: 14px;
+  height: 14px;
+  opacity: 0.78;
+}
+
+.casebook-app > .detective-app__body {
+  overflow: hidden;
+}
+
+.casebook-app .casebook-app__layout {
+  display: grid;
+  grid-template-columns: minmax(150px, 22%) minmax(280px, 1fr) minmax(215px, 30%);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: #fbfaf7;
+}
+
+.casebook-sidebar,
+.casebook-editor,
+.casebook-inspector {
+  min-width: 0;
+  min-height: 0;
+}
+
+.casebook-sidebar {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--casebook-line);
+  background: var(--casebook-sidebar);
+}
+
+.casebook-sidebar__heading {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--casebook-line);
+}
+
+.casebook-sidebar__heading strong {
+  overflow: hidden;
+  font-size: 0.78rem;
+  font-weight: 640;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.casebook-sidebar__folder {
+  width: 18px;
+  height: 18px;
+  filter: invert(61%) sepia(77%) saturate(593%) hue-rotate(358deg) brightness(94%);
+}
+
+.casebook-sidebar .detective-count {
+  border: 0;
+  background: transparent;
+  color: #777168;
+  font-family: var(--font-ui);
+  font-size: 0.67rem;
+}
+
+.casebook-app .casebook-app__synopsis {
+  margin: 9px;
+  padding: 11px 12px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.66);
+  box-shadow: 0 1px 2px rgba(43, 37, 25, 0.08);
+  font-style: normal;
+}
+
+.casebook-app__synopsis small {
+  display: block;
+  color: #8b691a;
+  font-size: 0.57rem;
+  font-weight: 680;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.casebook-app__synopsis p {
+  display: -webkit-box;
+  margin: 5px 0 0;
+  overflow: hidden;
+  color: #565149;
+  font-family: var(--font-editorial);
+  font-size: 0.79rem;
+  line-height: 1.36;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.casebook-app .detective-index {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 0;
+  background: transparent;
+}
+
+.casebook-app .detective-index .detective-section-title {
+  min-height: 30px;
+  padding: 8px 12px 5px;
+  border: 0;
+  color: #777168;
+  font-family: var(--font-ui);
+  font-size: 0.59rem;
+  letter-spacing: 0.045em;
+}
+
+.casebook-app .detective-index .detective-section-title h3 {
+  margin: 0;
+  font: inherit;
+}
+
+.casebook-app .detective-index ol {
+  min-height: 0;
+  overflow: auto;
+  padding: 0 7px 10px;
+}
+
+.casebook-app .detective-index li + li {
+  border-top: 0;
+}
+
+.casebook-app .detective-index li > button {
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 7px;
+  margin: 1px 0;
+  padding: 9px 8px;
+  border-radius: 7px;
+}
+
+.casebook-app .detective-index li > button:hover {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.casebook-app .detective-index li > button.is-active {
+  background: #e2b64c;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.35), 0 1px 2px rgba(92, 68, 15, 0.12);
+}
+
+.casebook-app .detective-index li > button > span:first-child {
+  color: #8c6a20;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+}
+
+.casebook-app .detective-index li > button.is-active > span:first-child,
+.casebook-app .detective-index li > button.is-active small {
+  color: rgba(48, 38, 18, 0.72);
+}
+
+.casebook-app .detective-index strong {
+  font-size: 0.73rem;
+  font-weight: 625;
+}
+
+.casebook-app .detective-index small {
+  margin-top: 3px;
+  color: #777168;
+  font-size: 0.6rem;
+}
+
+.casebook-editor {
+  display: grid;
+  grid-template-rows: 42px minmax(0, 1fr);
+  background: #fffefa;
+}
+
+.casebook-editor__bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 15px;
+  border-bottom: 1px solid var(--casebook-line);
+  color: #777168;
+}
+
+.casebook-editor__bar > span {
+  display: grid;
+  width: 25px;
+  height: 24px;
+  place-items: center;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.035);
+}
+
+.casebook-editor__bar img {
+  display: block;
+  width: 14px;
+  height: 14px;
+  opacity: 0.74;
+}
+
+.casebook-app .casebook-page {
+  min-height: 0;
+  overflow: auto;
+  padding: clamp(28px, 5cqi, 58px) clamp(26px, 5.4cqi, 64px) 64px;
+  border-right: 0;
+  background: #fffefa;
+  font-family: var(--font-editorial);
+}
+
+.casebook-app .casebook-page > header {
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.casebook-app .casebook-page > header p {
+  color: #9a7219;
+  font-family: var(--font-ui);
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.casebook-app .casebook-page > header h3 {
+  max-width: 18ch;
+  margin-top: 7px;
+  font-family: var(--font-editorial);
+  font-size: clamp(1.85rem, 5cqi, 3.25rem);
+  font-weight: 520;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+}
+
+.casebook-app .casebook-page > header time {
+  color: #8a857c;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+}
+
+.casebook-app .casebook-page__body {
+  max-width: 63ch;
+  margin: 25px 0;
+  color: #38342e;
+  font-family: var(--font-editorial);
+  font-size: clamp(1.02rem, 2.2cqi, 1.24rem);
+  font-weight: 390;
+  line-height: 1.62;
+}
+
+.casebook-app .casebook-page__findings li {
+  margin-top: 8px;
+  padding: 10px 12px 10px 31px;
+  border: 0;
+  border-radius: 8px;
+  background: #eef5ee;
+  color: #3c4b3d;
+  font-family: var(--font-ui);
+  font-size: 0.76rem;
+}
+
+.casebook-app .casebook-page__findings li::before {
+  display: none;
+}
+
+.casebook-app .casebook-page__findings li > img {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 14px;
+  height: 14px;
+  filter: invert(42%) sepia(20%) saturate(1060%) hue-rotate(83deg) brightness(87%);
+}
+
+.casebook-app .detective-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid rgba(152, 109, 15, 0.2);
+  background: #fff8dc;
+  color: #775914;
+  font-family: var(--font-ui) !important;
+  font-size: 0.62rem !important;
+  font-weight: 620;
+}
+
+.casebook-evidence-link__mark {
+  width: 12px;
+  height: 12px;
+  filter: invert(36%) sepia(32%) saturate(1067%) hue-rotate(6deg) brightness(88%);
+}
+
+.casebook-inspector {
+  overflow: auto;
+  border-left: 1px solid var(--casebook-line);
+  background: #f5f3ee;
+}
+
+.casebook-app .casebook-leads {
+  display: block;
+  padding: 15px 13px 14px;
+  border-bottom: 1px solid var(--casebook-line);
+  background: transparent;
+}
+
+.casebook-app .casebook-leads > header {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+}
+
+.casebook-leads__icon {
+  position: relative;
+  display: grid;
+  width: 27px;
+  height: 27px;
+  border-radius: 8px;
+  background: var(--casebook-accent);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.35), 0 1px 2px rgba(92, 68, 15, 0.16);
+  place-items: center;
+}
+
+.casebook-leads__icon img {
+  display: block;
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) invert(1);
+}
+
+.casebook-app .casebook-leads > header > div {
+  display: grid;
+}
+
+.casebook-app .casebook-leads > header strong {
+  font-size: 0.76rem;
+  font-weight: 680;
+  letter-spacing: -0.005em;
+  text-transform: none;
+}
+
+.casebook-app .casebook-leads > header small {
+  margin-top: 1px;
+  color: var(--casebook-secondary);
+  font-size: 0.6rem;
+}
+
+.casebook-app .casebook-leads > p {
+  margin: 10px 0 12px;
+  color: var(--casebook-secondary);
+  font-size: 0.67rem;
+  line-height: 1.35;
+}
+
+.casebook-app .casebook-leads ol {
+  display: grid;
+  gap: 7px;
+  overflow: visible;
+}
+
+.casebook-app .casebook-leads li {
+  min-width: 0;
+}
+
+.casebook-app .casebook-leads button {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 8px;
+  align-items: center;
+  gap: 9px;
+  min-height: 65px;
+  padding: 9px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.075);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 1px 2px rgba(44, 38, 26, 0.055);
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.casebook-app .casebook-leads button:not(:disabled):hover {
+  border-color: rgba(165, 117, 12, 0.42);
+  background: #fff;
+  box-shadow: 0 5px 14px rgba(64, 48, 17, 0.09);
+  transform: translateY(-1px);
+}
+
+.casebook-leads__number {
+  display: grid;
+  width: 23px;
+  height: 23px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--casebook-accent-soft);
+  color: #87630f;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 600;
+}
+
+.casebook-leads__copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.casebook-app .casebook-leads__surface {
+  color: #8e6a19;
+  font-family: var(--font-ui);
+  font-size: 0.55rem;
+  font-weight: 650;
+  letter-spacing: 0.025em;
+  text-transform: none;
+}
+
+.casebook-app .casebook-leads button strong {
+  overflow: visible;
+  font-size: 0.7rem;
+  font-weight: 610;
+  line-height: 1.28;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.casebook-app .casebook-leads button small {
+  color: #8c625d;
+  font-family: var(--font-mono);
+  font-size: 0.51rem;
+  line-height: 1.25;
+}
+
+.casebook-leads__chevron {
+  width: 12px;
+  height: 12px;
+  opacity: 0.48;
+}
+
+.casebook-app .deduction-board {
+  background: transparent;
+}
+
+.casebook-app .deduction-board .detective-section-title {
+  min-height: 39px;
+  padding: 12px 13px 7px;
+  border: 0;
+  color: #656057;
+  font-family: var(--font-ui);
+  font-size: 0.63rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.casebook-app .deduction-board li {
+  margin: 0 10px 8px;
+  padding: 12px 11px 12px 25px;
+  border: 1px solid rgba(0, 0, 0, 0.075);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.casebook-app .deduction-board li + li {
+  border-top: 1px solid rgba(0, 0, 0, 0.075);
+}
+
+.casebook-app .deduction-board__pin {
+  top: 16px;
+  left: 11px;
+}
+
+.casebook-app .deduction-board h4 {
+  font-family: var(--font-ui);
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+
+.casebook-app .deduction-board p {
+  font-family: var(--font-ui);
+  font-size: 0.67rem;
+  line-height: 1.38;
+}
+
+.casebook-app .deduction-board__result {
+  margin-top: 10px;
+  padding: 10px 11px 11px;
+  border-left: 3px solid #24745e;
+  border-radius: 3px 7px 7px 3px;
+  background: linear-gradient(135deg, rgba(226, 241, 234, 0.9), rgba(239, 247, 242, 0.74));
+  box-shadow: inset 0 0 0 1px rgba(36, 116, 94, 0.08);
+}
+
+.casebook-app .deduction-board .deduction-board__result-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #17614e;
+  font-size: 0.49rem;
+  font-weight: 750;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.casebook-app .deduction-board__result-label img {
+  width: 11px;
+  height: 11px;
+}
+
+.casebook-app .deduction-board .deduction-board__result p {
+  margin: 5px 0 0;
+  color: #252822;
+  font-size: 0.69rem;
+  font-weight: 590;
+  line-height: 1.45;
+}
+
+.casebook-app .deduction-board small,
+.casebook-app .deduction-board li > div > span {
+  font-family: var(--font-ui);
+  font-size: 0.51rem;
+  letter-spacing: 0.025em;
+}
+
+.casebook-app .deduction-board .detective-button {
+  width: 100%;
+  min-height: 30px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: 7px;
+  background: #d9a42d;
+  color: #2f2510 !important;
+  font-family: var(--font-ui) !important;
+  font-size: 0.59rem !important;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+@container (max-width: 720px) {
+  .casebook-app .casebook-app__layout {
+    grid-template-columns: minmax(140px, 22%) minmax(265px, 1fr) minmax(205px, 31%);
+  }
+
+  .casebook-app .casebook-app__synopsis {
+    margin: 7px;
+    padding: 9px;
+  }
+
+  .casebook-app__synopsis p {
+    -webkit-line-clamp: 3;
+  }
+
+  .casebook-app .casebook-leads {
+    padding-inline: 9px;
+  }
+
+  .casebook-app .casebook-page {
+    padding-inline: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .casebook-app .casebook-leads button {
+    transition: none;
+  }
+}

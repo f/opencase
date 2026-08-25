@@ -1,0 +1,27 @@
+schema: case-test/v0.1
+case: {id: community.fka.yedi-dakika, version: 0.4.1}
+
+scenario:
+  id: locked_evidence_denial
+  perspective: detective
+  steps:
+    - detective.observe: access_log
+      expect:
+        result: {status: denied, code: evidence-locked}
+        state:
+          evidence:
+            lobby_video: {status: hidden}
+            camera_sync_notice: {status: hidden}
+            printer_log: {status: hidden}
+            access_log: {status: hidden}
+          affordances:
+            request_lobby_video: offered
+            request_camera_sync: hidden
+            request_printer_log: offered
+            request_access_log: hidden
+          unknown_observations:
+            - access_log.entered_at
+          deductions:
+            nihan_took_file: unknown
+          final_conclusion: null
+          outcome: null

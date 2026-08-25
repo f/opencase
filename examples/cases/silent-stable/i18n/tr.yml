@@ -1,0 +1,17 @@
+schema: case-i18n/v0.1
+case: {id: examples.silent-stable, version: 0.1.0}
+locale: tr
+messages:
+  case.title: Sessiz Ahır
+  case.synopsis: >-
+    Bir idman atı, bekçi köpeğinin izleme sistemi hiç alarm vermeden kilitli
+    ahırdan çıkar. Nakil izi yeniden kaybolmadan önce tanıdık ziyaretçiyi
+    teslimat şoföründen ayır.
+  opening.call: >-
+    Comet yok. Doğu yolunda bir teslimat aracı görülmüş ama kulübe sistemi ne
+    havlama ne de kesinti kaydetmiş. İzleme özetini ve ahır planını
+    gönderiyorum. Nakil izi on iki dakika içinde kaybolabilir.
+  outcomes.safe_recovery.title: East Ridge'de Güvende
+  outcomes.right_person_wrong_story.title: Doğru Kişi, Çok Geç
+  outcomes.trail_moved.title: İz Yeniden Kayboldu
+  outcomes.wrong_driver.title: Kolay Hedefteki Araç

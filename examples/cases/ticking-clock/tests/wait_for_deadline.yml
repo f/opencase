@@ -1,0 +1,32 @@
+schema: case-test/v0.1
+
+case:
+  id: examples.ticking-clock
+  version: 0.1.1
+
+scenario:
+  id: wait_for_deadline
+  perspective: detective
+  description: Understand the risk, let case time expire, and observe the public failure outcome.
+  steps:
+    - detective.observe: alarm_report
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            alarm_report: observed
+
+    - detective.deduce: notebook_is_at_risk
+      expect:
+        result: {status: accepted}
+        state:
+          deductions:
+            notebook_is_at_risk: supported
+
+    - detective.advance: {clock: case-time, by: 2m}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks:
+            case-time: 2m
+          outcome: soaked

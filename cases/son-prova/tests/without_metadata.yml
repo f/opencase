@@ -1,0 +1,68 @@
+schema: case-test/v0.1
+
+case: {id: official.son-prova, version: 0.4.1}
+
+scenario:
+  id: without_metadata
+  perspective: detective
+  description: Prove the broadcast alibi false from publication history without inspecting its optional metadata card.
+  steps:
+    - expect:
+        state:
+          evidence:
+            livestream: hidden
+            livestream_metadata: hidden
+            livestream_history: hidden
+          affordances:
+            interview_selin_alibi: offered
+            search_livestream_history: hidden
+            deduce_selin_alibi_false: hidden
+          unknown_observations: [livestream_metadata.recorded_at]
+
+    - detective.act: {action: search, query: "interview publication history"}
+      expect:
+        result: {status: denied, code: affordance-unavailable}
+        state:
+          clocks: {case-time: 0s}
+          evidence: {livestream_history: hidden}
+
+    - detective.act: {action: interview, actor: selin, topic: alibi}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 4m}
+          evidence: {livestream: available}
+    - detective.observe: livestream
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            livestream: observed
+            livestream_metadata: available
+          affordances: {search_livestream_history: offered}
+
+    - detective.act: {action: search, query: "interview publication history"}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 8m}
+          evidence: {livestream_history: available}
+    - detective.observe: livestream_history
+      expect:
+        result: {status: accepted}
+        state:
+          evidence: {livestream_history: observed}
+          observations:
+            livestream_history.source_uploaded_at: "20:31"
+            livestream_history.delivery: scheduled
+          affordances: {deduce_selin_alibi_false: offered}
+
+    - detective.deduce: selin_alibi_false
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 9m}
+          evidence: {livestream_metadata: available}
+          unknown_observations: [livestream_metadata.recorded_at]
+          deductions: {selin_alibi_false: supported}
+          outcome: null

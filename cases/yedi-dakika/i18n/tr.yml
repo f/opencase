@@ -1,0 +1,186 @@
+schema: case-i18n/v0.1
+case: {id: community.fka.yedi-dakika, version: 0.4.1}
+locale: tr
+messages:
+  case.title: Yedi Dakika
+  case.synopsis: >-
+    Haber merkezindeki kırmızı röportaj dosyası kaybolur. Lobi kaydı ilk
+    bakışta editörle tartışan fotoğrafçı Mert'i işaret eder; fakat görüntü,
+    yazıcı ve bina kayıtlarının zamanları birbiriyle uyuşmaz. Dosya, saat
+    21:45'te alınacak gizli evrak kutuları arasındadır.
+  opening.call: >-
+    Kırmızı dosya yok. Mert ücretini alamadığı için benimle tartıştı ve çekip
+    gitti; lobi kamerasında çıkışı görünüyor ama henüz hiçbir kaydı dışarı
+    aktarmadım. Dosyada yayımlanmamış röportajın tek temiz çıktısı var. Mavi
+    gizli evrak kutuları 21:45'te alınacak ve doğruca öğütücüye gidecek. Haber
+    merkezi sistemlerine erişimim var; önce hangi kaydı istediğini söyle.
+  places.newsroom.name: Haber Merkezi
+  places.floor_four.name: Dördüncü kat
+  places.lobby.name: Lobi
+  places.service_corridor.name: Servis koridoru
+  places.karakoy_cafe.name: Karaköy Kahve
+  places.shredding_center.name: Merkez öğütme tesisi
+  places.finance_floor.name: Finans katı
+  conversations.mert.refusing.reason: Mert suçlandıktan sonra konuşmayı reddediyor.
+  affordances.interview_leyla.label: Leyla'nın ilk ifadesini al
+  affordances.interview_nihan.label: Nihan'a kayıp dosyayı sor
+  affordances.interview_mert_location.label: Mert'e tartışmadan sonra nereye gittiğini sor
+  affordances.request_lobby_video.label: Leyla'dan lobi kamera kaydını iste
+  affordances.request_camera_sync.label: CAM-L01 saat eşitleme raporunu iste
+  affordances.request_printer_log.label: Merkezi yazıcı işlem günlüğünü iste
+  affordances.accuse_mert.label: Mert'i şüpheli olarak kayda geçir — riskli
+  affordances.apologize_mert.label: Mert'ten asılsız suçlama için özür dile
+  affordances.request_access_log.label: Dördüncü kat giriş günlüğünü iste
+  affordances.request_desk_camera.label: Editoryal masa kamera kaydını iste
+  affordances.request_interview_draft.label: Röportaj taslağı v12'yi iste
+  affordances.request_facilities_chat.label: Gizli evrak kutusu yazışmalarını iste
+  affordances.search_redaction_warning.label: E-posta arşivinde redaksiyon uyarısını ara
+  affordances.search_building_route.label: Gizli mavi kutunun bina rotasını ara
+  affordances.present_draft_to_nihan.label: Taslağı Nihan'a empatiyle göster
+  affordances.recover_box_b11.label: B-11 kutusuna acil kurtarma emri ver — riskli
+  affordances.conclude_mediate.label: Dosyayı ve kaynağı koruyacak arabuluculuk emri ver
+  affordances.conclude_security.label: Güvenliği B-17 kutusuna gönder
+  affordances.deduce_camera_time.label: Kamera saatini eşitleyip gerçek çıkış zamanını hesapla
+  affordances.deduce_mert_no_opportunity.label: Mert'in dosyayı alma fırsatı olup olmadığını sına
+  affordances.deduce_nihan_took_file.label: Dördüncü kat kayıtlarından dosyayı kimin aldığını çıkar
+  affordances.deduce_nihan_protected_source.label: Nihan'ın gerçek niyetini değerlendir
+  affordances.deduce_file_in_b17.label: İtiraf ile bina rotasını eşleştir
+  affordances.deduce_full_explanation.label: Olayın bütün açıklamasını kur
+  affordances.deduce_camera_time.result: Kamera yedi dakika ileriydi. Mert'in gerçek çıkış saati 20:57.
+  affordances.deduce_mert_no_opportunity.result: Mert 20:57'de binadan çıktı; kırmızı dosyanın yazdırılması 20:59:06'da bitti. Mert'in dosyayı alma fırsatı yoktu.
+  affordances.deduce_nihan_took_file.result: Nihan, dosya alınmadan saniyeler önce dördüncü kata girdi. Erişim ve kamera kayıtları kırmızı dosyayı onun aldığını doğruluyor.
+  affordances.deduce_nihan_protected_source.result: Taslak gizli kaynağı açık ediyordu ve Nihan daha önce bu bilginin çıkarılmasını istemişti. Dosyayı kaynağı korumak için aldı.
+  affordances.deduce_file_in_b17.result: Nihan'ın itirafındaki kutu, bina rotasındaki dördüncü kat kutusuyla eşleşiyor. Kırmızı dosya B-17 kutusunda.
+  affordances.deduce_full_explanation.result: Mert dosya basılmadan önce binadan çıktı. Nihan, gizli kaynağı korumak için dosyayı aldı ve B-17 kutusuna koydu.
+  affordances.interview_leyla.result: Leyla, Mert'in ödenmeyen ücreti yüzünden tartıştığını ve dosyanın kaybolduğu saatlerde çıktığını söylüyor.
+  affordances.interview_nihan.result: Nihan dosyayı aldığını reddediyor ve dördüncü katta bulunmasına açık bir neden göstermiyor.
+  affordances.interview_mert_location.result: Mert 20:57'de çıktığını ve birkaç dakika sonra Karaköy Kahve'de ödeme yaptığını söylüyor. Fişini gönderiyor.
+  affordances.request_lobby_video.result: Lobi kamera kaydı Dosyalar'da incelemeye hazır.
+  affordances.request_camera_sync.result: CAM-L01'in saatiyle ilgili bakım e-postası incelemeye hazır.
+  affordances.request_printer_log.result: Doğrulanmış merkezi yazıcı kaydı incelemeye hazır.
+  affordances.accuse_mert.confirmation: Mert şüpheli olarak kayda geçirilsin mi? Başka soruları reddedebilir ve yanlış suçlama vaka kaydında kalır.
+  affordances.apologize_mert.result: Mert özrü kabul ediyor ve yeniden konuşmaya razı oluyor, fakat güvenin bir kısmı kayboldu.
+  affordances.request_access_log.result: Dördüncü kat erişim kaydı incelemeye hazır.
+  affordances.request_desk_camera.result: Editoryal masa kamera kaydı incelemeye hazır.
+  affordances.request_interview_draft.result: Röportaj taslağı v12 incelemeye hazır.
+  affordances.request_facilities_chat.result: Gizli evrak kutularıyla ilgili tesis yazışmaları incelemeye hazır.
+  affordances.search_redaction_warning.result: E-posta arşivinde Nihan'ın yanıtsız kalan redaksiyon uyarısı bulundu.
+  affordances.search_building_route.result: Dördüncü kattaki gizli mavi kutunun bina rotası bulundu.
+  affordances.present_draft_to_nihan.result: Nihan, açık edilen kaynağı korumak için dosyayı aldığını ve B-17 kutusuna koyduğunu kabul ediyor.
+  affordances.recover_box_b11.confirmation: B-11 için kurtarma emri verilip vaka bitirilsin mi? Kutu numarası yanlışsa gerçek dosya imha edilecek.
+  affordances.conclude_mediate.confirmation: Arabuluculukla kurtarma emri verilip vaka bitirilsin mi? Bu yol kaynağı korur ve Nihan'a hırsız gibi davranılmasını önler.
+  affordances.conclude_security.confirmation: Güvenlik B-17'ye gönderilip vaka bitirilsin mi? Dosya kurtarılır, fakat Nihan açığa alınır ve kaynak ifşa olabilir.
+  evidence.lobby_video.title: Lobi kamera kaydı
+  evidence.lobby_video.description: Tartışmadan sonra Mert'in binadan çıkışını gösteren CAM-L01 görüntüsü.
+  evidence.lobby_video.findings.actor: Binadan çıkan kişi Mert.
+  evidence.lobby_video.findings.screen_exit_at: Kamera damgası Mert'in 21:04'te çıktığını gösteriyor.
+  evidence.lobby_video.findings.continuity: Çıkış anında kayıp kare yok; görüntü kesintisiz.
+  evidence.camera_sync_notice.title: CAM-L01 saat bildirimi
+  evidence.camera_sync_notice.description: Lobi kamerasının saat eşitlemesiyle ilgili bakım e-postası.
+  evidence.camera_sync_notice.findings.device: Bildirim lobi kamerası CAM-L01 için.
+  evidence.camera_sync_notice.findings.clock_offset: Kameranın saati yedi dakika ileriydi.
+  evidence.camera_sync_notice.findings.measured_at: Fark aynı gün 18:12'de ölçüldü.
+  evidence.camera_sync_notice.findings.correction_status: Dosya kaybolduğunda düzeltme hâlâ bekliyordu.
+  evidence.printer_log.title: Merkezi yazıcı günlüğü
+  evidence.printer_log.description: Editoryal yazıcı PRN-ED04'ten gelen imzalı işlem kaydı.
+  evidence.printer_log.findings.object: Tamamlanan işlem kırmızı röportaj dosyasıydı.
+  evidence.printer_log.findings.completed_at: Yazdırma 20:59:06'da bitti.
+  evidence.printer_log.findings.pages: İşlem 46 sayfaydı.
+  evidence.printer_log.findings.clock_source: Yazıcı merkezi zaman sunucusunu kullandığı için zaman damgası güvenilir.
+  evidence.mert_receipt.title: Mert'in kafe fişi
+  evidence.mert_receipt.description: Görüşmeden sonra Mert'in gönderdiği ödeme fişi.
+  evidence.mert_receipt.findings.actor: Ödeme Mert'e ait.
+  evidence.mert_receipt.findings.place: Ödeme Karaköy Kahve'de yapıldı.
+  evidence.mert_receipt.findings.paid_at: İşlem 21:01:12'de tamamlandı.
+  evidence.mert_receipt.findings.payment: Temassız ödeme otomatik bir zaman damgası oluşturdu.
+  evidence.access_log.title: Dördüncü kat erişim günlüğü
+  evidence.access_log.description: Dosyanın kaybolduğu dakikalara ait bina erişim kayıtları.
+  evidence.access_log.findings.actor: Kaydedilen kart Nihan'a ait.
+  evidence.access_log.findings.entered_at: Nihan dördüncü kata 21:03:14'te girdi.
+  evidence.access_log.findings.service_corridor_at: Kartı 21:08:51'de servis koridoruna ulaştı.
+  evidence.desk_camera.title: Editoryal masa kamerası
+  evidence.desk_camera.description: Kırmızı dosyanın bırakıldığı masayı gören CAM-E04 kaydı.
+  evidence.desk_camera.findings.visible_at: Kırmızı dosya 21:02:09'da hâlâ masadaydı.
+  evidence.desk_camera.findings.file_removed_at: Birisi dosyayı 21:04:01'de aldı.
+  evidence.desk_camera.findings.direction: Kişi dosyayı servis koridoruna doğru taşıdı.
+  evidence.desk_camera.findings.visible_actor: Yalnızca açık renk bir kol görünüyor; kişinin yüzü görünmüyor.
+  evidence.interview_draft.title: Röportaj taslağı v12
+  evidence.interview_draft.description: Kayıp kırmızı dosyanın dijital taslağı.
+  evidence.interview_draft.findings.document: Bu belge yayımlanmamış röportajın 12. sürümü.
+  evidence.interview_draft.findings.source_identity_exposed: Taslak gizli kaynağın kimliğini açık ediyor.
+  evidence.interview_draft.findings.exposed_person: Açık edilen kaynak Can Koral.
+  evidence.interview_draft.findings.exposed_locations: Taslak kaynakla bağlantılı iki yerin de adını veriyor.
+  evidence.nihan_warning.title: Nihan'ın redaksiyon uyarısı
+  evidence.nihan_warning.description: Röportaj taslağı v12'den kaynak bilgilerinin çıkarılmasını isteyen e-posta.
+  evidence.nihan_warning.findings.sent_by: Uyarıyı Nihan gönderdi.
+  evidence.nihan_warning.findings.sent_at: Mesajı 12 Ağustos saat 16:26'da gönderdi.
+  evidence.nihan_warning.findings.requested_redaction: Özellikle kaynağın kimliğinin çıkarılmasını istedi.
+  evidence.nihan_warning.findings.acknowledged: Leyla uyarıyı hiç onaylamadı.
+  evidence.facilities_chat.title: Gizli evrak kutusu yazışmaları
+  evidence.facilities_chat.description: Nihan'ın bina tesis ekibiyle yaptığı önceki yazışmalar.
+  evidence.facilities_chat.findings.actor: Tesis ekibinden bilgi isteyen kişi Nihan'dı.
+  evidence.facilities_chat.findings.asked_about: Mavi bir gizli evrak kutusunu sordu.
+  evidence.facilities_chat.findings.pickup_at: Kutular 21:45'te alınacak.
+  evidence.facilities_chat.findings.lookup: Tesis ekibi, gizli mavi rota aramasını kullanmasını söyledi.
+  evidence.building_route.title: Gizli mavi kutu rotası
+  evidence.building_route.description: Dördüncü kattaki gizli kutular için bina rota kaydı.
+  evidence.building_route.findings.place: Rota dördüncü kattan başlıyor.
+  evidence.building_route.findings.department: Rota Haber Merkezi bölümüne ait.
+  evidence.building_route.findings.box: Dördüncü katın mavi gizli kutusu B-17.
+  evidence.building_route.findings.pickup_at: B-17 kutusu 21:45'te alınacak.
+  evidence.nihan_confession.title: Nihan'ın itirafı
+  evidence.nihan_confession.description: Açık edilen kaynak bilgileri gösterildikten sonra Nihan'ın verdiği tam ifade.
+  evidence.nihan_confession.findings.took: Nihan kırmızı dosyayı aldığını kabul ediyor.
+  evidence.nihan_confession.findings.placed_in: Dosyayı B-17 gizli evrak kutusuna koyduğunu söylüyor.
+  evidence.nihan_confession.findings.intent: Röportajı çalmak için değil, kaynağı korumak için hareket etti.
+  evidence.recovered_file.title: Kurtarılan kırmızı dosya
+  evidence.recovered_file.description: Gizli evrak toplama rotasından çıkarılan fiziksel röportaj dosyası.
+  evidence.recovered_file.findings.recovered_from: Dosya B-17 kutusundan kurtarıldı.
+  evidence.recovered_file.findings.pages: 46 sayfanın tamamı mevcut.
+  evidence.recovered_file.findings.source_identity_exposed: Sayfalar gizli kaynağın kimliğini hâlâ açık ediyor.
+  evidence.recovered_file.findings.seal_intact: Kurtarmadan önce kutunun mührü sağlamdı.
+  deadlines.document_pickup.label: Gizli evrak kutularının alınması
+  assessment.bands.exemplary: Örnek soruşturma
+  assessment.bands.strong_with_cost: Güçlü, fakat iz bırakan
+  assessment.bands.fragile: Sonuç var, yöntem kırılgan
+  assessment.bands.reconsider: Yöntem yeniden değerlendirilmeli
+  assessment.categories.evidence_reasoning: Kanıt ve muhakeme
+  assessment.categories.intervention_protection: Müdahale ve koruma
+  assessment.categories.procedure_people: Usul ve kişi etkisi
+  assessment.categories.time_management: Zaman yönetimi
+  assessment.criteria.camera_time.met: Kamera saatindeki yedi dakikalık farkı doğruladın.
+  assessment.criteria.camera_time.missed: Kamera saatini gerçek zamanla eşleştirmeden ilerledin.
+  assessment.criteria.full_chain.met: Dosyanın neden alındığını kanıt zinciriyle açıkladın.
+  assessment.criteria.full_chain.missed: Olayın tam açıklaması kanıtlarla kurulmadı.
+  assessment.criteria.identify_nihan.met: Dosyayı Nihan'ın aldığını iki ayrı kayıtla doğruladın.
+  assessment.criteria.identify_nihan.missed: Dosyayı kimin aldığı kesinleştirilmedi.
+  assessment.criteria.locate_file.met: Kırmızı dosyanın B-17 kutusunda olduğunu buldun.
+  assessment.criteria.locate_file.missed: Dosyanın gerçek konumu kanıtlanmadı.
+  assessment.criteria.mert_opportunity.met: Mert'in dosyayı alma fırsatı olmadığını gösterdin.
+  assessment.criteria.mert_opportunity.missed: Mert'in hareket alanı kanıtlarla sınanmadı.
+  assessment.criteria.source_motive.met: Nihan'ın kaynağı korumaya çalıştığını ortaya koydun.
+  assessment.criteria.source_motive.missed: Nihan'ın davranışının nedeni açıklanmadı.
+  assessment.criteria.protect_nihan.met: Nihan'ı soruşturmanın gereksiz kurumsal zararından korudun.
+  assessment.criteria.protect_nihan.missed: Nihan, dosya kurtarılsa bile soruşturmanın bedelini taşıdı.
+  assessment.criteria.protect_source.met: Gizli kaynağın kimliği yayından önce korundu.
+  assessment.criteria.protect_source.missed: Gizli kaynağın kimliği açıkta kaldı.
+  assessment.criteria.recover_file.met: Kırmızı dosyayı toplama saatinden önce kurtardın.
+  assessment.criteria.recover_file.missed: Kırmızı dosya kurtarılamadı.
+  assessment.criteria.avoid_early_accusation.met: Mert hakkında kanıt zinciri kurulmadan işlem başlatmadın.
+  assessment.criteria.avoid_early_accusation.missed: Mert'i aklayan çıkarım tamamlanmadan onu şüpheli olarak bildirdin.
+  assessment.criteria.keep_contact_open.met: Mert ile iletişim hattı vaka sonunda açık kaldı.
+  assessment.criteria.keep_contact_open.missed: Mert ile temas, erken suçlamadan sonra onarılmadan kapandı.
+  assessment.criteria.beat_pickup.met: Gizli evrak toplama saati dolmadan harekete geçtin.
+  assessment.criteria.beat_pickup.missed: 21:45 sınırı aşıldı ve kutular toplandı.
+  assessment.criteria.correct_intervention.met: Acil müdahaleyi yanlış kutuya yönlendirmedin.
+  assessment.criteria.correct_intervention.missed: Acil emir B-17 yerine B-11 kutusuna verildi.
+  outcomes.all_protected.title: İsimler Silindi
+  outcomes.all_protected.body: Dosya arabuluculukla kurtarıldı. Mert aklandı, Nihan korundu ve kaynak bilgileri yayımdan önce çıkarıldı.
+  outcomes.protected_with_scar.title: Doğru Sonuç, Geç Özür
+  outcomes.protected_with_scar.body: Dosya ve kaynak korundu, fakat Mert kanıtlardan önce gelen yanlış suçlamayı vaka boyunca taşıdı.
+  outcomes.security_result.title: Dosya Bulundu, Bedel Kaldı
+  outcomes.security_result.body: Güvenlik dosyayı B-17'den kurtardı, fakat Nihan açığa alındı ve gizli kaynak açıkta kaldı.
+  outcomes.wrong_box_result.title: B-11
+  outcomes.wrong_box_result.body: Acil emir finans kutusunu hedefledi. Gerçek dosya B-17'de kaldı ve alım sırasında imha edildi.
+  outcomes.deadline_result.title: "21:45"
+  outcomes.deadline_result.body: Toplama aracı gizli kutuları aldı. Kırmızı dosya kurtarılamadan öğütücüye ulaştı.

@@ -1,0 +1,80 @@
+schema: case-test/v0.1
+case: {id: examples.diverted-invoice, version: 0.1.0}
+
+scenario:
+  id: full_solution
+  perspective: detective
+  description: Verify the lookalike sender and routing change, then recall the transfer before settlement.
+  steps:
+    - detective.observe: spoof_email
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            spoof_email: {status: observed, assets: [email-header-photo]}
+          observations:
+            spoof_email.from_domain: redwood-fabricati0n.example
+            spoof_email.requested_account: diverted_account
+
+    - detective.observe: supplier_record
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            supplier_record:
+              {status: observed, assets: [invoice-comparison-photo]}
+
+    - detective.observe: wire_notice
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            wire_notice: {status: observed, assets: [recall-clock-photo]}
+          observations:
+            wire_notice.settlement_status: pending
+
+    - detective.deduce: sender_domain_is_lookalike
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {sender_domain_is_lookalike: supported}
+
+    - detective.deduce: payment_route_was_changed
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {payment_route_was_changed: supported}
+
+    - detective.deduce: transfer_reached_wrong_beneficiary
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {transfer_reached_wrong_beneficiary: supported}
+
+    - detective.deduce: bec_confirmed
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {bec_confirmed: supported}
+          evidence: {bank_trace: available}
+
+    - detective.observe: bank_trace
+      expect:
+        result: {status: accepted}
+        state:
+          observations:
+            bank_trace.recall_eligible: true
+            bank_trace.owner_matches_supplier: false
+
+    - detective.deduce: recall_is_possible
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {recall_is_possible: supported}
+
+    - detective.conclude: wire_transfer
+      expect:
+        result: {status: accepted}
+        state:
+          final_conclusion: wire_transfer
+          outcome: recalled

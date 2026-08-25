@@ -1,0 +1,81 @@
+schema: case-test/v0.1
+
+case: {id: official.son-prova, version: 0.4.1}
+
+scenario:
+  id: files_deleted
+  perspective: detective
+  description: Let the workspace deletion happen first, then solve the case through action-retrieved surviving sources.
+  steps:
+    - detective.advance: {clock: wall, by: 55m}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {wall: 55m, case-time: 0s}
+          evidence:
+            audit_draft: hidden
+            workspace_admin_log: available
+            payment_ledger: available
+          affordances:
+            search_production_audit: hidden
+            preserve_workspace: hidden
+
+    - detective.observe: workspace_admin_log
+      expect:
+        state:
+          observations:
+            workspace_admin_log.actor: selin
+            workspace_admin_log.action: delete
+    - detective.observe: payment_ledger
+      expect:
+        state:
+          observations: {payment_ledger.payments_diverted_to: north_stage}
+          affordances: {deduce_selin_financial_motive: offered}
+    - detective.deduce: selin_financial_motive
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 1m}
+          deductions: {selin_financial_motive: supported}
+
+    - detective.act: {action: request, from: ekin, topic: scene-report}
+    - detective.observe: safety_report
+    - detective.act: {action: request, from: ekin, topic: automation-export}
+    - detective.observe: automation_log
+    - detective.observe: tablet_inventory
+    - detective.observe: tablet_biometric_log
+
+    - detective.act: {action: request, from: ekin, topic: victim-phone}
+    - detective.observe: orhan_phone_export
+    - detective.observe: positioning_message
+
+    - detective.act: {action: interview, actor: baran, topic: location}
+    - detective.observe: cafe_video
+    - detective.act: {action: search, query: "PROD-TAB-03 remote pairing"}
+    - detective.observe: support_mail
+
+    - detective.act: {action: interview, actor: selin, topic: alibi}
+    - detective.observe: livestream
+    - detective.act: {action: search, query: "interview publication history"}
+    - detective.observe: livestream_history
+
+    - detective.deduce: death_not_accident
+    - detective.deduce: baran_not_operator
+    - detective.deduce: selin_alibi_false
+    - detective.deduce: selin_prepared_murder
+    - detective.deduce: selin_killed_orhan
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 33m, wall: 55m}
+          deductions: {selin_killed_orhan: supported}
+          affordances: {conclude_selin: offered}
+
+    - detective.conclude: selin
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 34m, wall: 55m}
+          evidence: {audit_draft: hidden}
+          final_conclusion: selin
+          outcome: killer_found

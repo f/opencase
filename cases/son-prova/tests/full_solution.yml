@@ -1,0 +1,180 @@
+schema: case-test/v0.1
+
+case: {id: official.son-prova, version: 0.4.1}
+
+scenario:
+  id: full_solution
+  perspective: detective
+  description: Follow the progressive action surface, preserve the audit, clear the framed actors, and finish before detention.
+  steps:
+    - detective.act: {action: request, from: ekin, topic: scene-report}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 4m}
+          evidence: {safety_report: available, pin_photo: available}
+    - detective.observe: safety_report
+      expect:
+        state:
+          affordances: {request_victim_phone: offered}
+    - detective.observe: pin_photo
+
+    - detective.act: {action: request, from: ekin, topic: automation-export}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 8m}
+          evidence: {automation_log: available}
+    - detective.observe: automation_log
+      expect:
+        state:
+          evidence: {tablet_inventory: available}
+          affordances:
+            request_security_export: offered
+            search_remote_pairing: offered
+            accuse_baran: offered
+    - detective.observe: tablet_inventory
+      expect:
+        state:
+          evidence:
+            tablet_biometric_log: available
+            tablet_wifi: available
+    - detective.observe: tablet_biometric_log
+
+    - detective.act: {action: request, from: ekin, topic: victim-phone}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 11m}
+          evidence: {orhan_phone_export: available}
+    - detective.observe: orhan_phone_export
+      expect:
+        state:
+          evidence:
+            threat_message: available
+            positioning_message: available
+    - detective.observe: threat_message
+    - detective.observe: positioning_message
+      expect:
+        state:
+          affordances:
+            search_production_audit: offered
+            deduce_death_not_accident: offered
+
+    - detective.act: {action: interview, actor: baran, topic: location}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 15m}
+          evidence: {cafe_video: available}
+    - detective.observe: cafe_video
+      expect:
+        state:
+          affordances:
+            present_cafe_to_baran: offered
+            deduce_baran_not_operator: offered
+    - detective.act:
+        {action: present, target: baran, evidence: cafe_video, tone: empathetic}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 17m}
+          evidence: {support_mail: available}
+    - detective.observe: support_mail
+
+    - detective.act: {action: interview, actor: selin, topic: alibi}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 21m}
+          evidence: {livestream: available}
+    - detective.observe: livestream
+      expect:
+        state:
+          evidence: {livestream_metadata: available}
+          affordances: {search_livestream_history: offered}
+    - detective.observe: livestream_metadata
+    - detective.act: {action: search, query: "interview publication history"}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 25m}
+          evidence: {livestream_history: available}
+    - detective.observe: livestream_history
+      expect:
+        state:
+          affordances: {deduce_selin_alibi_false: offered}
+
+    - detective.act: {action: search, query: "Orhan production audit"}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 29m}
+          evidence: {audit_draft: available}
+    - detective.observe: audit_draft
+      expect:
+        state:
+          evidence: {company_registry: available}
+          affordances:
+            preserve_workspace: offered
+            present_audit_to_selin: offered
+    - detective.observe: company_registry
+      expect:
+        state:
+          affordances: {deduce_selin_financial_motive: offered}
+    - detective.act: {action: preserve, target: production_workspace}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 31m}
+          affordances: {preserve_workspace: hidden}
+
+    - detective.deduce: death_not_accident
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 32m}
+          deductions: {death_not_accident: supported}
+          affordances: {deduce_selin_prepared_murder: offered}
+    - detective.deduce: baran_not_operator
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 33m}
+          deductions: {baran_not_operator: supported}
+          affordances: {accuse_baran: hidden}
+    - detective.deduce: selin_alibi_false
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 34m}
+          deductions: {selin_alibi_false: supported}
+    - detective.deduce: selin_prepared_murder
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 35m}
+          deductions: {selin_prepared_murder: supported}
+          affordances: {accuse_leyla: hidden}
+    - detective.deduce: selin_financial_motive
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 36m}
+          deductions: {selin_financial_motive: supported}
+          affordances: {deduce_selin_killed_orhan: offered}
+    - detective.deduce: selin_killed_orhan
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 37m}
+          deductions: {selin_killed_orhan: supported}
+          affordances: {conclude_selin: offered}
+    - detective.conclude: selin
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 38m}
+          final_conclusion: selin
+          outcome: full_curtain
+          assessment: {score: 100, max_score: 100}

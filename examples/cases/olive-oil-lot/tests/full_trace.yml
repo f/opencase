@@ -1,0 +1,83 @@
+schema: case-test/v0.1
+case: {id: examples.olive-oil-lot, version: 0.1.1}
+
+scenario:
+  id: full_trace
+  perspective: detective
+  description: Verify the sealed sample, obtain the lab panel, balance the volumes, and trace the undeclared input to its tank.
+  steps:
+    - detective.observe: label_photo
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            label_photo:
+              status: observed
+              assets: [lot-label]
+          observations:
+            label_photo.lot: rl-204
+            label_photo.declared_grade: premium-extra-virgin
+
+    - detective.observe: custody_seal
+    - detective.deduce: sample_is_traceable
+      expect:
+        result: {status: accepted}
+        state: {deductions: {sample_is_traceable: supported}}
+
+    - detective.act: {action: request, topic: authenticity-panel}
+      expect:
+        result: {status: accepted}
+        state: {evidence: {authenticity_panel: {status: available}}}
+
+    - detective.observe: authenticity_panel
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            authenticity_panel:
+              status: observed
+              assets: [lab-panel]
+          observations:
+            authenticity_panel.profile: lower-grade-carrier-detected
+            authenticity_panel.estimated_undeclared_fraction: 0.75
+
+    - detective.deduce: undeclared_oil_detected
+
+    - detective.act: {action: search, query: "RL-204 intake ledger"}
+      expect:
+        result: {status: accepted}
+        state: {evidence: {batch_ledger: {status: available}}}
+
+    - detective.observe: batch_ledger
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            batch_ledger:
+              status: observed
+              assets: [batch-ledger]
+            supplier_invoice: {status: available}
+          observations:
+            batch_ledger.premium_input_l: 300
+            batch_ledger.additional_input_l: 900
+            batch_ledger.output_l: 1200
+
+    - detective.observe: supplier_invoice
+    - detective.deduce: output_exceeds_premium_input
+    - detective.deduce: adulteration_confirmed
+    - detective.deduce: source_traced_to_tank
+      expect:
+        result: {status: accepted}
+        state:
+          deductions:
+            undeclared_oil_detected: supported
+            output_exceeds_premium_input: supported
+            adulteration_confirmed: supported
+            source_traced_to_tank: supported
+
+    - detective.conclude: blending_tank
+      expect:
+        result: {status: accepted}
+        state:
+          final_conclusion: blending_tank
+          outcome: traced_dilution

@@ -1,0 +1,15 @@
+schema: case-test/v0.1
+case: {id: examples.diverted-invoice, version: 0.1.0}
+
+scenario:
+  id: settlement_deadline
+  perspective: detective
+  description: Waiting through the review window produces the explicit settlement failure.
+  steps:
+    - detective.advance: {clock: case-time, by: 8m}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 8m}
+          final_conclusion: null
+          outcome: settled

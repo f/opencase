@@ -1,0 +1,60 @@
+schema: case-test/v0.1
+
+case:
+  id: official.son-prova
+  version: 0.4.1
+
+scenario:
+  id: backup_cancels_deletion
+  perspective: detective
+  description: Preserve the observed audit, advance past deletion time, and prove its public card remains intact.
+  steps:
+    - detective.act: {action: request, from: ekin, topic: scene-report}
+    - detective.observe: safety_report
+    - detective.act: {action: request, from: ekin, topic: victim-phone}
+    - detective.observe: orhan_phone_export
+    - detective.observe: positioning_message
+
+    - detective.act: {action: search, query: "Orhan production audit"}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 11m}
+          evidence:
+            audit_draft: available
+
+    - detective.observe: audit_draft
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            audit_draft: observed
+            payment_ledger: available
+          observations:
+            audit_draft.payments_diverted_to: north_stage
+
+    - detective.act: {action: preserve, target: production_workspace}
+      expect:
+        result: {status: accepted}
+        state: {clocks: {case-time: 13m}}
+
+    - detective.advance: {clock: wall, by: 55m}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks:
+            wall: 55m
+            case-time: 13m
+          evidence:
+            audit_draft: observed
+            workspace_admin_log: hidden
+            payment_ledger: available
+          outcome: null
+
+    - detective.observe: workspace_admin_log
+      expect:
+        result: {status: denied, code: evidence-locked}
+        state:
+          evidence:
+            audit_draft: observed
+            workspace_admin_log: hidden

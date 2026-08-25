@@ -1,0 +1,18 @@
+schema: case-test/v0.1
+case: {id: examples.diverted-invoice, version: 0.1.0}
+
+scenario:
+  id: locked_bank_trace_denial
+  perspective: detective
+  description: Bank trace details remain unavailable until the fraud pattern is supported.
+  steps:
+    - detective.observe: bank_trace
+      expect:
+        result: {status: denied, code: evidence-locked}
+        state:
+          evidence: {bank_trace: hidden}
+          unknown_observations:
+            - bank_trace.recall_eligible
+            - bank_trace.receiving_account
+          final_conclusion: null
+          outcome: null

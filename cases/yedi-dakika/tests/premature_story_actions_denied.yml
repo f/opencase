@@ -1,0 +1,32 @@
+schema: case-test/v0.1
+case: {id: community.fka.yedi-dakika, version: 0.4.1}
+
+scenario:
+  id: premature_story_actions_denied
+  perspective: detective
+  description: Knowing a later command cannot bypass the case-authored investigation sequence.
+  steps:
+    - detective.act: {action: request, from: leyla, topic: access-log}
+      expect:
+        result: {status: denied, code: affordance-unavailable}
+        state:
+          clocks: {case-time: 0s}
+          evidence: {access_log: hidden}
+
+    - detective.act:
+        action: present
+        target: nihan
+        evidence: interview_draft
+        tone: empathetic
+      expect:
+        result: {status: denied, code: affordance-unavailable}
+        state:
+          evidence: {nihan_confession: hidden}
+
+    - detective.conclude: mediate
+      expect:
+        result: {status: denied, code: affordance-unavailable}
+        state:
+          final_conclusion: null
+          outcome: null
+          evidence: {recovered_file: hidden}

@@ -1,0 +1,29 @@
+schema: case-test/v0.1
+case: {id: examples.yard-switch, version: 0.1.1}
+
+scenario:
+  id: recorder_overwritten
+  perspective: detective
+  description: Let case time expire and prove the overwritten outcome closes the case without later mutation.
+  steps:
+    - detective.advance: {clock: case-time, by: 5m}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 5m}
+          evidence: {event_recorder: {status: hidden}}
+          outcome: record_overwritten
+
+    - detective.observe: event_recorder
+      expect:
+        result: {status: denied, code: case-ended}
+        state:
+          evidence: {event_recorder: {status: hidden}}
+          unknown_observations: [event_recorder.shown_brake_time]
+
+    - detective.advance: {clock: case-time, by: 5m}
+      expect:
+        result: {status: denied, code: case-ended}
+        state:
+          clocks: {case-time: 5m}
+          outcome: record_overwritten

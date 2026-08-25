@@ -1,0 +1,15 @@
+schema: case-i18n/v0.1
+case: {id: examples.diverted-invoice, version: 0.1.0}
+locale: en
+messages:
+  case.title: The Diverted Invoice
+  case.synopsis: >-
+    A routine supplier invoice leads to the wrong beneficiary after an urgent
+    routing-change email, and the bank's recall window is closing.
+  opening.call: >-
+    I released payment for invoice 8841, then the supplier called to say their
+    bank details never changed. The bank can still review a recall for eight
+    minutes. Can you verify the email, trace the routing change, and tell them
+    which transfer to stop?
+  outcomes.recalled.title: Transfer Recalled
+  outcomes.settled.title: Recall Window Missed

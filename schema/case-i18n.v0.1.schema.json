@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://karanlik-oda.local/schema/case-i18n.v0.1.schema.json",
+  "title": "dedektif case translation catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "case", "locale", "messages"],
+  "properties": {
+    "schema": {"const": "case-i18n/v0.1"},
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+        }
+      }
+    },
+    "locale": {"$ref": "#/definitions/locale"},
+    "messages": {
+      "type": "object",
+      "maxProperties": 2048,
+      "propertyNames": {"$ref": "#/definitions/messageKey"},
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 16384
+      }
+    }
+  },
+  "definitions": {
+    "locale": {
+      "type": "string",
+      "pattern": "^[a-z]{2}(?:-[A-Z]{2})?$"
+    },
+    "messageKey": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*(?:\\.[a-z][a-z0-9_-]*)+$"
+    }
+  }
+}

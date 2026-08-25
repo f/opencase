@@ -1,0 +1,36 @@
+schema: case-test/v0.1
+
+case:
+  id: examples.first-clue
+  version: 0.1.0
+
+scenario:
+  id: observe_and_deduce
+  perspective: detective
+  description: Observe the opening clue and support the case's only deduction.
+  steps:
+    - expect:
+        state:
+          evidence:
+            mug_photo: available
+          unknown_observations: [mug_photo.object, mug_photo.place]
+          deductions:
+            courier_stopped_in_hall: unknown
+
+    - detective.observe: mug_photo
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            mug_photo: observed
+          observations:
+            mug_photo.object: mug
+            mug_photo.place: hall
+
+    - detective.deduce: courier_stopped_in_hall
+      expect:
+        result: {status: accepted}
+        state:
+          deductions:
+            courier_stopped_in_hall: supported
+          outcome: clue_found

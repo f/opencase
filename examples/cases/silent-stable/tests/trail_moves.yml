@@ -1,0 +1,45 @@
+schema: case-test/v0.1
+
+case:
+  id: examples.silent-stable
+  version: 0.1.0
+
+scenario:
+  id: trail_moves
+  perspective: detective
+  description: Identify that the silent visitor was familiar but let the transport trail move.
+  steps:
+    - detective.observe: kennel_monitor
+      expect:
+        result: {status: accepted}
+        state:
+          observations:
+            kennel_monitor.bark_events: 0
+            kennel_monitor.dropout_seconds: 0
+
+    - detective.observe: stable_plan
+      expect:
+        result: {status: accepted}
+
+    - detective.act: {action: interview, actor: ivo, topic: dog-familiarity}
+      expect:
+        result: {status: accepted}
+        state:
+          evidence: {familiarity_roster: available}
+
+    - detective.observe: familiarity_roster
+      expect:
+        result: {status: accepted}
+
+    - detective.deduce: visitor_was_familiar
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {visitor_was_familiar: supported}
+
+    - detective.advance: {clock: case-time, by: 12m}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 12m}
+          outcome: trail_moved

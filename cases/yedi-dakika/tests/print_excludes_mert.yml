@@ -1,0 +1,35 @@
+schema: case-test/v0.1
+case: {id: community.fka.yedi-dakika, version: 0.4.1}
+
+scenario:
+  id: print_excludes_mert
+  perspective: detective
+  steps:
+    - detective.act: {action: request, from: leyla, topic: lobby-video}
+    - detective.observe: lobby_video
+    - detective.act: {action: request, from: leyla, topic: camera-sync}
+    - detective.observe: camera_sync_notice
+    - detective.deduce: camera_time_corrected
+    - detective.act: {action: request, from: leyla, topic: printer-log}
+    - detective.observe: printer_log
+      expect:
+        result: {status: accepted}
+        state:
+          observations:
+            lobby_video.screen_exit_at: "21:04"
+            camera_sync_notice.clock_offset: "+7m"
+            printer_log.completed_at: "20:59:06"
+
+    - detective.deduce: mert_no_opportunity
+      expect:
+        result: {status: accepted}
+        state:
+          deductions:
+            camera_time_corrected: supported
+            mert_no_opportunity: supported
+          affordances:
+            request_access_log: offered
+            request_desk_camera: offered
+          evidence:
+            access_log: {status: hidden}
+            desk_camera: {status: hidden}

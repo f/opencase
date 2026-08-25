@@ -1,0 +1,17 @@
+schema: case-i18n/v0.1
+case: {id: examples.silent-stable, version: 0.1.0}
+locale: en
+messages:
+  case.title: The Silent Stable
+  case.synopsis: >-
+    A training horse leaves a locked stable without triggering the guard dog's
+    monitor. Separate a familiar visitor from the delivery driver before the
+    transport trail moves again.
+  opening.call: >-
+    Comet is gone. A delivery van was seen on the east road, but the kennel
+    monitor recorded no barking and no outage. I am sending the monitor summary
+    and the stable plan. The transport trail may be gone in twelve minutes.
+  outcomes.safe_recovery.title: Safe at East Ridge
+  outcomes.right_person_wrong_story.title: Right Person, Too Late
+  outcomes.trail_moved.title: The Trail Moves On
+  outcomes.wrong_driver.title: The Convenient Van

@@ -1,0 +1,689 @@
+# dedektif — detective case engine and desktop shell
+
+dedektif is an engine for writing deterministic investigation cases as
+portable YAML packages. A case author describes the world, what each character
+knows or says, the evidence routes, deductions, timed pressure, reactions,
+actor conversation states, explicit player-visible affordances, objectives,
+endings, and assets. Companion
+`tests/*.yml` files describe
+executable detective-perspective scenarios. The engine validates the package,
+compiles case source into private runtime data, and exposes only a sanitized
+projection to a player client. The trusted test harness constructs that same
+runtime from private compiled data, but author-written expectations are
+evaluated only against the sanitized player projection.
+
+This repository remains **engine-first**, but now includes a working
+macOS-inspired detective desktop: draggable and resizable application
+windows, menu bar, Dock, casebook, inbox, phone, files, research, and
+case-scoped layout persistence. The static browser build consumes sanitized
+public manifests only. A trusted host connects those presentation components
+to `CaseSessionController` for authoritative commands and `kernel-save@1`
+persistence. Case semantics still live in YAML and fixed engine capabilities,
+not in case-specific React or TypeScript code.
+
+## Start here
+
+Requirements: a current Node.js release with `npm`.
+
+```bash
+npm install
+npm run check
+npm run dev
+```
+
+The detective desktop runs at <http://127.0.0.1:4173>. `npm run engine:check` is the
+case-independent synthetic engine gate. `npm run check` is the complete
+repository gate: engine tests, external detective scenarios, private case
+compilation, public-manifest generation, type checking, and the production
+build.
+
+If you want to author a case rather than study the engine, continue with:
+
+- [YAML case reference](docs/case-yaml-reference.md) for every supported field
+  and expression;
+- [detective test reference](docs/detective-tests.md) for the external
+  `tests/*.yml` contract, commands, public expectations, and diagnostics;
+- [case examples](examples/cases/README.md) for tiny lessons and realistic,
+  copyable research-backed packages;
+- [real-world example source ledger](docs/real-world-case-examples.md) for the
+  public sources and fictionalization boundary behind the realistic packages;
+- [AI case-authoring skill](docs/ai-case-authoring-skill.md) for installing,
+  invoking, or adapting the included `$write-detective-case` workflow;
+- [engine contract](docs/engine-contract.md) for the normative kernel and
+  trust-boundary rules;
+- [desktop shell contract](src/shell/README.md) for window behavior and the
+  strict split between engine saves and UI layout persistence.
+
+This README explains how the pieces fit together. It intentionally does not
+repeat the complete YAML field reference.
+
+## The core idea
+
+A case is an authored story graph, not a script that edits game state directly.
+Authors declare facts and routes. Players submit commands. Trusted capabilities
+decide whether a command is legal and emit immutable events. Pure reducers and
+deterministic rules turn those events into the next state. The public UI reads a
+safe projection of that state.
+
+```text
+cases/<slug>/
+├── case.yml + assets/ + i18n/ ──► private source IR ──► kernel IR ──► runtime
+│                              │                                  │
+│                              └── sanitize ──► public manifest   │ project
+│                                                                 ▼
+└── tests/*.yml ── ordered detective commands ──► player-safe runtime state
+                           │                              │
+                           └──────── public expectations ┘
+
+event log ──► event-only replay ──► the same authoritative state
+```
+
+The case compiler and test engine are uncoupled from authored content. Neither
+contains a list of case IDs or clue routes: the CLI discovers packages under a
+parent directory, compiles each `case.yml`, then loads that package's private
+test documents.
+
+`npm run engine:decoupling` enforces that boundary. It derives package slugs,
+case/entity/asset/evidence/deduction/deadline/objective/outcome IDs, flags,
+authored route tokens, and scenario IDs from every real and teaching package,
+then rejects those tokens or playable-package imports in engine TypeScript.
+Versioned capability vocabulary is excluded because it is owned by the engine
+and referenced by cases, never the other way around.
+
+Three properties guide the design:
+
+1. **One source of case truth.** A case's content and logic are authored in
+   `case.yml`; TypeScript is not a second copy of its story.
+2. **Open-world investigation.** Missing evidence is unknown, not false, and
+   canonical truth is kept separate from every observer's knowledge.
+3. **Deterministic execution.** The same compiled case, capability locks, event
+   log, IDs, and clock inputs reconstruct the same state.
+
+## Portable case packages
+
+Every case is a self-contained, lowercase kebab-case directory:
+
+```text
+cases/
+└── my-first-case/
+    ├── case.yml
+    ├── assets/
+    │   ├── room-photo.webp
+    │   └── emergency-call.mp3
+    ├── i18n/
+    │   ├── en.yml
+    │   └── tr.yml
+    └── tests/
+        ├── shortest-solution.yml
+        └── deadline-failure.yml
+```
+
+The real `assets/`, `i18n/`, and `tests/` directories are required. `assets/` may be
+empty; `tests/` must contain at least one `<scenario-id>.yml`. The folder can
+travel as one unit, be validated in CI, and be compiled and tested without
+case-specific source code.
+
+The current source schema is `case-source/v0.1`. At a high level, a case can
+declare:
+
+- identity, locale, duration, clock policy, and conclusion policy;
+- the versioned engine capabilities it uses;
+- cast, places, things, canonical truth, and character perspectives;
+- the opening call, minimal initial evidence, explicit public affordances,
+  unlockable evidence, and attached assets;
+- deductions with explicit proof alternatives and primitive checks;
+- reactions, flags, deadlines, objectives, and outcomes.
+
+Executable scenarios are separate `case-test/v0.1` documents under `tests/`.
+They are private development artifacts, are not part of any case or public
+digest, and assert only the public detective projection. The loader computes a
+separate private test-suite digest for CI/cache identity; that digest is never
+used as a playable case build lock. See the
+[detective test reference](docs/detective-tests.md).
+
+See the [YAML case reference](docs/case-yaml-reference.md) for exact keys,
+shorthand forms, validation rules, and examples.
+See [case localization](docs/case-i18n.md) for `$text` references, strict
+catalogs, locale fallback, public manifests, and save-compatible digests.
+
+## Compilation pipeline
+
+### 1. Secure package loading
+
+The package loader requires a real case directory, a regular UTF-8 `case.yml`,
+and real `assets/`, `i18n/`, and `tests/` directories. The case source is capped at 2 MiB
+and is read through a no-follow file handle so a symlink or a file replaced
+during the read cannot silently change the build input. Scenario contents are
+loaded separately by the private conformance runner, never by the playable IR.
+
+### 2. Source validation
+
+The compiler parses YAML with unique-key checking, validates the JSON schema,
+and then performs semantic validation that a structural schema cannot express.
+This includes:
+
+- capability vocabulary and exact capability versions;
+- cross-references between entities, evidence, observations, deductions,
+  affordances, reactions, objectives, outcomes, and schedules;
+- unlock reachability and deadline timing;
+- template expansion and emitted-event cycle checks;
+- asset source, media type, extension, integrity, and visibility checks;
+- a final audit that rejects private data in the public manifest.
+
+Diagnostics contain a stable error code, YAML path, and source location where
+available. Compilation fails closed: unresolved tools, verbs, providers,
+templates, references, or unsafe assets do not become partially working cases.
+
+### 3. Private compiled source IR
+
+Successful source compilation produces `case-ir/v0.2`. This canonical artifact
+contains the complete story, including truth, perspectives, source assertions,
+unlock graphs, reactions, outcome rules, capability locks, and private asset
+locators. It does not contain `tests/`. It carries hashes of the source,
+capability set, assets, and private IR.
+
+This artifact is trusted build/server input. **Never serve it to a player.**
+
+### 4. Final kernel IR
+
+`compileToKernelIR` lowers the source IR into the fixed kernel vocabulary:
+types, entities, relations, assertion contexts, initial state, schedules, and
+primitive rules. Templates and YAML shortcuts no longer exist at this layer.
+The final kernel IR receives its own canonical digest; authoritative sessions,
+asset requests, and saves bind to that exact digest.
+
+### 5. Public bootstrap manifest
+
+The compiler independently creates `case-public/v0.2`. It contains only safe
+metadata, a sanitized public cast, localized player-safe place labels, the opening call, opening evidence metadata,
+and safe handles for public assets that are reachable at the opening. It does
+not contain canonical truth, perspectives, hidden observations, unlock
+conditions, reactions, outcomes, tests, capability locks, filesystem paths,
+private URLs, or provider references.
+
+`npm run generate:public` discovers kebab-case directories below `cases/`,
+builds them in a staging directory, rejects duplicate case IDs, and atomically
+replaces `public/generated/` only after the entire set succeeds.
+
+## Truth, knowledge, and assertions
+
+The kernel represents claims as assertions. An assertion has:
+
+- a relation and structured key identifying what is being claimed;
+- a JSON value;
+- `affirm` or `deny` polarity;
+- a context that owns the claim;
+- validity describing when the claim is about;
+- `assertedAt` describing when the claim was recorded;
+- optional confidence, visibility, and provenance.
+
+Contexts are hard boundaries, not labels on a shared truth table. Important
+contexts include:
+
+- `world`: canonical private case truth;
+- `source:*`: what an evidence source asserts;
+- `perspective:*`: what a character knows, believes, or says;
+- `player:observed`: claims the player has actually discovered;
+- `player:hypothesized`: claims proposed by the player.
+
+Observing evidence copies the corresponding source assertions into the player
+observation context with provenance. It does not reveal the source context or
+the canonical world.
+
+Queries have four possible results:
+
+| Status | Meaning |
+| --- | --- |
+| `unknown` | No matching affirmation or denial is present in this context. |
+| `affirmed` | At least one matching affirmation is present and no denial conflicts. |
+| `denied` | At least one matching denial is present and no affirmation conflicts. |
+| `conflicted` | Matching affirmations and denials are both present. |
+
+Therefore absence never proves a negative. A deduction remains unsupported
+until its authored proof terms and checks are satisfied in player-accessible
+state, even when the conclusion happens to match private world truth.
+
+## Investigation flow
+
+The case runtime exposes three domain commands:
+
+- `case.evidence.observe` records an available piece of evidence and copies its
+  observations into player knowledge;
+- `case.action.perform` executes an allowed authored action, such as an
+  interview, request, search, presentation, or conclusion submission;
+- `case.deduction.attempt` checks one deduction's authored proof alternatives
+  against current player knowledge.
+
+Case authors normally exercise these through YAML test steps. A host can call
+the typed helpers `observeEvidence`, `performAction`, and `attemptDeduction` in
+`src/case-runtime/session.ts`.
+
+A useful authored route is deliberately progressive:
+
+```text
+empty or minimal opening
+  └─ localized authored affordance is offered
+       └─ exact action succeeds and pays its case-time cost
+            └─ evidence becomes available
+                 └─ detective explicitly observes it
+                      └─ localized deduction affordance is offered
+                           └─ supported deduction triggers a consequence
+```
+
+The opening should establish the problem, not hand the detective a complete
+case file. Grant no investigative evidence at opening when the first move can
+be an authored request, interview, or search; otherwise grant only the one
+artifact needed to make that first decision. Do not bulk-grant camera footage,
+sync notices, logs, witness statements, or other clues that the detective is
+supposed to obtain.
+
+Top-level `affordances` are the public command contract between a case and any
+shell. Each entry supplies a localized label, a target surface (`phone`,
+`web`, `files`, or `casebook`), an exact action or deduction intent, an initial
+offered/withdrawn state, and an optional case-time cost. Authors can also add a
+localized successful `result`, a `normal`, `consequential`, or `terminal`
+`risk`, and localized `confirmation` copy. Risk and confirmation tell the shell
+how to present the choice; result copy is revealed only after that action or
+deduction succeeds. Costs and reactions still define what the choice actually
+does. Reactions use generic `offer` and `withdraw` effects to expose the next
+meaningful choice. A successful matching command consumes its cost atomically;
+a denied action or unsupported deduction costs nothing.
+
+Evidence copy is authored separately from structural reports. Its title and
+optional description appear when the card is granted; authored findings appear
+only after observation. Finding keys must match report fields:
+
+```yaml
+evidence:
+  lobby_video:
+    tool: video
+    presentation:
+      title: {$text: evidence.lobby_video.title}
+      findings:
+        screen_exit_at: {$text: evidence.lobby_video.findings.screen_exit_at}
+    at: start
+    reports: {screen_exit_at: "21:04"}
+```
+
+Deadlines may carry a localized `label`, and outcomes may carry a localized
+`body`. The runtime reveals only the presentation data appropriate for the
+current state. See the [YAML case reference](docs/case-yaml-reference.md) for
+the complete field rules and examples.
+
+Action affordances are `exclusive: true` by default. In that mode, another
+command in the same routed family cannot omit or alter an authored topic,
+query, tone, or other argument to bypass the offer lifecycle or its cost. Keep
+that default for normal investigation moves. Set `exclusive: false` only when
+the case intentionally accepts free-form wrong attempts and accounts for their
+time or other consequence through a broad authored reaction. Even then, the
+exact affordance command is denied while its offer is hidden or after it has
+been consumed; non-exclusive does not make a withdrawn button callable.
+
+The engine never derives UI buttons from private evidence unlocks or reaction
+conditions. If progression depends on `topic`, `query`, `tone`, `evidence`,
+`ref`, or another exact action field, the case must expose that complete command
+through an affordance. This keeps later search terms and solution branches
+private until the author intentionally offers them. Evidence access is still
+separate from knowledge: making a card available does not observe it. The
+detective must explicitly open or observe the card before its reports can
+support a deduction.
+
+Actor availability is also case data. An optional top-level `conversations`
+map gives each participating cast actor an initial state, a closed state map,
+and action channels. A channel maps an action verb to the `actor`, `target`, or
+`from` field that carries that actor's ID. Each state supplies only generic
+`can_talk` availability and optional presentation copy; state IDs such as
+`available`, `refusing`, `escaped`, or `dead` belong to the case and have no
+special meaning in the engine. `allow_while_unavailable` can admit a recovery
+verb, such as an apology, while normal conversation actions remain blocked.
+Reactions change state with `{conversation: [actor_id, state_id]}`.
+
+An unavailable, protected, hidden, or guessed actor is rejected with the same
+generic `actor-unavailable` result. The denial does not echo an actor ID, state
+ID, or case-authored reason. This prevents the command surface from becoming
+an oracle for private story data. See the
+[YAML conversation contract](docs/case-yaml-reference.md#conversations).
+
+Unlocks describe availability, not truth. Reactions describe deterministic
+consequences of events. Objectives are boolean conditions over observed facts,
+supported deductions, flags, and active schedules. Outcomes are selected by
+priority after checking required/excluded objectives, permitted final targets,
+and flags. The highest-priority eligible outcome closes the case; later
+commands return `case-ended` without changing its save. The case's
+`final_conclusion` policy controls whether a submitted target can be replaced
+only while no outcome is eligible.
+
+## Commands, events, reducers, and rules
+
+Every state transition follows the same boundary:
+
+1. A command describes intent and carries a stable command ID.
+2. The capability that owns the command validates it against the pre-command
+   state and returns an accepted event draft or a structured rejection.
+3. The kernel stamps accepted drafts with a unique event ID, sequence,
+   capability lock, command metadata, and all three clock values.
+4. A pure core/capability reducer applies each immutable event.
+5. Rules are matched against the same immutable post-event snapshot.
+6. Matching effects are combined into one atomic batch. Conflicting writes,
+   incompatible schedule operations, or unsafe paths fail rather than depending
+   on source order.
+7. Follow-up events enter the next deterministic FIFO queue.
+
+Rules are ordered by descending priority and then stable ID. `once` rules are
+recorded after they fire. Exclusive reaction groups select one deterministic
+winner. A dispatch has an event-cascade limit to catch accidental infinite
+reaction chains.
+
+Replay is deliberately simpler: it applies the stored events through reducers
+without re-running command decisions or matching rules. This prevents a later
+code path, clock sample, or external service from changing history.
+
+## Three clocks and schedules
+
+The kernel tracks independent clocks because “time passed” has different game
+meanings:
+
+- **case time** advances the fictional investigation timeline;
+- **active time** advances while the player is actively engaged;
+- **wall time** is sampled from the host's injected clock and supports offline
+  or real-world deadlines.
+
+Schedules choose one clock and an absolute due time or relative delay. They can
+deliver immediately or, for wall-clock schedules, once on resume. Optional
+maximum lateness can turn overdue delivery into a missed event. Every scheduled
+delivery includes a generation token, so a cancelled, shifted, or stale
+delivery safely reduces to a no-op.
+
+The runtime exposes explicit helpers to advance case time, advance active time,
+observe wall time, and resume a case. Tests inject clocks and IDs; production
+hosts must do the same through runtime dependencies.
+
+## Versioned capabilities
+
+Capabilities are trusted, versioned modules that own author-facing vocabulary
+and runtime behavior. Examples include interviews, artifacts, communications,
+media forensics, access control, and the casebook. A capability manifest can
+declare tools, verbs, templates, reroute providers, and asset providers.
+
+During compilation, every `use` entry is resolved against the installed
+catalog. The canonical manifest digest is locked into the case. At runtime, the
+engine requires the same capability ID, version, and digest. Changing owned
+vocabulary changes the digest even if the human-readable version string was not
+changed, so a build cannot silently run against different behavior.
+
+Artifacts, phones, browsers, inboxes, interviews, or future mechanics should be
+implemented as capability surfaces built on kernel primitives. They are not
+new special cases in the deterministic kernel.
+
+## Runtime state and the client boundary
+
+The authoritative runtime holds private capability state, generic slots,
+assertion contexts, schedules, capability locks, clocks, and the full event log.
+A client must never receive that object.
+
+`projectCaseState` creates `case-runtime/public-v1`, containing only:
+
+- public case identity and the final kernel digest;
+- current clocks and lifecycle status;
+- current conversation state, `canTalk`, supported channel verbs, and an
+  optional localized reason for each public actor with a conversation graph;
+- currently offered case-authored affordances, including localized labels,
+  risk/confirmation metadata, safe exact intents, target surfaces, and
+  optional case-time costs;
+- completed action and deduction affordances with their safe authored result and completion
+  time;
+- evidence currently granted to the player or previously observed, including
+  authored titles/descriptions and observed-only findings;
+- safe asset handles attached to those projected evidence cards;
+- authored active deadlines with their label, clock, due time, remaining time,
+  and status;
+- player observations and hypotheses;
+- supported deductions retained through their previously public affordance
+  labels, without enumerating unsupported private deductions;
+- the submitted conclusion and selected outcome title/body, when present.
+
+An asset handle contains only `{ id, kind, mimeType }`. It never contains a
+path, URL, signed token, provider name, or provider reference. A gameplay UI
+should render only this projection and send intent back as commands.
+
+Revoking evidence blocks unobserved access. It does not make the player forget
+an artifact already observed: that card and its safe handles remain in the
+projection. The host authorizer must follow this projection policy and bind
+delivery to the final kernel digest.
+
+## Assets: authoring, validation, and delivery
+
+An asset has a stable case-local ID, media kind (`image`, `audio`, `video`,
+`document`, or `file`), MIME type, `public` or `private` visibility, SHA-256
+digest, and exactly one private source descriptor:
+
+- a local file below the package's `assets/` directory;
+- an HTTPS URL pinned to authored content integrity; or
+- an opaque provider/reference pair owned by a capability-locked adapter.
+
+Evidence links to asset IDs; it never embeds paths. `visibility: public` means
+the asset may be part of the static opening bootstrap when its evidence is also
+an opening grant. It does not bypass runtime evidence access. Private assets
+are never copied into the public static build.
+
+Local compilation rejects traversal, absolute paths, symlinks, non-files,
+extension/MIME mismatches, digest mismatches, oversized payloads, executable
+formats, and active SVG content. Defaults are 512 MiB per local asset, 2 GiB
+across a package, and 5 MiB for the conservative static SVG subset.
+
+Runtime delivery uses `createCaseAssetGateway`:
+
+1. The host supplies a handle from the current player projection together with
+   the session's case ID, case version, and final kernel digest.
+2. The gateway verifies that exact package/build binding and calls the host's
+   authorization function.
+3. A local source or explicitly injected HTTPS/provider adapter supplies one
+   byte stream. There is intentionally no default network fetcher.
+4. The gateway reads that stream once into an engine-owned cache while enforcing
+   limits, media magic, static SVG policy, and the declared digest.
+5. Only the verified, content-addressed, read-only cache file is returned.
+
+The HTTP host must serve that returned file with its exact MIME type,
+`X-Content-Type-Options: nosniff`, the returned `Content-Disposition`, and Range
+support for media. HTTPS adapters are part of the trusted host boundary: they
+must enforce deadlines, cap redirects, resolve only public DNS on every hop,
+and reject loopback, private, and link-local targets. Internal adapter errors
+must be mapped to a uniform public response so locators and provider references
+cannot leak.
+
+## Persistence and replay
+
+`kernel-save@1` stores only what is required to reconstruct an authoritative
+session:
+
+- exact case ID, version, and final kernel IR digest;
+- exact capability ID/version/digest locks, including the built-in kernel;
+- the immutable event log;
+- a SHA-256 checksum over the canonical save payload.
+
+Commands, state snapshots, private IR, and implicit migrations are not stored.
+Restore validates the schema and checksum, verifies every event and lock,
+rejects a different case build, replays the event log, and confirms the rebuilt
+session matches the save header. Persistence ships with no automatic migration;
+a host may inject only an explicit, audited migration.
+
+When published case logic changes, bump the case version and treat existing
+saves as belonging to their exact old build unless a real migration has been
+designed and tested.
+
+The application integration point is `CaseSessionController`. It keeps the
+authoritative `KernelSession` and event log in a private closure. A detective
+shell calls `getSnapshot(...)`, sends generic command intent through
+`dispatch(...)`, and receives only `case-runtime/public-v1`. A trusted host may
+call `serialize()` and place the resulting `kernel-save@1` bytes in its chosen
+storage. Restore creates a new controller only after the checksum, case build,
+capability locks, and complete event log have passed validation.
+
+For direct persistence, implement the generic `CaseSaveStorage` port. Its
+`read`, `write`, and `delete` methods receive an exact `{saveId, caseId,
+caseVersion, kernelIrDigest}` key, while the value is an opaque serialized
+save. The controller's `persist(...)` method captures and writes one immutable revision;
+`restoreCaseSessionControllerFromStorage(...)` reads the exact build slot and
+then performs the normal strict restore. For a true restart,
+`deleteCaseSessionFromStorage(runtime, storage, saveId)` deletes exactly that
+case/build/save slot. The host must then discard the old controller and create
+a new one; a restart is not a synthetic reset event appended to the old case.
+
+The opening phone call is a pre-session application step. The host first checks
+the exact build/save slot: a valid existing save restores and resumes its
+desktop, while an absent slot lets the application ring from a sanitized public
+manifest before any controller is created. No case clock, event, or detective
+decision is recorded merely because that call screen is visible. Accepting the
+call creates and persists a fresh controller; it must not overwrite an existing
+slot.
+Restart returns to that onboarding boundary after deleting both the exact
+engine save and the separately scoped desktop-layout snapshot. Clearing only
+window layout does not restart a case; deleting only the engine save is also
+insufficient for a true UI reset because stale presentation selections remain.
+
+This boundary deliberately assigns different state to different owners:
+
+| Owner | State |
+| --- | --- |
+| Engine controller | Case clocks, observations, deductions, actor conversation states, schedules, conclusion, private capability state, event log |
+| Application host | Save location, autosave policy, encryption or account sync |
+| Detective shell | Open windows, bounds, focus order, minimized state, active tool, selected locale |
+
+Moving, minimizing, or reopening a desktop window must therefore never create
+a case event or change save bytes. Conversely, the shell must not keep a
+parallel evidence list or deduction state that can drift from the projection.
+If a fully local build uses browser `localStorage`, it stores only the opaque
+serialized save string through this adapter—not projections, mutable evidence
+arrays, or private runtime objects. A hosted build that must protect hidden
+case information should keep the controller, private IR, and save storage out
+of the browser bundle entirely and pass only projections and command callbacks
+to the shell.
+
+## Authoring workflow
+
+1. Choose the smallest matching package in the
+   [tiny examples](examples/cases/README.md) and copy its directory.
+   An AI author can follow the same gated process through the included
+   [`$write-detective-case` skill](skills/write-detective-case/SKILL.md).
+2. Rename the folder to a lowercase kebab-case slug. Keep `case.yml` and
+   the real `assets/`, `i18n/`, and `tests/` directories, even when `assets/` is empty.
+3. Give the case a globally stable ID and a semantic version. Select only the
+   capabilities whose tools, verbs, templates, or providers the case uses.
+4. Write an empty or minimal opening and one complete progressive path first:
+   localized affordance, exact action, successful time cost, available
+   evidence, explicit observation, deduction affordance, and consequence. Keep
+   world truth, source reports, perspectives, and player deductions separate.
+   Give player-facing evidence an explicit localized title and findings instead
+   of displaying report keys or raw values. Add affordance result/risk/
+   confirmation copy, deadline labels, and outcome bodies where they help the
+   player understand a choice or consequence.
+   Never expect a client to infer a button from private unlock or reaction
+   data; expose every required exact `topic`, `query`, `tone`, `evidence`, or
+   `ref` value in the authored affordance. Keep the default `exclusive: true`
+   unless intentionally modeling free-form failed attempts with their own
+   authored cost or consequence.
+5. Add one explicit ordered scenario per `tests/<scenario-id>.yml`. Assert
+   `state.affordances` before and after route-changing commands, then assert the
+   evidence transition from hidden to available to observed. Cover the
+   successful route and important failures: inaccessible evidence, unsupported
+   deductions, deadlines, misleading statements, and final outcomes. Never
+   put tests inside `case.yml` and never assert private flags, schedules,
+   truth, trust, or events.
+6. Compile the package and run its scenarios directly:
+
+   ```bash
+   npx tsx scripts/compile-cases.ts cases/my-first-case
+   npx tsx src/simulator/cli.ts cases/my-first-case
+   ```
+
+7. Generate and inspect the public artifacts. Search them for private names,
+   truth, locators, conditions, and outcome logic before publishing:
+
+   ```bash
+   npm run generate:public
+   ```
+
+8. Run `npm run check` before integrating the case into a release.
+
+The package-specific commands accept an exact package or a parent directory.
+Discovery checks immediate child directories for a regular `case.yml`, sorts
+them deterministically, and ignores unrelated siblings. The convenience
+scripts point at `cases/` and `examples/cases/`, so a new package joins the
+corresponding gate without adding its slug to TypeScript or `package.json`.
+
+## Commands and generated output
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Generate public manifests and start the local detective desktop. |
+| `npm test` | Run compiler, kernel, runtime, persistence, simulator, and package tests. |
+| `npm run test:watch` | Run Vitest in watch mode. |
+| `npm run cases:test` | Discover packages below `cases/` and execute all private detective scenarios. |
+| `npm run cases:compile` | Discover and compile every package below `cases/`. |
+| `npm run examples:test` | Discover teaching packages and execute every detective scenario. |
+| `npm run examples:compile` | Discover and compile teaching packages into `.build/examples/`. |
+| `npm run skill:validate` | Validate the AI skill frontmatter and UI metadata. |
+| `npm run generate:public` | Atomically generate browser-safe manifests and opening assets. |
+| `npm run typecheck` | Build the TypeScript project graph without starting the app. |
+| `npm run build` | Generate public data, type-check, and create the Vite production build. |
+| `npm run engine:check` | Run only case-independent synthetic engine tests and type checking. |
+| `npm run content:check` | Check engine/content decoupling, skills, all YAML packages/scenarios, and the case-backed production build. |
+| `npm run check` | Run both the independent engine gate and the complete content/integration gate. |
+
+`npm run cases:compile` writes to `.build/cases/`:
+
+```text
+.build/cases/<slug>.source.ir.json   # complete private compiled source IR
+.build/cases/<slug>.kernel.ir.json   # final deterministic kernel IR
+.build/cases/<slug>.public.json      # sanitized bootstrap manifest
+```
+
+`.build/` is private build output and must not be copied to a web root.
+`public/generated/` contains the atomically generated public case index,
+bootstrap manifests, delivery manifests, and only eligible opening assets.
+`dist/` is the production detective-desktop build.
+
+## Repository map
+
+```text
+cases/                    Built-in portable case packages
+examples/cases/           Tiny teaching cases and their walkthroughs
+skills/write-detective-case/ Reusable AI case-authoring workflow
+schema/                   Structural JSON Schema for authored YAML
+docs/                     YAML reference and normative engine contract
+scripts/                  Package compiler and public-manifest generator CLIs
+src/capabilities/         Trusted authoring vocabulary and digest locks
+src/compiler/             YAML validation, semantic compiler, private/public IR
+src/kernel/               Pure event kernel, assertions, rules, and schedules
+src/case-runtime/         Adapter, investigation capability, projection, session controller
+src/persistence/          Checksummed event-log saves and strict restore
+src/simulator/            External detective-test loader, runner, and replay checks
+src/case-package/         Package/asset validation, public build, asset gateway
+src/shell/                Generic desktop/window manager and sanitized detective apps
+src/assets/shell/         ImageGen-created application icon assets
+src/App.tsx               Public-manifest desktop composition and case selector
+```
+
+## Current scope
+
+The completion gate covers both the generic engine and the presentation shell:
+
+- cases compile without case-specific JavaScript;
+- external YAML scenarios run only their explicit legal commands and assert
+  only player-safe state;
+- unproven deductions remain unknown;
+- event-only replay is deterministic;
+- case, active, and wall clocks behave independently;
+- capability, build, save, and asset digests are exact locks;
+- private case data and private asset locators stay outside public output;
+- traversal, tampering, stale schedules, invalid saves, and unsafe media fail
+  closed;
+- shell layout state contains only geometry, focus, open/minimized state, and
+  z-order, while gameplay state remains in the engine event log;
+- the static demo intentionally disables commands that require a trusted
+  private runtime; a hosted game connects the same callbacks to
+  `CaseSessionController` rather than duplicating state in React.
+
+The next gameplay UI should be a replaceable adapter over public manifests,
+runtime projections, commands, and authorized asset delivery. It should not add
+new case truth or bypass the engine's state machine.

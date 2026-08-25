@@ -1,0 +1,30 @@
+schema: case-test/v0.1
+case: {id: examples.yard-switch, version: 0.1.1}
+
+scenario:
+  id: switch_log_is_locked
+  perspective: detective
+  description: The maintenance and radio extract remains hidden until the exact request topic is used.
+  steps:
+    - detective.observe: maintenance_radio_log
+      expect:
+        result: {status: denied, code: evidence-locked}
+        state: {evidence: {maintenance_radio_log: {status: hidden}}}
+
+    - detective.act: {action: request, topic: maintenance-records}
+      expect:
+        result: {status: accepted}
+        state: {evidence: {maintenance_radio_log: {status: hidden}}}
+
+    - detective.act: {action: request, topic: switch-records}
+      expect:
+        result: {status: accepted}
+        state: {evidence: {maintenance_radio_log: {status: available}}}
+
+    - detective.observe: maintenance_radio_log
+      expect:
+        result: {status: accepted}
+        state:
+          evidence: {maintenance_radio_log: {status: observed}}
+          observations:
+            maintenance_radio_log.reset_acknowledged_at: "14:24:20"

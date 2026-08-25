@@ -1,0 +1,14 @@
+schema: case-test/v0.1
+case: {id: community.fka.yedi-dakika, version: 0.4.1}
+
+scenario:
+  id: pickup_deadline
+  perspective: detective
+  steps:
+    - detective.advance: {clock: case-time, by: 35m}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 35m}
+          final_conclusion: null
+          outcome: deadline_result

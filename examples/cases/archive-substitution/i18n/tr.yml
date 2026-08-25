@@ -1,0 +1,15 @@
+schema: case-i18n/v0.1
+case: {id: examples.archive-substitution, version: 0.1.0}
+locale: tr
+messages:
+  case.title: Boş İade
+  case.synopsis: >-
+    Nadir bir harita folyantı ikna edici bir kopyayla değiştirilmiştir; kayıt
+    defterindeki okuyucuysa feribotla ayrılmaya hazırlanmaktadır.
+  opening.call: >-
+    AM-42 numaralı harita folyantı iade edildi ama kâğıdı, cildi ve envanter
+    etiketi katalog görselimizle uyuşmuyor. Defterde Eli Mercer adı var ve son
+    feribot on beş dakika sonra kalkıyor. Okuyucuyu bulup asıl eseri hareketten
+    önce bulabilir misin?
+  outcomes.recovered.title: Asıl Folyant Kurtarıldı
+  outcomes.departed.title: Feribot Kalktı

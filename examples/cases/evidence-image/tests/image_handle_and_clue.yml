@@ -1,0 +1,41 @@
+schema: case-test/v0.1
+
+case:
+  id: examples.evidence-image
+  version: 0.1.0
+
+scenario:
+  id: image_handle_and_clue
+  perspective: detective
+  description: See only the public image handle, inspect it, and identify the locker.
+  steps:
+    - expect:
+        state:
+          evidence:
+            note_scan:
+              status: available
+              assets: [locker-note]
+          unknown_observations: [note_scan.document, note_scan.text, note_scan.ink]
+          deductions:
+            search_locker_four: unknown
+
+    - detective.observe: note_scan
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            note_scan:
+              status: observed
+              assets: [locker-note]
+          observations:
+            note_scan.document: torn_note
+            note_scan.text: "LOCKER 4"
+            note_scan.ink: blue
+
+    - detective.deduce: search_locker_four
+      expect:
+        result: {status: accepted}
+        state:
+          deductions:
+            search_locker_four: supported
+          outcome: locker_identified

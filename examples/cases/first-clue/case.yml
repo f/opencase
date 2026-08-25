@@ -1,0 +1,71 @@
+# Smallest useful flow: opening evidence -> observation -> deduction -> outcome.
+schema: case-source/v0.1
+
+case:
+  id: examples.first-clue
+  version: 0.1.0
+  title: The First Clue
+  locale: en
+  duration: 5m
+  mode: elastic
+  final_conclusion: first-write-wins
+  time:
+    date: "2026-01-01"
+    timezone: UTC
+    starts_at: "09:00"
+  synopsis: A mug left in the hall shows where the courier stopped.
+
+use: [investigation@1, artifacts@1]
+
+cast:
+  dispatcher: {name: Dispatcher, role: client, client: true}
+  courier: {name: Courier, role: missing person}
+
+places:
+  hall: Main hall
+
+things:
+  mug: {type: object, name: Blue mug}
+
+truth:
+  events:
+    courier_stopped:
+      {at: "08:58", type: person.stopped, actor: courier, object: mug, place: hall}
+  facts: {}
+
+perspectives:
+  dispatcher:
+    knows: []
+    believes: []
+    says: {initial: []}
+
+opening:
+  call:
+    from: dispatcher
+    text: The courier vanished. Start with this photo of the mug.
+  grants: [mug_photo]
+  starts: []
+
+evidence:
+  mug_photo:
+    tool: image
+    at: start
+    reports: {object: mug, place: hall}
+
+deductions:
+  courier_stopped_in_hall:
+    conclude: {actor: courier, stopped_at: hall}
+    prove:
+      any:
+        - [mug_photo.place]
+
+flags: []
+reactions: []
+deadlines: {}
+
+objectives:
+  locate_stop: {supported: courier_stopped_in_hall}
+
+outcomes:
+  clue_found:
+    {title: Clue found, priority: 100, require: [locate_stop]}

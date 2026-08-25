@@ -1,0 +1,61 @@
+schema: case-test/v0.1
+case: {id: community.fka.yedi-dakika, version: 0.4.1}
+
+scenario:
+  id: conversation_refusal_recovery
+  perspective: detective
+  description: A false accusation closes Mert's lead until evidence supports an apology.
+  steps:
+    - detective.act: {action: request, from: leyla, topic: lobby-video}
+    - detective.observe: lobby_video
+
+    - detective.act: {action: report-suspect, target: mert}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 8m}
+          evidence:
+            mert_receipt: hidden
+            access_log: hidden
+            desk_camera: hidden
+          affordances:
+            interview_mert_location: hidden
+            apologize_mert: hidden
+
+    - detective.act: {action: interview, actor: mert, topic: location}
+      expect:
+        result: {status: denied, code: affordance-unavailable}
+        state:
+          clocks: {case-time: 8m}
+          evidence: {mert_receipt: hidden}
+
+    - detective.act: {action: request, from: leyla, topic: camera-sync}
+    - detective.observe: camera_sync_notice
+    - detective.deduce: camera_time_corrected
+    - detective.act: {action: request, from: leyla, topic: printer-log}
+    - detective.observe: printer_log
+    - detective.deduce: mert_no_opportunity
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {mert_no_opportunity: supported}
+          affordances:
+            apologize_mert: offered
+            request_access_log: offered
+            request_desk_camera: offered
+
+    - detective.act: {action: apologize, target: mert}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 13m}
+          affordances:
+            apologize_mert: hidden
+            interview_mert_location: offered
+
+    - detective.act: {action: interview, actor: mert, topic: location}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 16m}
+          evidence: {mert_receipt: available}

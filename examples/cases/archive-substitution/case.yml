@@ -1,0 +1,226 @@
+# Fictional composite inspired by a documented dummy-return allegation.
+schema: case-source/v0.1
+
+case:
+  id: examples.archive-substitution
+  version: 0.1.0
+  title: {$text: case.title}
+  locale: en
+  duration: 30m
+  mode: elastic
+  final_conclusion: first-write-wins
+  time:
+    date: "2026-08-17"
+    timezone: UTC
+    starts_at: "18:05"
+  synopsis: {$text: case.synopsis}
+
+use: [investigation@1, artifacts@1, virtual-web@1, casebook@1]
+
+authoring:
+  inspiration: fictional-composite
+  teaching_focus: [document-substitution, identity-correlation, deadline]
+
+assets:
+  checkout-ledger-photo:
+    kind: image
+    source: {local: assets/checkout-ledger.png}
+    mime_type: image/png
+    visibility: public
+    integrity:
+      sha256: bd1429a665e434473d194cb826bea82018a10f988306b368253d6ac9e8ed4ba5
+  folio-comparison-photo:
+    kind: image
+    source: {local: assets/folio-comparison.png}
+    mime_type: image/png
+    visibility: public
+    integrity:
+      sha256: 2b0c007153539d7e3abbea4119ec8538f324e2caada1f192370ae6df70cef3d6
+  travel-timeline-photo:
+    kind: image
+    source: {local: assets/travel-timeline.png}
+    mime_type: image/png
+    visibility: public
+    integrity:
+      sha256: fe89d6574bf76e072e9a9c775fd87d44bd05488a65d17e320a91cd30813d95b1
+
+cast:
+  rowan: {name: Rowan Bell, role: archive curator, client: true}
+  anton: {name: Anton Rook, role: visiting researcher}
+  mira: {name: Mira Sol, role: reading-room assistant}
+
+places:
+  reading_room: Meridian Archive reading room
+  condition_desk: Archive condition desk
+  ferry_terminal: East ferry terminal
+
+things:
+  map_folio: {type: document, name: Astronomical map folio AM-42}
+  substitute_folio: {type: document, name: Returned substitute volume}
+  guest_card: {type: account, name: Guest reader card G-771, owner: anton}
+  carry_case: {type: container, name: Gray document case}
+
+truth:
+  events:
+    guest_card_created:
+      {at: "13:48", type: account.created, actor: anton, object: guest_card,
+       place: reading_room}
+    folio_checked_out:
+      {at: "14:12", type: document.checked-out, actor: anton,
+       object: map_folio, place: reading_room}
+    substitute_returned:
+      {at: "16:06", type: document.returned, actor: anton,
+       object: substitute_folio, place: condition_desk}
+    folio_concealed:
+      {at: "17:40", type: object.concealed, actor: anton,
+       object: map_folio, place: ferry_terminal}
+  facts:
+    alias_owner:
+      {relation: identity.alias-used-by, alias: eli-mercer, value: anton}
+    concealed_location:
+      {relation: object.inside, object: map_folio, value: carry_case}
+
+perspectives:
+  rowan:
+    knows: [folio_checked_out, substitute_returned]
+    believes:
+      - {relation: document.authentic, object: substitute_folio, value: false,
+         confidence: 0.85, reason: The returned paper and binding look recent.}
+    says: {initial: [same-as-belief]}
+  anton:
+    knows: [guest_card_created, folio_checked_out, substitute_returned,
+            folio_concealed]
+    believes: []
+    says:
+      initial:
+        - {relation: document.returned-by, object: map_folio, value: anton,
+           polarity: deny, intent: concealment}
+  mira:
+    knows: [guest_card_created, substitute_returned]
+    believes: []
+    says: {initial: []}
+
+opening:
+  call:
+    from: rowan
+    text: {$text: opening.call}
+  grants: [checkout_ledger, condition_comparison]
+  starts: [ferry_departure]
+
+evidence:
+  checkout_ledger:
+    tool: image
+    at: start
+    assets: [checkout-ledger-photo]
+    reports:
+      {accession: map_folio, borrower_alias: eli-mercer,
+       reader_card: guest_card, checked_out_at: "14:12", returned_at: "16:06"}
+
+  condition_comparison:
+    tool: image
+    at: start
+    assets: [folio-comparison-photo]
+    reports:
+      {catalog_paper: rag-fiber, returned_paper: modern-wood-pulp,
+       catalog_binding: hand-sewn, returned_binding: glued,
+       inventory_label_state: lifted-and-reapplied}
+
+  guest_application:
+    tool: document
+    unlock: {after: observe, ref: checkout_ledger.borrower_alias}
+    reports:
+      {reader_card: guest_card, alias: eli-mercer, legal_holder: anton,
+       contact_fragment: rook-71}
+
+  terminal_booking:
+    tool: image
+    unlock: {search: "Eli Mercer east ferry 18:20"}
+    assets: [travel-timeline-photo]
+    reports:
+      {passenger_alias: eli-mercer, service: east-ferry-6,
+       departure_at: "18:20", luggage: gray-document-case}
+
+  terminal_storage_scan:
+    tool: log
+    unlock: {after: supported, ref: alias_links_to_anton}
+    reports:
+      {holder: anton, container: carry_case, locker_opened_at: "17:40",
+       scan_shape: folio-sized-rectangle}
+
+deductions:
+  returned_volume_is_substitute:
+    conclude: {object: substitute_folio, authentic: false}
+    prove:
+      any:
+        - [condition_comparison.catalog_paper,
+           condition_comparison.returned_paper,
+           condition_comparison.returned_binding,
+           condition_comparison.inventory_label_state]
+
+  alias_links_to_anton:
+    conclude: {alias: eli-mercer, used_by: anton}
+    prove:
+      any:
+        - [checkout_ledger.borrower_alias, guest_application.legal_holder]
+
+  alias_has_departure_plan:
+    conclude: {actor: anton, departing_at: "18:20"}
+    prove:
+      any:
+        - [alias_links_to_anton, terminal_booking.passenger_alias,
+           terminal_booking.departure_at]
+
+  folio_is_in_carry_case:
+    conclude: {object: map_folio, location: carry_case}
+    prove:
+      any:
+        - [terminal_storage_scan.holder, terminal_storage_scan.container,
+           terminal_storage_scan.scan_shape]
+
+  full_explanation:
+    use: investigation.composite-explanation
+    conclude:
+      {incident: manuscript-substitution,
+       explanation: alias-returned-substitute-before-departure}
+    require: [returned_volume_is_substitute, alias_links_to_anton,
+              alias_has_departure_plan, folio_is_in_carry_case]
+
+flags: [folio_recovered, folio_departed]
+
+reactions:
+  - id: recover_before_departure
+    on: {action: submit-conclusion, target: anton}
+    when:
+      all:
+        - {supported: full_explanation}
+        - {schedule-active: ferry_departure}
+    once: true
+    do:
+      - {cancel: ferry_departure}
+      - {mark: folio_recovered}
+
+deadlines:
+  ferry_departure:
+    clock: case-time
+    after: 15m
+    offline: pause
+    cancel_on: folio_recovered
+    do:
+      - {mark: folio_departed}
+      - {emit: folio-left-terminal}
+
+objectives:
+  explain_substitution: {supported: full_explanation}
+  recover_folio: {marked: folio_recovered}
+  miss_departure: {marked: folio_departed}
+
+outcomes:
+  recovered:
+    title: {$text: outcomes.recovered.title}
+    priority: 100
+    require: [explain_substitution, recover_folio]
+    final_target: anton
+  departed:
+    title: {$text: outcomes.departed.title}
+    priority: 40
+    when_marked: folio_departed

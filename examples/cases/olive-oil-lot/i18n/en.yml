@@ -1,0 +1,14 @@
+schema: case-i18n/v0.1
+case: {id: examples.olive-oil-lot, version: 0.1.1}
+locale: en
+messages:
+  case.title: The Olive Oil Lot
+  case.synopsis: >-
+    A sealed premium olive-oil sample does not match its declared profile.
+    Authenticate the sample, reconcile the batch volumes, and trace the
+    undeclared material through the production records.
+  opening.call: >-
+    Retail sample RL-204-A carries our premium claim, but its color and aroma
+    raised a quality alert. The seal is intact. Please obtain the authenticity
+    panel and trace every input before we blame the label or bottling line.
+  outcomes.traced_dilution.title: Dilution traced to the blending tank

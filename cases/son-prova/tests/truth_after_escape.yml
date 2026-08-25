@@ -1,0 +1,81 @@
+schema: case-test/v0.1
+
+case: {id: official.son-prova, version: 0.4.1}
+
+scenario:
+  id: truth_after_escape
+  perspective: detective
+  description: Let Selin escape, then retrieve the surviving broadcast archive and prove the truth without speaking to her.
+  steps:
+    - detective.advance: {clock: wall, by: 60m}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {wall: 60m, case-time: 0s}
+          evidence:
+            audit_draft: hidden
+            workspace_admin_log: available
+            payment_ledger: available
+            livestream: hidden
+          affordances:
+            interview_selin_alibi: hidden
+            request_livestream_archive: offered
+            conclude_baran: offered
+            conclude_leyla: offered
+
+    - detective.act: {action: interview, actor: selin, topic: alibi}
+      expect:
+        result: {status: denied, code: affordance-unavailable}
+        state: {clocks: {case-time: 0s}}
+
+    - detective.observe: workspace_admin_log
+    - detective.observe: payment_ledger
+      expect:
+        state: {affordances: {deduce_selin_financial_motive: offered}}
+    - detective.deduce: selin_financial_motive
+
+    - detective.act: {action: request, from: ekin, topic: scene-report}
+    - detective.observe: safety_report
+    - detective.act: {action: request, from: ekin, topic: automation-export}
+    - detective.observe: automation_log
+    - detective.observe: tablet_inventory
+    - detective.observe: tablet_biometric_log
+
+    - detective.act: {action: request, from: ekin, topic: victim-phone}
+    - detective.observe: orhan_phone_export
+    - detective.observe: positioning_message
+
+    - detective.act: {action: interview, actor: baran, topic: location}
+    - detective.observe: cafe_video
+    - detective.act: {action: search, query: "PROD-TAB-03 remote pairing"}
+    - detective.observe: support_mail
+
+    - detective.act: {action: request, from: ekin, topic: livestream-archive}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 23m, wall: 60m}
+          evidence: {livestream: available}
+          affordances: {request_livestream_archive: hidden}
+    - detective.observe: livestream
+    - detective.act: {action: search, query: "interview publication history"}
+    - detective.observe: livestream_history
+
+    - detective.deduce: death_not_accident
+    - detective.deduce: baran_not_operator
+    - detective.deduce: selin_alibi_false
+    - detective.deduce: selin_prepared_murder
+    - detective.deduce: selin_killed_orhan
+      expect:
+        state:
+          clocks: {case-time: 32m, wall: 60m}
+          deductions: {selin_killed_orhan: supported}
+          affordances: {conclude_selin: offered}
+
+    - detective.conclude: selin
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 33m, wall: 60m}
+          final_conclusion: selin
+          outcome: truth_too_late

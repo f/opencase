@@ -1,0 +1,87 @@
+schema: case-test/v0.1
+case: {id: examples.archive-substitution, version: 0.1.0}
+
+scenario:
+  id: full_solution
+  perspective: detective
+  description: Authenticate the return, resolve the alias, trace the ferry booking, and recover the folio.
+  steps:
+    - detective.observe: checkout_ledger
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            checkout_ledger:
+              {status: observed, assets: [checkout-ledger-photo]}
+            guest_application: available
+          observations:
+            checkout_ledger.borrower_alias: eli-mercer
+            checkout_ledger.reader_card: guest_card
+
+    - detective.observe: condition_comparison
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            condition_comparison:
+              {status: observed, assets: [folio-comparison-photo]}
+
+    - detective.deduce: returned_volume_is_substitute
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {returned_volume_is_substitute: supported}
+
+    - detective.observe: guest_application
+      expect: {result: {status: accepted}}
+
+    - detective.deduce: alias_links_to_anton
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {alias_links_to_anton: supported}
+          evidence: {terminal_storage_scan: available}
+
+    - detective.act: {action: search, query: "Eli Mercer east ferry 18:20"}
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            terminal_booking:
+              {status: available, assets: [travel-timeline-photo]}
+
+    - detective.observe: terminal_booking
+      expect:
+        result: {status: accepted}
+        state:
+          observations:
+            terminal_booking.passenger_alias: eli-mercer
+            terminal_booking.departure_at: "18:20"
+
+    - detective.deduce: alias_has_departure_plan
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {alias_has_departure_plan: supported}
+
+    - detective.observe: terminal_storage_scan
+      expect: {result: {status: accepted}}
+
+    - detective.deduce: folio_is_in_carry_case
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {folio_is_in_carry_case: supported}
+
+    - detective.deduce: full_explanation
+      expect:
+        result: {status: accepted}
+        state:
+          deductions: {full_explanation: supported}
+
+    - detective.conclude: anton
+      expect:
+        result: {status: accepted}
+        state:
+          final_conclusion: anton
+          outcome: recovered

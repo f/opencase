@@ -1,0 +1,73 @@
+schema: case-test/v0.1
+
+case: {id: official.son-prova, version: 0.4.1}
+
+scenario:
+  id: opening_requires_actions
+  perspective: detective
+  description: The opening call offers investigation choices but grants no evidence before an accepted detective action.
+  steps:
+    - expect:
+        state:
+          clocks: {case-time: 0s}
+          evidence:
+            threat_message: hidden
+            automation_log: hidden
+            safety_report: hidden
+            pin_photo: hidden
+            livestream: hidden
+          affordances:
+            request_scene_report: offered
+            request_automation_export: offered
+            request_victim_phone: hidden
+            interview_baran_location: offered
+            interview_selin_alibi: offered
+            search_remote_pairing: hidden
+
+    - detective.observe: safety_report
+      expect:
+        result: {status: denied, code: evidence-locked}
+        state:
+          clocks: {case-time: 0s}
+          evidence: {safety_report: hidden}
+
+    - detective.act: {action: request, from: ekin, topic: victim-phone}
+      expect:
+        result: {status: denied, code: affordance-unavailable}
+        state:
+          clocks: {case-time: 0s}
+          evidence: {orhan_phone_export: hidden}
+
+    - detective.act: {action: request, from: ekin, topic: scene-report}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 4m}
+          evidence:
+            safety_report: available
+            pin_photo: available
+            automation_log: hidden
+          affordances: {request_scene_report: hidden}
+    - detective.observe: safety_report
+      expect:
+        state: {affordances: {request_victim_phone: offered}}
+    - detective.observe: pin_photo
+      expect:
+        state:
+          affordances:
+            present_pin_to_leyla: offered
+            accuse_leyla: offered
+
+    - detective.act: {action: request, from: ekin, topic: automation-export}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 8m}
+          evidence: {automation_log: available}
+    - detective.observe: automation_log
+      expect:
+        state:
+          affordances:
+            request_security_export: offered
+            search_remote_pairing: offered
+            accuse_baran: offered

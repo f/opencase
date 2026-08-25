@@ -1,0 +1,54 @@
+schema: case-test/v0.1
+case: {id: community.fka.yedi-dakika, version: 0.4.1}
+
+scenario:
+  id: opening_requires_actions
+  perspective: detective
+  description: The briefing offers leads but grants no evidence before the detective acts.
+  steps:
+    - expect:
+        state:
+          clocks: {case-time: 0s}
+          evidence:
+            lobby_video: hidden
+            camera_sync_notice: hidden
+            printer_log: hidden
+          affordances:
+            request_lobby_video: offered
+            request_camera_sync: hidden
+            request_printer_log: offered
+
+    - detective.observe: lobby_video
+      expect:
+        result: {status: denied, code: evidence-locked}
+        state:
+          clocks: {case-time: 0s}
+          evidence: {lobby_video: hidden}
+
+    - detective.act: {action: request, from: leyla, topic: lobby-video}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 2m}
+          evidence:
+            lobby_video: available
+            camera_sync_notice: hidden
+          affordances:
+            request_lobby_video: hidden
+            request_camera_sync: hidden
+
+    - detective.observe: lobby_video
+      expect:
+        result: {status: accepted}
+        state:
+          evidence: {lobby_video: observed}
+          affordances: {request_camera_sync: offered}
+
+    - detective.act: {action: request, from: leyla, topic: camera-sync}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 4m}
+          evidence:
+            camera_sync_notice: available
+            printer_log: hidden

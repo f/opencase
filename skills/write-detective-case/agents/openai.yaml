@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write Detective Cases"
+  short_description: "Author and validate YAML detective cases"
+  default_prompt: "Use $write-detective-case to create a small, testable YAML detective case package."

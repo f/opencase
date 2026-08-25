@@ -1,0 +1,32 @@
+schema: case-test/v0.1
+case: {id: examples.olive-oil-lot, version: 0.1.1}
+
+scenario:
+  id: ledger_search_is_exact
+  perspective: detective
+  description: A plausible search does not unlock the ledger; the authored exact query does.
+  steps:
+    - detective.observe: batch_ledger
+      expect:
+        result: {status: denied, code: evidence-locked}
+        state: {evidence: {batch_ledger: {status: hidden}}}
+
+    - detective.act: {action: search, query: "RL-204 ledger"}
+      expect:
+        result: {status: accepted}
+        state: {evidence: {batch_ledger: {status: hidden}}}
+
+    - detective.act: {action: search, query: "RL-204 intake ledger"}
+      expect:
+        result: {status: accepted}
+        state: {evidence: {batch_ledger: {status: available}}}
+
+    - detective.observe: batch_ledger
+      expect:
+        result: {status: accepted}
+        state:
+          evidence:
+            batch_ledger: {status: observed}
+            supplier_invoice: {status: available}
+          observations:
+            batch_ledger.source_lot: qx-91

@@ -1,0 +1,1268 @@
+# Human-authored package source. The compiler expands this into private IR.
+schema: case-source/v0.1
+
+case:
+  id: official.son-prova
+  version: 0.4.1
+  title: {$text: case.title}
+  locale: tr
+  duration: 60m
+  mode: elastic
+  final_conclusion: first-write-wins
+  time:
+    date: 2026-10-17
+    timezone: Europe/Istanbul
+    starts_at: "21:35"
+  synopsis: {$text: case.synopsis}
+
+use: [investigation@1, comms@1, artifacts@1, virtual-web@1,
+      casebook@1, interview@1, media-forensics@1,
+      stage-automation@1, finance@1]
+
+authoring:
+  evidence_source_policy: implicit-per-evidence
+  tests_enforce_evidence_access: true
+
+assets:
+  safety-pin-photo:
+    kind: image
+    source: {local: assets/safety-pin-photo.png}
+    mime_type: image/png
+    visibility: public
+    integrity:
+      sha256: ce2bdbe643070251ffe436527fd9017c1ee09ed1380052cf9960b578954328ed
+
+cast:
+  ekin: {name: Ekin Soylu, role: tiyatro-müdürü, client: true}
+  orhan: {name: Orhan Demir, role: sanat-yönetmeni, status: deceased}
+  leyla: {name: Leyla Aras, role: başrol-oyuncusu}
+  baran: {name: Baran Kılıç, role: sahne-amiri}
+  selin: {name: Selin Aksoy, role: yapımcı}
+
+conversations:
+  ekin:
+    initial: available
+    states:
+      available: {can_talk: true}
+    channels: {request: from}
+  orhan:
+    initial: deceased
+    states:
+      deceased:
+        can_talk: false
+        reason: {$text: conversations.orhan.states.deceased.reason}
+    channels: {interview: actor, present: target}
+  leyla:
+    initial: available
+    states:
+      available: {can_talk: true}
+    channels: {interview: actor, present: target}
+  baran:
+    initial: available
+    states:
+      available: {can_talk: true}
+      detained:
+        can_talk: false
+        reason: {$text: conversations.baran.states.detained.reason}
+    channels: {interview: actor, present: target}
+  selin:
+    initial: available
+    states:
+      available: {can_talk: true}
+      escaped:
+        can_talk: false
+        reason: {$text: conversations.selin.states.escaped.reason}
+    channels: {interview: actor, present: target}
+
+# Public, localized investigation choices. Later commands stay withdrawn until
+# an observed clue or supported theory makes them a fair next step.
+affordances:
+  request_scene_report:
+    label: {$text: affordances.request_scene_report.label}
+    result: {$text: affordances.request_scene_report.result}
+    surface: phone
+    initial: offered
+    action: {action: request, from: ekin, topic: scene-report}
+    cost: {clock: case-time, by: 4m}
+  request_automation_export:
+    label: {$text: affordances.request_automation_export.label}
+    result: {$text: affordances.request_automation_export.result}
+    surface: phone
+    initial: offered
+    action: {action: request, from: ekin, topic: automation-export}
+    cost: {clock: case-time, by: 4m}
+  request_victim_phone:
+    label: {$text: affordances.request_victim_phone.label}
+    result: {$text: affordances.request_victim_phone.result}
+    surface: phone
+    initial: withdrawn
+    action: {action: request, from: ekin, topic: victim-phone}
+    cost: {clock: case-time, by: 3m}
+  interview_baran_location:
+    label: {$text: affordances.interview_baran_location.label}
+    result: {$text: affordances.interview_baran_location.result}
+    surface: phone
+    initial: offered
+    action: {action: interview, actor: baran, topic: location}
+    cost: {clock: case-time, by: 4m}
+  request_baran_custody_packet:
+    label: {$text: affordances.request_baran_custody_packet.label}
+    result: {$text: affordances.request_baran_custody_packet.result}
+    surface: phone
+    initial: withdrawn
+    action: {action: request, from: ekin, topic: baran-custody-packet}
+    cost: {clock: case-time, by: 2m}
+    once: true
+  interview_selin_alibi:
+    label: {$text: affordances.interview_selin_alibi.label}
+    result: {$text: affordances.interview_selin_alibi.result}
+    surface: phone
+    initial: offered
+    action: {action: interview, actor: selin, topic: alibi}
+    cost: {clock: case-time, by: 4m}
+  request_livestream_archive:
+    label: {$text: affordances.request_livestream_archive.label}
+    result: {$text: affordances.request_livestream_archive.result}
+    surface: phone
+    initial: withdrawn
+    action: {action: request, from: ekin, topic: livestream-archive}
+    cost: {clock: case-time, by: 3m}
+  interview_leyla:
+    label: {$text: affordances.interview_leyla.label}
+    result: {$text: affordances.interview_leyla.result}
+    surface: phone
+    initial: offered
+    action: {action: interview, actor: leyla}
+    cost: {clock: case-time, by: 3m}
+  request_security_export:
+    label: {$text: affordances.request_security_export.label}
+    result: {$text: affordances.request_security_export.result}
+    surface: phone
+    initial: withdrawn
+    action: {action: request, from: ekin, topic: security-export}
+    cost: {clock: case-time, by: 3m}
+  search_remote_pairing:
+    label: {$text: affordances.search_remote_pairing.label}
+    result: {$text: affordances.search_remote_pairing.result}
+    surface: web
+    initial: withdrawn
+    action: {action: search, query: "PROD-TAB-03 remote pairing"}
+    exclusive: false
+    once: false
+  search_livestream_history:
+    label: {$text: affordances.search_livestream_history.label}
+    result: {$text: affordances.search_livestream_history.result}
+    surface: web
+    initial: withdrawn
+    action: {action: search, query: "interview publication history"}
+    exclusive: false
+    once: false
+  search_production_audit:
+    label: {$text: affordances.search_production_audit.label}
+    result: {$text: affordances.search_production_audit.result}
+    surface: web
+    initial: withdrawn
+    action: {action: search, query: "Orhan production audit"}
+    exclusive: false
+    once: false
+  present_cafe_to_baran:
+    label: {$text: affordances.present_cafe_to_baran.label}
+    result: {$text: affordances.present_cafe_to_baran.result}
+    surface: phone
+    initial: withdrawn
+    action: {action: present, target: baran, evidence: cafe_video, tone: empathetic}
+    cost: {clock: case-time, by: 2m}
+  present_pin_to_leyla:
+    label: {$text: affordances.present_pin_to_leyla.label}
+    result: {$text: affordances.present_pin_to_leyla.result}
+    surface: phone
+    initial: withdrawn
+    action: {action: present, target: leyla, evidence: pin_photo, tone: empathetic}
+    cost: {clock: case-time, by: 2m}
+  preserve_workspace:
+    label: {$text: affordances.preserve_workspace.label}
+    result: {$text: affordances.preserve_workspace.result}
+    risk: consequential
+    confirmation: {$text: affordances.preserve_workspace.confirmation}
+    surface: files
+    initial: withdrawn
+    action: {action: preserve, target: production_workspace}
+    cost: {clock: case-time, by: 2m}
+  present_audit_to_selin:
+    label: {$text: affordances.present_audit_to_selin.label}
+    result: {$text: affordances.present_audit_to_selin.result}
+    risk: consequential
+    confirmation: {$text: affordances.present_audit_to_selin.confirmation}
+    surface: phone
+    initial: withdrawn
+    action: {action: present, target: selin, evidence: audit_draft}
+    cost: {clock: case-time, by: 2m}
+  accuse_baran:
+    label: {$text: affordances.accuse_baran.label}
+    risk: consequential
+    confirmation: {$text: affordances.accuse_baran.confirmation}
+    surface: casebook
+    initial: withdrawn
+    action: {action: report-suspect, target: baran}
+    cost: {clock: case-time, by: 6m}
+  accuse_leyla:
+    label: {$text: affordances.accuse_leyla.label}
+    risk: consequential
+    confirmation: {$text: affordances.accuse_leyla.confirmation}
+    surface: casebook
+    initial: withdrawn
+    action: {action: report-suspect, target: leyla}
+    cost: {clock: case-time, by: 5m}
+  deduce_death_not_accident:
+    label: {$text: affordances.deduce_death_not_accident.label}
+    result: {$text: affordances.deduce_death_not_accident.result}
+    surface: casebook
+    initial: withdrawn
+    deduction: death_not_accident
+    cost: {clock: case-time, by: 1m}
+  deduce_baran_not_operator:
+    label: {$text: affordances.deduce_baran_not_operator.label}
+    result: {$text: affordances.deduce_baran_not_operator.result}
+    surface: casebook
+    initial: withdrawn
+    deduction: baran_not_operator
+    cost: {clock: case-time, by: 1m}
+  deduce_selin_alibi_false:
+    label: {$text: affordances.deduce_selin_alibi_false.label}
+    result: {$text: affordances.deduce_selin_alibi_false.result}
+    surface: casebook
+    initial: withdrawn
+    deduction: selin_alibi_false
+    cost: {clock: case-time, by: 1m}
+  deduce_selin_prepared_murder:
+    label: {$text: affordances.deduce_selin_prepared_murder.label}
+    result: {$text: affordances.deduce_selin_prepared_murder.result}
+    surface: casebook
+    initial: withdrawn
+    deduction: selin_prepared_murder
+    cost: {clock: case-time, by: 1m}
+  deduce_selin_financial_motive:
+    label: {$text: affordances.deduce_selin_financial_motive.label}
+    result: {$text: affordances.deduce_selin_financial_motive.result}
+    surface: casebook
+    initial: withdrawn
+    deduction: selin_financial_motive
+    cost: {clock: case-time, by: 1m}
+  deduce_selin_killed_orhan:
+    label: {$text: affordances.deduce_selin_killed_orhan.label}
+    result: {$text: affordances.deduce_selin_killed_orhan.result}
+    surface: casebook
+    initial: withdrawn
+    deduction: selin_killed_orhan
+    cost: {clock: case-time, by: 1m}
+  conclude_selin:
+    label: {$text: affordances.conclude_selin.label}
+    risk: terminal
+    confirmation: {$text: affordances.conclude_selin.confirmation}
+    surface: casebook
+    initial: withdrawn
+    action: {action: submit-conclusion, target: selin}
+    cost: {clock: case-time, by: 1m}
+  conclude_baran:
+    label: {$text: affordances.conclude_baran.label}
+    risk: terminal
+    confirmation: {$text: affordances.conclude_baran.confirmation}
+    surface: casebook
+    initial: withdrawn
+    action: {action: submit-conclusion, target: baran}
+    cost: {clock: case-time, by: 1m}
+  conclude_leyla:
+    label: {$text: affordances.conclude_leyla.label}
+    risk: terminal
+    confirmation: {$text: affordances.conclude_leyla.confirmation}
+    surface: casebook
+    initial: withdrawn
+    action: {action: submit-conclusion, target: leyla}
+    cost: {clock: case-time, by: 1m}
+
+places:
+  main_stage: {$text: places.main_stage.name}
+  stage_left: {$text: places.stage_left.name}
+  control_booth: {$text: places.control_booth.name}
+  backstage: {$text: places.backstage.name}
+  costume_room: {$text: places.costume_room.name}
+  interview_studio: {$text: places.interview_studio.name}
+  opposite_cafe: {$text: places.opposite_cafe.name}
+
+things:
+  stage_hatch: {type: mechanism, name: Sahne kapağı}
+  safety_pin: {type: part, name: Emniyet pimi}
+  leyla_costume_box: {type: container, name: Leyla'nın kostüm kutusu}
+  automation_console: {type: device, name: Otomasyon konsolu}
+  baran_console_account: {type: account, name: Baran'ın otomasyon hesabı, owner: baran}
+  prod_tablet_03: {type: device, name: PROD-TAB-03, assigned_to: selin}
+  financial_audit: {type: document, name: Yapım bütçesi denetimi}
+  production_workspace: {type: workspace, name: Orhan'ın çalışma alanı}
+  north_stage: {type: organization, name: Kuzey Sahne Danışmanlık}
+  emergency_services: {type: organization, name: Acil servis}
+
+# Canonical truth; never sent directly to the player.
+truth:
+  events:
+    audit_discovered:
+      {at: "19:50", type: document.discovered, actor: orhan, object: financial_audit}
+    interview_recorded:
+      {at: "20:24", type: media.recorded, actor: selin, place: interview_studio}
+    public_argument:
+      {at: "20:43", type: interaction.argument, actors: [orhan, leyla], place: main_stage}
+    threat_sent:
+      {at: "20:44", type: message.sent, actor: leyla, to: orhan}
+    hatch_prepared:
+      {at: "20:48", type: safety.disabled, actor: selin, target: stage_hatch, part: safety_pin}
+    pin_planted:
+      {at: "20:50", type: object.placed, actor: selin, object: safety_pin,
+       in: leyla_costume_box}
+    workspace_deletion_queued:
+      {at: "20:52", type: workspace.deletion-scheduled, actor: selin,
+       target: production_workspace, execute_at: "22:30"}
+    console_left_open:
+      {at: "20:55", type: session.left-open, actor: baran,
+       account: baran_console_account, device: automation_console}
+    baran_exited:
+      {at: "21:03", type: movement.exited, actor: baran, place: control_booth}
+    fake_live_started:
+      {at: "21:05", type: media.broadcast, source: interview_recorded, mode: scheduled}
+    baran_at_cafe:
+      {from: "21:07", to: "21:19", type: presence, actor: baran, place: opposite_cafe}
+    leyla_at_stage_left:
+      {from: "21:08", to: "21:13", type: presence, actor: leyla, place: stage_left}
+    orhan_positioned:
+      {at: "21:09", type: message.sent, actor: selin, to: orhan}
+    hatch_commanded:
+      {at: "21:11:48", type: device.commanded, actor: selin, target: stage_hatch,
+       device: prod_tablet_03, session: baran_console_account}
+    victim_death:
+      {at: "21:12", type: person.died, actor: orhan, place: main_stage,
+       cause: fall-through-stage-hatch}
+    emergency_called:
+      {at: "21:13", type: call.placed, actor: leyla, to: emergency_services,
+       place: stage_left}
+    fake_live_ended:
+      {at: "21:17", type: media.broadcast-ended, source: interview_recorded}
+  facts:
+    tablet_owner: {relation: device.assigned-to, device: prod_tablet_03, value: selin}
+    shell_company_owner: {relation: organization.controlled-by, organization: north_stage, value: selin}
+    diverted_payments: {relation: finance.received-production-money, organization: north_stage, value: true}
+
+# Knowing, believing and saying are separate.
+perspectives:
+  ekin:
+    knows: [emergency_called, victim_death]
+    believes:
+      - {relation: device.commanded-by, event: hatch_commanded, value: baran,
+         confidence: 0.65,
+         reason: "Komut Baran'ın oturumunda görünüyor."}
+    says: {initial: [same-as-belief]}
+
+  leyla:
+    knows: [public_argument, threat_sent, leyla_at_stage_left, emergency_called]
+    believes:
+      - {relation: object.placed-to-frame, object: safety_pin, target: leyla,
+         value: true, confidence: 0.9}
+    says:
+      initial:
+        - {relation: presence.at, actor: leyla, place: stage_left,
+           during: ["21:08", "21:13"], value: false, intent: concealment}
+      trusted:
+        - {relation: presence.at, actor: leyla, place: stage_left,
+           during: ["21:08", "21:13"], value: true, intent: confession}
+
+  baran:
+    knows: [console_left_open, baran_exited, baran_at_cafe]
+    believes:
+      - {relation: incident.intentional, incident: victim_death, value: false,
+         confidence: 0.7,
+         intent: honest-mistake}
+    says:
+      initial:
+        - {relation: session.left-open, account: baran_console_account,
+           value: false, intent: defensive-lie}
+        - {relation: incident.intentional, incident: victim_death,
+           value: false, intent: honest-belief}
+      trusted:
+        - {relation: session.left-open, account: baran_console_account,
+           value: true, intent: confession}
+
+  selin:
+    knows: [audit_discovered, interview_recorded, hatch_prepared, pin_planted,
+            workspace_deletion_queued, console_left_open, orhan_positioned,
+            hatch_commanded, victim_death]
+    believes:
+      - {relation: document.copy-location, document: financial_audit,
+         value: production_workspace,
+         confidence: 1.0}
+    says:
+      initial:
+        - {relation: presence.at, actor: selin, place: interview_studio,
+           during: ["21:05", "21:17"], intent: deliberate-lie}
+        - {relation: capability.can-operate, actor: selin,
+           device: automation_console, value: false, intent: deliberate-lie}
+
+opening:
+  call:
+    from: ekin
+    text: {$text: opening.call}
+  grants: []
+  starts: [workspace_deletion, baran_detention, selin_departure]
+
+# Dotted observation IDs are generated as evidence-id.field.
+evidence:
+  threat_message:
+    tool: message
+    presentation:
+      title: {$text: evidence.threat_message.title}
+      description: {$text: evidence.threat_message.description}
+      findings:
+        sent_by: {$text: evidence.threat_message.findings.sent_by}
+        sent_at: {$text: evidence.threat_message.findings.sent_at}
+        text: {$text: evidence.threat_message.findings.text}
+    unlock: son.victim-phone-opened
+    reports:
+      {sent_by: leyla, sent_at: "20:44",
+       text: "Bu gece o final oynanmayacak. Bunun hesabını vereceksin."}
+
+  automation_log:
+    tool: log
+    presentation:
+      title: {$text: evidence.automation_log.title}
+      description: {$text: evidence.automation_log.description}
+      findings:
+        action: {$text: evidence.automation_log.findings.action}
+        account: {$text: evidence.automation_log.findings.account}
+        device: {$text: evidence.automation_log.findings.device}
+        at: {$text: evidence.automation_log.findings.at}
+    unlock: son.automation-export-delivered
+    reports:
+      {target: stage_hatch, action: open, account: baran_console_account,
+       device: prod_tablet_03, at: "21:11:48"}
+    omits: [human-operator]
+
+  safety_report:
+    tool: document
+    presentation:
+      title: {$text: evidence.safety_report.title}
+      description: {$text: evidence.safety_report.description}
+      findings:
+        failure_mode: {$text: evidence.safety_report.findings.failure_mode}
+        pin_damaged: {$text: evidence.safety_report.findings.pin_damaged}
+    unlock: son.scene-report-delivered
+    reports: {failure_mode: safety-pin-removed, pin_damaged: false}
+
+  pin_photo:
+    tool: image
+    presentation:
+      title: {$text: evidence.pin_photo.title}
+      description: {$text: evidence.pin_photo.description}
+      findings:
+        object: {$text: evidence.pin_photo.findings.object}
+        found_in: {$text: evidence.pin_photo.findings.found_in}
+    unlock: son.scene-report-delivered
+    assets: [safety-pin-photo]
+    reports: {object: safety_pin, found_in: leyla_costume_box}
+
+  livestream:
+    tool: browser
+    presentation:
+      title: {$text: evidence.livestream.title}
+      description: {$text: evidence.livestream.description}
+      findings:
+        label: {$text: evidence.livestream.findings.label}
+        from: {$text: evidence.livestream.findings.from}
+        to: {$text: evidence.livestream.findings.to}
+    unlock: son.selin-alibi-shared
+    reports: {label: LIVE, from: "21:05", to: "21:17"}
+    reliability: misleading-label
+
+  cafe_video:
+    tool: video
+    presentation:
+      title: {$text: evidence.cafe_video.title}
+      description: {$text: evidence.cafe_video.description}
+      findings:
+        actor: {$text: evidence.cafe_video.findings.actor}
+        place: {$text: evidence.cafe_video.findings.place}
+        from: {$text: evidence.cafe_video.findings.from}
+        to: {$text: evidence.cafe_video.findings.to}
+    unlock:
+      any: [son.baran-location-shared, son.baran-custody-packet-delivered]
+    reports: {actor: baran, place: opposite_cafe, from: "21:07", to: "21:19"}
+
+  theater_exit_log:
+    tool: log
+    presentation:
+      title: {$text: evidence.theater_exit_log.title}
+      description: {$text: evidence.theater_exit_log.description}
+      findings:
+        actor: {$text: evidence.theater_exit_log.findings.actor}
+        exited_at: {$text: evidence.theater_exit_log.findings.exited_at}
+    unlock: son.security-export-delivered
+    reports: {actor: baran, exited_at: "21:03"}
+
+  tablet_inventory:
+    tool: document
+    presentation:
+      title: {$text: evidence.tablet_inventory.title}
+      description: {$text: evidence.tablet_inventory.description}
+      findings:
+        device: {$text: evidence.tablet_inventory.findings.device}
+        assigned_to: {$text: evidence.tablet_inventory.findings.assigned_to}
+    unlock: {after: observe, ref: automation_log.device}
+    reports: {device: prod_tablet_03, assigned_to: selin}
+
+  tablet_wifi:
+    tool: log
+    presentation:
+      title: {$text: evidence.tablet_wifi.title}
+      description: {$text: evidence.tablet_wifi.description}
+      findings:
+        device: {$text: evidence.tablet_wifi.findings.device}
+        place: {$text: evidence.tablet_wifi.findings.place}
+        from: {$text: evidence.tablet_wifi.findings.from}
+        to: {$text: evidence.tablet_wifi.findings.to}
+    unlock: {after: observe, ref: tablet_inventory.assigned_to}
+    reports: {device: prod_tablet_03, place: backstage, from: "21:08", to: "21:14"}
+
+  support_mail:
+    tool: email
+    presentation:
+      title: {$text: evidence.support_mail.title}
+      description: {$text: evidence.support_mail.description}
+      findings:
+        device: {$text: evidence.support_mail.findings.device}
+        paired_session: {$text: evidence.support_mail.findings.paired_session}
+        capability: {$text: evidence.support_mail.findings.capability}
+    unlock:
+      any:
+        - {trust: [baran, 1]}
+        - son.remote-pairing-found
+    reports: {device: prod_tablet_03, paired_session: baran,
+              capability: remote-stage-control}
+
+  livestream_metadata:
+    tool: metadata
+    presentation:
+      title: {$text: evidence.livestream_metadata.title}
+      description: {$text: evidence.livestream_metadata.description}
+      findings:
+        recorded_at: {$text: evidence.livestream_metadata.findings.recorded_at}
+        place: {$text: evidence.livestream_metadata.findings.place}
+    unlock: {after: observe, ref: livestream.label}
+    reports: {recorded_at: "20:24", place: interview_studio}
+
+  livestream_history:
+    tool: account-history
+    presentation:
+      title: {$text: evidence.livestream_history.title}
+      description: {$text: evidence.livestream_history.description}
+      findings:
+        source_uploaded_at: {$text: evidence.livestream_history.findings.source_uploaded_at}
+        delivery: {$text: evidence.livestream_history.findings.delivery}
+        publish_window: {$text: evidence.livestream_history.findings.publish_window}
+    unlock: son.livestream-history-found
+    reports: {source_uploaded_at: "20:31", delivery: scheduled,
+              publish_window: ["21:05", "21:17"]}
+
+  tablet_presence:
+    tool: log
+    presentation:
+      title: {$text: evidence.tablet_presence.title}
+      description: {$text: evidence.tablet_presence.description}
+      findings:
+        device: {$text: evidence.tablet_presence.findings.device}
+        place: {$text: evidence.tablet_presence.findings.place}
+        at: {$text: evidence.tablet_presence.findings.at}
+    unlock: {after: observe, ref: tablet_wifi.place}
+    reports: {device: prod_tablet_03, place: backstage, at: "21:11:48"}
+
+  tablet_biometric_log:
+    tool: log
+    presentation:
+      title: {$text: evidence.tablet_biometric_log.title}
+      description: {$text: evidence.tablet_biometric_log.description}
+      findings:
+        device: {$text: evidence.tablet_biometric_log.findings.device}
+        unlocked_by: {$text: evidence.tablet_biometric_log.findings.unlocked_by}
+        at: {$text: evidence.tablet_biometric_log.findings.at}
+    unlock: {after: observe, ref: tablet_inventory.assigned_to}
+    reports: {device: prod_tablet_03, unlocked_by: selin, at: "21:11:32"}
+
+  backstage_access:
+    tool: log
+    presentation:
+      title: {$text: evidence.backstage_access.title}
+      description: {$text: evidence.backstage_access.description}
+      findings:
+        actor: {$text: evidence.backstage_access.findings.actor}
+        place: {$text: evidence.backstage_access.findings.place}
+        from: {$text: evidence.backstage_access.findings.from}
+        to: {$text: evidence.backstage_access.findings.to}
+    unlock: son.security-export-delivered
+    reports: {actor: selin, place: backstage, from: "20:47", to: "20:52"}
+
+  orhan_phone_export:
+    tool: phone-export
+    presentation:
+      title: {$text: evidence.orhan_phone_export.title}
+      description: {$text: evidence.orhan_phone_export.description}
+      findings:
+        owner: {$text: evidence.orhan_phone_export.findings.owner}
+        export_complete: {$text: evidence.orhan_phone_export.findings.export_complete}
+    unlock: son.victim-phone-delivered
+    reports: {owner: orhan, export_complete: true}
+
+  positioning_message:
+    tool: message
+    presentation:
+      title: {$text: evidence.positioning_message.title}
+      description: {$text: evidence.positioning_message.description}
+      findings:
+        sent_by: {$text: evidence.positioning_message.findings.sent_by}
+        sent_at: {$text: evidence.positioning_message.findings.sent_at}
+        text: {$text: evidence.positioning_message.findings.text}
+    unlock: son.victim-phone-opened
+    reports:
+      {sent_by: selin, sent_at: "21:09",
+       text: "Karartmada X işaretinde kal. Sponsor videosu için kadraj alacağız."}
+
+  stage_left_log:
+    tool: log
+    presentation:
+      title: {$text: evidence.stage_left_log.title}
+      description: {$text: evidence.stage_left_log.description}
+      findings:
+        actor: {$text: evidence.stage_left_log.findings.actor}
+        place: {$text: evidence.stage_left_log.findings.place}
+        from: {$text: evidence.stage_left_log.findings.from}
+        to: {$text: evidence.stage_left_log.findings.to}
+    unlock:
+      any:
+        - {trust: [leyla, 1]}
+        - son.security-export-delivered
+    reports: {actor: leyla, place: stage_left, from: "21:08", to: "21:13"}
+
+  audit_draft:
+    tool: document
+    presentation:
+      title: {$text: evidence.audit_draft.title}
+      description: {$text: evidence.audit_draft.description}
+      findings:
+        payments_diverted_to: {$text: evidence.audit_draft.findings.payments_diverted_to}
+        disclosure_prepared_by: {$text: evidence.audit_draft.findings.disclosure_prepared_by}
+    unlock: son.production-audit-found
+    expires_with: workspace_deletion
+    reports: {payments_diverted_to: north_stage, disclosure_prepared_by: orhan}
+
+  company_registry:
+    tool: browser
+    presentation:
+      title: {$text: evidence.company_registry.title}
+      description: {$text: evidence.company_registry.description}
+      findings:
+        organization: {$text: evidence.company_registry.findings.organization}
+        controlled_by: {$text: evidence.company_registry.findings.controlled_by}
+    unlock: {after: observe, ref: audit_draft.payments_diverted_to}
+    reports: {organization: north_stage, controlled_by: selin}
+
+  workspace_admin_log:
+    tool: account-history
+    presentation:
+      title: {$text: evidence.workspace_admin_log.title}
+      description: {$text: evidence.workspace_admin_log.description}
+      findings:
+        actor: {$text: evidence.workspace_admin_log.findings.actor}
+        action: {$text: evidence.workspace_admin_log.findings.action}
+        target: {$text: evidence.workspace_admin_log.findings.target}
+    unlock:
+      any: [workspace-deletion-attempted, workspace-files-deleted]
+    reports: {actor: selin, action: delete, target: production_workspace}
+
+  payment_ledger:
+    tool: account-history
+    presentation:
+      title: {$text: evidence.payment_ledger.title}
+      description: {$text: evidence.payment_ledger.description}
+      findings:
+        payments_diverted_to: {$text: evidence.payment_ledger.findings.payments_diverted_to}
+    unlock:
+      any:
+        - {after: observe, ref: audit_draft.payments_diverted_to}
+        - workspace-files-deleted
+    reports: {payments_diverted_to: north_stage}
+
+# Templates expand into typed assertion queries and bounded checks.
+deductions:
+  death_not_accident:
+    use: safety.intentional-disable-and-command
+    with: {failure: safety_report.failure_mode,
+           damage: safety_report.pin_damaged,
+           command: automation_log.action,
+           victim_positioned: positioning_message.sent_by}
+    conclude: {incident: victim_death, intentional: true}
+
+  baran_not_operator:
+    conclude: {event: hatch_commanded, operator_not: baran}
+    prove:
+      any:
+        - [cafe_video.actor, automation_log.device, tablet_presence.place]
+        - [cafe_video.actor, tablet_biometric_log.unlocked_by]
+
+  selin_alibi_false:
+    use: media.prerecorded-alibi
+    conclude: {actor: selin, alibi_for: victim_death, valid: false}
+    prove:
+      any:
+        - [livestream_metadata.recorded_at, livestream_history.delivery]
+        - [livestream_history.source_uploaded_at, livestream_history.delivery]
+
+  selin_prepared_murder:
+    conclude: {incident: victim_death, prepared_by: selin}
+    prove:
+      any:
+        - [death_not_accident, support_mail.capability,
+           positioning_message.sent_by, tablet_biometric_log.unlocked_by]
+        - [death_not_accident, backstage_access.actor,
+           tablet_presence.place, positioning_message.sent_by]
+
+  selin_financial_motive:
+    conclude: {incident: victim_death, motive_holder: selin}
+    prove:
+      any:
+        - [audit_draft.payments_diverted_to, company_registry.controlled_by]
+        - [payment_ledger.payments_diverted_to, workspace_admin_log.actor]
+
+  selin_killed_orhan:
+    use: investigation.composite-culprit
+    conclude: {incident: victim_death, perpetrator: selin}
+    require: [death_not_accident, baran_not_operator, selin_alibi_false,
+              selin_prepared_murder, selin_financial_motive]
+
+flags: [financial_backup, baran_accused, leyla_accused, baran_detained,
+        baran_ever_detained, baran_released, selin_stopped, selin_escaped,
+        financial_files_deleted]
+
+reactions:
+  # Research is intentionally free-form. Every accepted query consumes time;
+  # exact offered queries therefore do not carry a second affordance cost.
+  - id: research-time-cost
+    on: {action: search}
+    do: [{spend: [case-time, 4m]}]
+
+  # Acquisition actions emit case-owned delivery events only after their public
+  # commands are genuinely available. Evidence listens to those events rather
+  # than to guessable raw action strings.
+  - id: scene-report-requested
+    on: {action: request, from: ekin, topic: scene-report}
+    once: true
+    do: [{emit: son.scene-report-delivered}]
+
+  - id: automation-export-requested
+    on: {action: request, from: ekin, topic: automation-export}
+    once: true
+    do: [{emit: son.automation-export-delivered}]
+
+  - id: safety-report-observed
+    on: {observed: safety_report.failure_mode}
+    once: true
+    do: [{offer: request_victim_phone}]
+
+  - id: pin-photo-observed
+    on: {observed: pin_photo.found_in}
+    once: true
+    do: [{offer: present_pin_to_leyla}, {offer: accuse_leyla}]
+
+  - id: automation-device-observed
+    on: {observed: automation_log.device}
+    once: true
+    do: [{offer: request_security_export}, {offer: search_remote_pairing},
+         {offer: accuse_baran}]
+
+  - id: victim-phone-requested
+    on: {action: request, from: ekin, topic: victim-phone}
+    when: {observed: safety_report.failure_mode}
+    once: true
+    do: [{emit: son.victim-phone-delivered}]
+
+  - id: victim-phone-observed
+    on: {observed: orhan_phone_export.export_complete}
+    once: true
+    do: [{emit: son.victim-phone-opened}]
+
+  - id: baran-location-interviewed
+    on: {action: interview, actor: baran, topic: location}
+    once: true
+    do: [{emit: son.baran-location-shared}]
+
+  - id: baran-custody-packet-requested
+    on: {action: request, from: ekin, topic: baran-custody-packet}
+    when: {marked: baran_detained}
+    once: true
+    do: [{emit: son.baran-custody-packet-delivered}]
+
+  - id: selin-alibi-interviewed
+    on: {action: interview, actor: selin, topic: alibi}
+    once: true
+    do: [{emit: son.selin-alibi-shared}]
+
+  - id: livestream-archive-requested
+    on: {action: request, from: ekin, topic: livestream-archive}
+    when: {marked: selin_escaped}
+    once: true
+    do: [{emit: son.selin-alibi-shared}]
+
+  - id: security-export-requested
+    on: {action: request, from: ekin, topic: security-export}
+    when: {observed: automation_log.device}
+    once: true
+    do: [{emit: son.security-export-delivered}]
+
+  - id: remote-pairing-searched
+    on: {action: search, query: "PROD-TAB-03 remote pairing"}
+    when: {observed: automation_log.device}
+    once: true
+    do: [{emit: son.remote-pairing-found}, {withdraw: search_remote_pairing}]
+
+  - id: livestream-observed
+    on: {observed: livestream.label}
+    once: true
+    do: [{offer: search_livestream_history}]
+
+  - id: livestream-history-searched
+    on: {action: search, query: "interview publication history"}
+    when: {observed: livestream.label}
+    once: true
+    do: [{emit: son.livestream-history-found},
+         {withdraw: search_livestream_history}]
+
+  - id: positioning-message-observed
+    on: {observed: positioning_message.sent_by}
+    once: true
+    do: [{offer: search_production_audit}]
+
+  - id: production-audit-searched
+    on: {action: search, query: "Orhan production audit"}
+    when: {observed: positioning_message.sent_by}
+    once: true
+    do: [{emit: son.production-audit-found},
+         {withdraw: search_production_audit}]
+
+  - id: cafe-video-observed
+    on: {observed: cafe_video.actor}
+    once: true
+    do: [{offer: present_cafe_to_baran}]
+
+  - id: audit-observed
+    on: {observed: audit_draft.payments_diverted_to}
+    once: true
+    do: [{offer: preserve_workspace}, {offer: present_audit_to_selin}]
+
+  # Offer each theory only after its complete proof is present. Symmetric
+  # triggers make the progression independent of the player's evidence order.
+  - id: death-theory-after-failure
+    on: {observed: safety_report.failure_mode}
+    when:
+      all: [{observed: safety_report.pin_damaged},
+            {observed: automation_log.action},
+            {observed: positioning_message.sent_by}]
+    once: true
+    do: [{offer: deduce_death_not_accident}]
+  - id: death-theory-after-damage
+    on: {observed: safety_report.pin_damaged}
+    when:
+      all: [{observed: safety_report.failure_mode},
+            {observed: automation_log.action},
+            {observed: positioning_message.sent_by}]
+    once: true
+    do: [{offer: deduce_death_not_accident}]
+  - id: death-theory-after-command
+    on: {observed: automation_log.action}
+    when:
+      all: [{observed: safety_report.failure_mode},
+            {observed: safety_report.pin_damaged},
+            {observed: positioning_message.sent_by}]
+    once: true
+    do: [{offer: deduce_death_not_accident}]
+  - id: death-theory-after-positioning
+    on: {observed: positioning_message.sent_by}
+    when:
+      all: [{observed: safety_report.failure_mode},
+            {observed: safety_report.pin_damaged},
+            {observed: automation_log.action}]
+    once: true
+    do: [{offer: deduce_death_not_accident}]
+
+  - id: baran-theory-after-cafe-biometric
+    on: {observed: cafe_video.actor}
+    when: {observed: tablet_biometric_log.unlocked_by}
+    once: true
+    do: [{offer: deduce_baran_not_operator}]
+  - id: baran-theory-after-biometric-cafe
+    on: {observed: tablet_biometric_log.unlocked_by}
+    when: {observed: cafe_video.actor}
+    once: true
+    do: [{offer: deduce_baran_not_operator}]
+  - id: baran-theory-after-cafe-presence
+    on: {observed: cafe_video.actor}
+    when:
+      all: [{observed: automation_log.device},
+            {observed: tablet_presence.place}]
+    once: true
+    do: [{offer: deduce_baran_not_operator}]
+  - id: baran-theory-after-command-presence
+    on: {observed: automation_log.device}
+    when:
+      all: [{observed: cafe_video.actor},
+            {observed: tablet_presence.place}]
+    once: true
+    do: [{offer: deduce_baran_not_operator}]
+  - id: baran-theory-after-presence
+    on: {observed: tablet_presence.place}
+    when:
+      all: [{observed: cafe_video.actor},
+            {observed: automation_log.device}]
+    once: true
+    do: [{offer: deduce_baran_not_operator}]
+
+  - id: alibi-theory-after-history-delivery
+    on: {observed: livestream_history.delivery}
+    when:
+      any: [{observed: livestream_history.source_uploaded_at},
+            {observed: livestream_metadata.recorded_at}]
+    once: true
+    do: [{offer: deduce_selin_alibi_false}]
+  - id: alibi-theory-after-history-upload
+    on: {observed: livestream_history.source_uploaded_at}
+    when: {observed: livestream_history.delivery}
+    once: true
+    do: [{offer: deduce_selin_alibi_false}]
+  - id: alibi-theory-after-metadata
+    on: {observed: livestream_metadata.recorded_at}
+    when: {observed: livestream_history.delivery}
+    once: true
+    do: [{offer: deduce_selin_alibi_false}]
+
+  - id: preparation-theory-after-intent
+    on: {supported: death_not_accident}
+    when:
+      any:
+        - {all: [{observed: support_mail.capability},
+                 {observed: positioning_message.sent_by},
+                 {observed: tablet_biometric_log.unlocked_by}]}
+        - {all: [{observed: backstage_access.actor},
+                 {observed: tablet_presence.place},
+                 {observed: positioning_message.sent_by}]}
+    once: true
+    do: [{offer: deduce_selin_prepared_murder}]
+  - id: preparation-theory-after-positioning
+    on: {observed: positioning_message.sent_by}
+    when:
+      all:
+        - {supported: death_not_accident}
+        - {any: [{all: [{observed: support_mail.capability},
+                         {observed: tablet_biometric_log.unlocked_by}]},
+                 {all: [{observed: backstage_access.actor},
+                         {observed: tablet_presence.place}]}]}
+    once: true
+    do: [{offer: deduce_selin_prepared_murder}]
+  - id: preparation-theory-after-support-mail
+    on: {observed: support_mail.capability}
+    when:
+      all: [{supported: death_not_accident},
+            {observed: positioning_message.sent_by},
+            {observed: tablet_biometric_log.unlocked_by}]
+    once: true
+    do: [{offer: deduce_selin_prepared_murder}]
+  - id: preparation-theory-after-biometric
+    on: {observed: tablet_biometric_log.unlocked_by}
+    when:
+      all: [{supported: death_not_accident},
+            {observed: positioning_message.sent_by},
+            {observed: support_mail.capability}]
+    once: true
+    do: [{offer: deduce_selin_prepared_murder}]
+  - id: preparation-theory-after-backstage
+    on: {observed: backstage_access.actor}
+    when:
+      all: [{supported: death_not_accident},
+            {observed: positioning_message.sent_by},
+            {observed: tablet_presence.place}]
+    once: true
+    do: [{offer: deduce_selin_prepared_murder}]
+  - id: preparation-theory-after-presence
+    on: {observed: tablet_presence.place}
+    when:
+      all: [{supported: death_not_accident},
+            {observed: positioning_message.sent_by},
+            {observed: backstage_access.actor}]
+    once: true
+    do: [{offer: deduce_selin_prepared_murder}]
+
+  - id: motive-theory-after-audit
+    on: {observed: audit_draft.payments_diverted_to}
+    when: {observed: company_registry.controlled_by}
+    once: true
+    do: [{offer: deduce_selin_financial_motive}]
+  - id: motive-theory-after-registry
+    on: {observed: company_registry.controlled_by}
+    when: {observed: audit_draft.payments_diverted_to}
+    once: true
+    do: [{offer: deduce_selin_financial_motive}]
+  - id: motive-theory-after-admin-log
+    on: {observed: workspace_admin_log.actor}
+    when: {observed: payment_ledger.payments_diverted_to}
+    once: true
+    do: [{offer: deduce_selin_financial_motive}]
+  - id: motive-theory-after-ledger
+    on: {observed: payment_ledger.payments_diverted_to}
+    when: {observed: workspace_admin_log.actor}
+    once: true
+    do: [{offer: deduce_selin_financial_motive}]
+
+  - id: culprit-theory-after-intent
+    on: {supported: death_not_accident}
+    when:
+      all: [{supported: baran_not_operator}, {supported: selin_alibi_false},
+            {supported: selin_prepared_murder}, {supported: selin_financial_motive}]
+    once: true
+    do: [{offer: deduce_selin_killed_orhan}]
+  - id: culprit-theory-after-baran
+    on: {supported: baran_not_operator}
+    when:
+      all: [{supported: death_not_accident}, {supported: selin_alibi_false},
+            {supported: selin_prepared_murder}, {supported: selin_financial_motive}]
+    once: true
+    do: [{offer: deduce_selin_killed_orhan}]
+  - id: culprit-theory-after-alibi
+    on: {supported: selin_alibi_false}
+    when:
+      all: [{supported: death_not_accident}, {supported: baran_not_operator},
+            {supported: selin_prepared_murder}, {supported: selin_financial_motive}]
+    once: true
+    do: [{offer: deduce_selin_killed_orhan}]
+  - id: culprit-theory-after-preparation
+    on: {supported: selin_prepared_murder}
+    when:
+      all: [{supported: death_not_accident}, {supported: baran_not_operator},
+            {supported: selin_alibi_false}, {supported: selin_financial_motive}]
+    once: true
+    do: [{offer: deduce_selin_killed_orhan}]
+  - id: culprit-theory-after-motive
+    on: {supported: selin_financial_motive}
+    when:
+      all: [{supported: death_not_accident}, {supported: baran_not_operator},
+            {supported: selin_alibi_false}, {supported: selin_prepared_murder}]
+    once: true
+    do: [{offer: deduce_selin_killed_orhan}]
+
+  - id: culprit-supported
+    on: {supported: selin_killed_orhan}
+    once: true
+    do: [{offer: conclude_selin}]
+
+  - on: {action: report-suspect, target: baran}
+    unless: {supported: baran_not_operator}
+    once: true
+    do:
+      - {trust: [baran, -3]}
+      - {mark: baran_accused}
+      - {reroute: [support_mail, archive-search]}
+
+  - on: {action: present, target: baran, evidence: cafe_video, tone: empathetic}
+    once: true
+    do: [{trust: [baran, 2]}, {reveal: baran.says.trusted}, {grant: support_mail}]
+
+  - on: {action: report-suspect, target: leyla}
+    unless: {supported: selin_prepared_murder}
+    once: true
+    do: [{trust: [leyla, -2]}, {mark: leyla_accused},
+         {reroute: [stage_left_log, security-export]}]
+
+  - on: {action: present, target: leyla, evidence: pin_photo, tone: empathetic}
+    once: true
+    do: [{trust: [leyla, 2]}, {reveal: leyla.says.trusted}, {grant: stage_left_log}]
+
+  - on: {action: preserve, target: production_workspace}
+    when:
+      all:
+        - {observed: audit_draft.payments_diverted_to}
+        - {not-marked: financial_files_deleted}
+        - {schedule-active: workspace_deletion}
+    once: true
+    do: [{mark: financial_backup}, {cancel: workspace_deletion}]
+
+  - on: {action: present, target: selin, evidence: audit_draft}
+    unless: {all: [{supported: selin_killed_orhan}, {marked: financial_backup}]}
+    once: true
+    do: [{adjust: [alertness, selin, 3]},
+         {bring-forward-by: [workspace_deletion, 20m]},
+         {bring-forward-by: [selin_departure, 15m]},
+         {emit: workspace-deletion-attempted},
+         {grant: workspace_admin_log}]
+
+  - on: {supported: baran_not_operator}
+    once: true
+    do: [{cancel: baran_detention}, {conversation: [baran, available]},
+         {withdraw: accuse_baran}, {withdraw: request_baran_custody_packet},
+         {if-marked: baran_detained, then: [{unmark: baran_detained}, {mark: baran_released}]}]
+
+  - on: {supported: selin_prepared_murder}
+    once: true
+    do: [{withdraw: accuse_leyla}]
+
+  - on: {action: submit-conclusion, target: selin}
+    when:
+      all: [{supported: selin_killed_orhan}, {not-marked: selin_escaped}]
+    once: true
+    do: [{cancel: selin_departure}, {mark: selin_stopped}]
+
+deadlines:
+  workspace_deletion:
+    label: {$text: deadlines.workspace_deletion.label}
+    clock: wall
+    after: 55m
+    offline: on-resume-once
+    cancel_on: financial_backup
+    do: [{mark: financial_files_deleted}, {revoke: audit_draft},
+         {withdraw: search_production_audit}, {withdraw: preserve_workspace},
+         {withdraw: present_audit_to_selin},
+         {grant: workspace_admin_log}, {emit: workspace-files-deleted}]
+  baran_detention:
+    label: {$text: deadlines.baran_detention.label}
+    clock: case-time
+    after: 55m
+    offline: pause
+    do: [{mark: baran_detained}, {mark: baran_ever_detained},
+         {conversation: [baran, detained]},
+         {offer: request_baran_custody_packet},
+         {withdraw: interview_baran_location},
+         {withdraw: present_cafe_to_baran}, {withdraw: accuse_baran}]
+  selin_departure:
+    label: {$text: deadlines.selin_departure.label}
+    clock: wall
+    after: 60m
+    offline: on-resume-once
+    do: [{mark: selin_escaped}, {conversation: [selin, escaped]},
+         {withdraw: interview_selin_alibi}, {withdraw: present_audit_to_selin},
+         {offer: request_livestream_archive},
+         {offer: conclude_baran}, {offer: conclude_leyla}]
+
+objectives:
+  killer: {supported: selin_killed_orhan}
+  intent: {supported: death_not_accident}
+  protect_baran: {all: [{supported: baran_not_operator}, {not-marked: baran_accused},
+                        {not-marked: baran_ever_detained}]}
+  clear_leyla: {all: [{not-marked: leyla_accused}, {supported: selin_prepared_murder}]}
+  preserve_finance: {marked: financial_backup}
+  stop_selin: {marked: selin_stopped}
+
+# The assessment is authored in case language, but evaluated by the generic
+# runtime. Only the resolved report is projected after an outcome is selected.
+assessment:
+  max_score: 100
+  bands:
+    - {min_score: 90, label: {$text: assessment.bands.exemplary}}
+    - {min_score: 75, label: {$text: assessment.bands.strong_with_cost}}
+    - {min_score: 50, label: {$text: assessment.bands.fragile}}
+    - {min_score: 0, label: {$text: assessment.bands.reconsider}}
+  categories:
+    evidence_reasoning:
+      label: {$text: assessment.categories.evidence_reasoning}
+      criteria:
+        baran_operator:
+          points: 5
+          when: {supported: baran_not_operator}
+          met: {$text: assessment.criteria.baran_operator.met}
+          missed: {$text: assessment.criteria.baran_operator.missed}
+        identify_selin:
+          points: 7
+          when: {supported: selin_killed_orhan}
+          met: {$text: assessment.criteria.culprit.met}
+          missed: {$text: assessment.criteria.culprit.missed}
+        death_cause:
+          points: 6
+          when: {supported: death_not_accident}
+          met: {$text: assessment.criteria.death_cause.met}
+          missed: {$text: assessment.criteria.death_cause.missed}
+        financial_motive:
+          points: 6
+          when: {supported: selin_financial_motive}
+          met: {$text: assessment.criteria.financial_motive.met}
+          missed: {$text: assessment.criteria.financial_motive.missed}
+        preparation:
+          points: 6
+          when: {supported: selin_prepared_murder}
+          met: {$text: assessment.criteria.preparation.met}
+          missed: {$text: assessment.criteria.preparation.missed}
+        selin_alibi:
+          points: 5
+          when: {supported: selin_alibi_false}
+          met: {$text: assessment.criteria.selin_alibi.met}
+          missed: {$text: assessment.criteria.selin_alibi.missed}
+    intervention_protection:
+      label: {$text: assessment.categories.intervention_protection}
+      criteria:
+        preserve_finance:
+          points: 15
+          when: {marked: financial_backup}
+          met: {$text: assessment.criteria.preserve_finance.met}
+          missed: {$text: assessment.criteria.preserve_finance.missed}
+        stop_selin:
+          points: 15
+          when: {marked: selin_stopped}
+          met: {$text: assessment.criteria.stop_selin.met}
+          missed: {$text: assessment.criteria.stop_selin.missed}
+    procedure_people:
+      label: {$text: assessment.categories.procedure_people}
+      criteria:
+        clear_leyla:
+          points: 10
+          when:
+            all: [{not-marked: leyla_accused}, {supported: selin_prepared_murder}]
+          met: {$text: assessment.criteria.clear_leyla.met}
+          missed: {$text: assessment.criteria.clear_leyla.missed}
+        protect_baran:
+          points: 15
+          when:
+            all: [{supported: baran_not_operator}, {not-marked: baran_accused},
+                  {not-marked: baran_ever_detained}]
+          met: {$text: assessment.criteria.protect_baran.met}
+          missed: {$text: assessment.criteria.protect_baran.missed}
+    time_management:
+      label: {$text: assessment.categories.time_management}
+      criteria:
+        avoid_detention:
+          points: 2
+          when: {not-marked: baran_ever_detained}
+          met: {$text: assessment.criteria.avoid_detention.met}
+          missed: {$text: assessment.criteria.avoid_detention.missed}
+        preserve_before_deletion:
+          points: 4
+          when: {not-marked: financial_files_deleted}
+          met: {$text: assessment.criteria.preserve_before_deletion.met}
+          missed: {$text: assessment.criteria.preserve_before_deletion.missed}
+        stop_departure:
+          points: 4
+          when: {not-marked: selin_escaped}
+          met: {$text: assessment.criteria.stop_departure.met}
+          missed: {$text: assessment.criteria.stop_departure.missed}
+
+outcomes:
+  full_curtain:
+    {title: {$text: outcomes.full_curtain.title}, body: {$text: outcomes.full_curtain.body}, priority: 100,
+     require: [killer, intent, protect_baran, clear_leyla, preserve_finance, stop_selin]}
+  bitter_applause:
+    {title: {$text: outcomes.bitter_applause.title}, body: {$text: outcomes.bitter_applause.body}, priority: 80, require: [killer, stop_selin],
+     when_any_marked: [baran_accused, baran_ever_detained, leyla_accused]}
+  truth_too_late:
+    {title: {$text: outcomes.truth_too_late.title}, body: {$text: outcomes.truth_too_late.body}, priority: 75, require: [killer],
+     when_marked: selin_escaped, final_target: selin}
+  killer_found:
+    {title: {$text: outcomes.killer_found.title}, body: {$text: outcomes.killer_found.body}, priority: 70, require: [killer, intent, stop_selin],
+     unless: [preserve_finance]}
+  wrong_stage:
+    {title: {$text: outcomes.wrong_stage.title}, body: {$text: outcomes.wrong_stage.body}, priority: 40, final_target: [baran, leyla],
+     when_marked: selin_escaped}

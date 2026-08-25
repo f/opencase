@@ -1,0 +1,35 @@
+schema: case-test/v0.1
+case: {id: examples.olive-oil-lot, version: 0.1.1}
+
+scenario:
+  id: premature_then_recover
+  perspective: detective
+  description: Submit the bottling line too early, then replace it after tracing the full batch.
+  steps:
+    - detective.observe: label_photo
+    - detective.conclude: bottling_line
+      expect:
+        result: {status: accepted}
+        state:
+          status: active
+          final_conclusion: bottling_line
+          outcome: null
+
+    - detective.observe: custody_seal
+    - detective.deduce: sample_is_traceable
+    - detective.act: {action: request, topic: authenticity-panel}
+    - detective.observe: authenticity_panel
+    - detective.deduce: undeclared_oil_detected
+    - detective.act: {action: search, query: "RL-204 intake ledger"}
+    - detective.observe: batch_ledger
+    - detective.observe: supplier_invoice
+    - detective.deduce: output_exceeds_premium_input
+    - detective.deduce: adulteration_confirmed
+    - detective.deduce: source_traced_to_tank
+
+    - detective.conclude: blending_tank
+      expect:
+        result: {status: accepted}
+        state:
+          final_conclusion: blending_tank
+          outcome: traced_dilution
