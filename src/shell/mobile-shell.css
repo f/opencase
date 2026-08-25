@@ -537,13 +537,15 @@
   bottom: max(10px, var(--mobile-safe-bottom));
   left: max(10px, var(--mobile-safe-left));
   display: grid;
-  max-width: 390px;
+  width: max-content;
+  max-width: calc(100% - max(10px, var(--mobile-safe-left)) - max(10px, var(--mobile-safe-right)));
   min-height: 74px;
-  grid-template-columns: repeat(var(--mobile-dock-count, 4), minmax(44px, 1fr));
+  grid-template-columns: repeat(var(--mobile-dock-count, 4), 56px);
   align-items: center;
+  gap: 12px;
   justify-self: center;
   margin-inline: auto;
-  padding: 8px 10px;
+  padding: 8px 12px;
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 27px;
   background: rgba(219, 229, 229, 0.29);
@@ -555,6 +557,11 @@
 .detective-mobile-shell__dock .detective-mobile-shell__app-icon {
   width: 56px;
   height: 56px;
+}
+
+.detective-mobile-shell__dock button > b {
+  top: -6px;
+  right: -6px;
 }
 
 .detective-mobile-shell__application,
@@ -1107,6 +1114,11 @@
   .detective-mobile-shell__app-grid { gap-inline: 4px; }
   .detective-mobile-shell__app-icon,
   .detective-mobile-shell__dock .detective-mobile-shell__app-icon { width: 53px; height: 53px; }
+  .detective-mobile-shell__dock {
+    grid-template-columns: repeat(var(--mobile-dock-count, 4), 53px);
+    gap: 8px;
+    padding-inline: 10px;
+  }
   .detective-mobile-shell__app-grid button { grid-template-rows: 53px auto; }
 }
 
@@ -1146,14 +1158,19 @@
     right: max(8px, var(--mobile-safe-right));
     bottom: auto;
     left: auto;
-    width: 112px;
+    width: max-content;
     min-height: 0;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 44px);
     gap: 7px;
     padding: 8px;
     border-radius: 21px;
   }
   .detective-mobile-shell__dock button { min-width: 44px; min-height: 44px; }
+  .detective-mobile-shell__dock button:only-child,
+  .detective-mobile-shell__dock button:nth-child(3):last-child {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
   .detective-mobile-shell__dock .detective-mobile-shell__app-icon { width: 30px; height: 30px; border-radius: 8px; }
   .detective-mobile-shell__dock .detective-mobile-shell__app-icon > img { width: 16px; height: 16px; }
   .detective-mobile-shell__home-indicator { bottom: 0; }
