@@ -9,7 +9,7 @@
 <h1 align="center">opencase</h1>
 
 <p align="center">
-  A deterministic detective game engine and a macOS-inspired browser desktop.
+  A deterministic detective game engine and a browser desktop.
 </p>
 
 <p align="center">
