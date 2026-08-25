@@ -1205,29 +1205,6 @@ button:hover > .iphone-app-glyph {
   font-size: 0.67rem;
 }
 
-.iphone-ringing,
-.iphone-call-wave {
-  display: flex;
-  height: 37px;
-  align-items: center;
-  gap: 3px;
-  margin: 23px 0;
-}
-
-.iphone-ringing i,
-.iphone-call-wave i {
-  width: 2px;
-  height: 7px;
-  border-radius: 2px;
-  background: #8ed0bd;
-  animation: iphone-call-wave 850ms ease-in-out infinite alternate;
-}
-
-.iphone-ringing i:nth-child(3n),
-.iphone-call-wave i:nth-child(3n) { height: 20px; animation-delay: -240ms; }
-.iphone-ringing i:nth-child(4n),
-.iphone-call-wave i:nth-child(4n) { height: 31px; animation-delay: -470ms; }
-
 .iphone-briefing {
   width: 100%;
   max-height: 34vh;
@@ -1396,72 +1373,217 @@ button:hover > .iphone-app-glyph {
   letter-spacing: 0.04em;
 }
 
-.iphone-speaking-visualizer {
-  display: grid;
+.iphone-siri-wave {
+  position: relative;
   width: 100%;
-  grid-template-columns: 48px minmax(0, 1fr) 48px;
-  align-items: center;
-  gap: 9px;
-  margin: 22px 0 11px;
-}
-
-.iphone-speaking-visualizer > span {
-  display: grid;
-  min-width: 0;
-  justify-items: center;
-  gap: 4px;
-}
-
-.iphone-speaking-visualizer > span b {
-  display: grid;
-  width: 31px;
-  height: 31px;
-  place-items: center;
-  border: 1px solid rgba(226, 211, 169, 0.34);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.09);
-  color: #e8d9ac;
-  font-size: 0.63rem;
-  font-weight: 700;
-}
-
-.iphone-speaking-visualizer > span small {
-  max-width: 48px;
+  height: 92px;
+  margin: 19px 0 12px;
   overflow: hidden;
-  color: rgba(238, 243, 240, 0.68);
-  font-size: 0.46rem;
-  text-overflow: ellipsis;
+  border: 1px solid rgba(180, 211, 200, 0.1);
+  border-radius: 20px;
+  background:
+    radial-gradient(ellipse at 50% 72%, rgba(119, 206, 181, 0.1), transparent 48%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(2, 12, 16, 0.12));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035), 0 12px 28px rgba(0, 0, 0, 0.1);
+  isolation: isolate;
+}
+
+.iphone-siri-wave::before {
+  position: absolute;
+  right: 11px;
+  bottom: 29px;
+  left: 11px;
+  z-index: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(216, 231, 224, 0.18) 18% 82%, transparent);
+  content: "";
+}
+
+.iphone-siri-wave__status {
+  position: absolute;
+  z-index: 4;
+  top: 9px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: rgba(232, 240, 237, 0.68);
+  font-size: 0.44rem;
+  font-weight: 680;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+  transform: translateX(-50%);
   white-space: nowrap;
 }
 
-.iphone-speaking-visualizer > div {
-  display: flex;
-  height: 46px;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 0 4px;
-  border-radius: 999px;
-  background: rgba(3, 13, 17, 0.22);
+.iphone-siri-wave__status > i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #7fd0b8;
+  box-shadow: 0 0 0 3px rgba(127, 208, 184, 0.11), 0 0 12px rgba(127, 208, 184, 0.54);
+  animation: iphone-siri-live-dot 1.8s ease-in-out infinite;
 }
 
-.iphone-speaking-visualizer > div i {
-  width: 2px;
-  height: 9px;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #d7bf7b, #74c2af);
-  animation: iphone-speaking-level 620ms ease-in-out infinite alternate;
+.iphone-siri-wave.is-dialing .iphone-siri-wave__status > i {
+  background: #d8bd74;
+  box-shadow: 0 0 0 3px rgba(216, 189, 116, 0.11), 0 0 12px rgba(216, 189, 116, 0.48);
 }
 
-.iphone-speaking-visualizer > div i:nth-child(3n) { animation-delay: -180ms; }
-.iphone-speaking-visualizer > div i:nth-child(4n) { animation-delay: -390ms; }
-.iphone-speaking-visualizer > div i:nth-child(5n) { animation-delay: -520ms; }
+.iphone-siri-wave__canvas,
+.iphone-siri-wave__fallback {
+  position: absolute;
+  z-index: 2;
+  right: 5px;
+  bottom: 3px;
+  left: 5px;
+  width: calc(100% - 10px);
+  height: 64px;
+}
 
-.iphone-speaking-visualizer.is-ending > div i {
-  height: 3px;
+.iphone-siri-wave__canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  filter: drop-shadow(0 0 5px rgba(126, 211, 186, 0.13));
+}
+
+.iphone-siri-wave__fallback {
+  z-index: 1;
+  overflow: visible;
+  opacity: 0.16;
+  transition: opacity 220ms ease, transform 260ms ease;
+}
+
+.iphone-siri-wave__fallback path {
+  fill: none;
+  stroke: #8ed0bd;
+  stroke-linecap: round;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.iphone-siri-wave__fallback path:last-child {
+  stroke: #d8bd74;
+  opacity: 0.62;
+}
+
+.iphone-siri-wave.is-settling .iphone-siri-wave__canvas {
+  opacity: 0.34;
+  transition: opacity 220ms ease;
+}
+
+.iphone-siri-wave.is-settling .iphone-siri-wave__fallback {
+  opacity: 0.28;
+  transform: scaleY(0.08);
+}
+
+.iphone-voice-bridge__packets {
+  position: absolute;
+  inset: 0;
+  display: block;
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+
+.iphone-voice-bridge__packets > i {
+  position: absolute;
+  top: 40px;
+  z-index: 2;
+  width: 11px;
+  height: 4px;
+  border-radius: 999px;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+}
+
+.iphone-voice-bridge__packets > .is-outbound {
+  left: 12%;
+  background: #e0c376;
+  box-shadow: -6px 0 10px rgba(224, 195, 118, 0.42);
+  animation: iphone-voice-packet-out 3.7s cubic-bezier(0.42, 0, 0.24, 1) infinite;
+}
+
+.iphone-voice-bridge__packets > .is-inbound {
+  left: 88%;
+  background: #80d2ba;
+  box-shadow: 6px 0 10px rgba(128, 210, 186, 0.4);
+  animation: iphone-voice-packet-in 4.1s cubic-bezier(0.42, 0, 0.24, 1) infinite;
+}
+
+.iphone-voice-bridge__packets > i:nth-child(2) {
+  width: 7px;
+  animation-delay: -2.15s;
+}
+
+.iphone-voice-bridge__packets > i:nth-child(3) {
+  top: 37px;
+  width: 5px;
+  animation-delay: -3.25s;
+  animation-duration: 4.6s;
+}
+
+.iphone-voice-bridge__packets > i:nth-child(4) {
+  top: 43px;
+  width: 8px;
+  animation-delay: -0.95s;
+  animation-duration: 4.8s;
+}
+
+.iphone-voice-bridge.is-dialing .iphone-voice-bridge__packets > .is-inbound {
+  display: none;
+}
+
+.iphone-voice-bridge.is-incoming .iphone-voice-bridge__packets > .is-outbound {
+  display: none;
+}
+
+.iphone-voice-bridge.is-dialing .iphone-voice-bridge__packets > .is-outbound {
+  animation-duration: 1.75s;
+}
+
+.iphone-voice-bridge.is-incoming .iphone-voice-bridge__packets > .is-inbound {
+  animation-duration: 1.75s;
+}
+
+.iphone-voice-bridge.is-dialing .iphone-voice-bridge__rail,
+.iphone-voice-bridge.is-incoming .iphone-voice-bridge__rail {
+  animation: iphone-voice-connect 1.6s ease-in-out infinite;
+}
+
+.iphone-voice-bridge.is-settling .iphone-voice-bridge__participant {
   opacity: 0.48;
-  animation-play-state: paused;
-  transition: height 240ms ease, opacity 240ms ease;
+  transform: scale(0.95);
+}
+
+.iphone-voice-bridge.is-settling .iphone-voice-bridge__channel {
+  border-color: rgba(183, 211, 200, 0.08);
+  opacity: 0.72;
+}
+
+.iphone-voice-bridge.is-settling .iphone-voice-bridge__channel::before,
+.iphone-voice-bridge.is-settling .iphone-voice-bridge__state > i,
+.iphone-voice-bridge.is-settling .iphone-voice-bridge__rail::before,
+.iphone-voice-bridge.is-settling .iphone-voice-bridge__node::after {
+  animation: none;
+}
+
+.iphone-voice-bridge.is-settling .iphone-voice-bridge__rail {
+  opacity: 0.28;
+  transform: scaleX(0.16);
+}
+
+.iphone-voice-bridge.is-settling .iphone-voice-bridge__node {
+  opacity: 0.42;
+  transform: translate(-50%, -50%) scale(0.62);
+}
+
+.iphone-voice-bridge.is-settling .iphone-voice-bridge__packets {
+  opacity: 0;
+}
+
+.iphone-voice-bridge.is-settling .iphone-voice-bridge__packets > i {
+  animation: none;
 }
 
 .iphone-outgoing-call.is-ending .iphone-call-avatar,
@@ -1701,7 +1823,7 @@ button:hover > .iphone-app-glyph {
 
 .iphone-transcript .phone-transcript__reply:last-child { border-bottom: 0; }
 
-.iphone-call-wave { margin: auto 0; }
+.iphone-active-call:not(.iphone-outgoing-call) > .iphone-voice-bridge { margin: auto 0; }
 
 .iphone-hangup {
   margin-top: auto;
@@ -1715,14 +1837,57 @@ button:hover > .iphone-app-glyph {
   to { opacity: 0; transform: scale(1.24); }
 }
 
-@keyframes iphone-call-wave {
-  from { height: 5px; opacity: 0.38; }
-  to { height: 31px; opacity: 1; }
+@keyframes iphone-voice-turn {
+  0%, 42%, 100% { opacity: 0; transform: scale(0.88); }
+  8% { opacity: 0.5; }
+  22% { opacity: 0.08; transform: scale(1.36); }
 }
 
-@keyframes iphone-speaking-level {
-  from { height: 4px; opacity: 0.4; }
-  to { height: 34px; opacity: 1; }
+@keyframes iphone-voice-contact-ring {
+  from { opacity: 0.46; transform: scale(0.84); }
+  to { opacity: 0; transform: scale(1.42); }
+}
+
+@keyframes iphone-voice-sheen {
+  0%, 15% { transform: translateX(-125%); }
+  58%, 100% { transform: translateX(125%); }
+}
+
+@keyframes iphone-voice-live-dot {
+  0%, 100% { opacity: 0.58; transform: scale(0.78); }
+  48% { opacity: 1; transform: scale(1.08); }
+}
+
+@keyframes iphone-voice-rail-breathe {
+  0%, 100% { opacity: 0.22; transform: translateX(-50%) scaleX(0.52); }
+  23% { opacity: 0.66; transform: translateX(-50%) scaleX(1.06); }
+  47% { opacity: 0.34; transform: translateX(-50%) scaleX(0.74); }
+  72% { opacity: 0.58; transform: translateX(-50%) scaleX(0.92); }
+}
+
+@keyframes iphone-voice-node-ring {
+  from { opacity: 0.58; transform: scale(0.68); }
+  to { opacity: 0; transform: scale(1.52); }
+}
+
+@keyframes iphone-voice-packet-out {
+  0%, 12% { left: 12%; opacity: 0; transform: translate(-50%, -50%) scaleX(0.45); }
+  20% { opacity: 0.96; }
+  58% { opacity: 0.82; transform: translate(-50%, -50%) scaleX(1); }
+  72%, 100% { left: 88%; opacity: 0; transform: translate(-50%, -50%) scaleX(0.58); }
+}
+
+@keyframes iphone-voice-packet-in {
+  0%, 15% { left: 88%; opacity: 0; transform: translate(-50%, -50%) scaleX(0.45); }
+  23% { opacity: 0.94; }
+  61% { opacity: 0.78; transform: translate(-50%, -50%) scaleX(1); }
+  75%, 100% { left: 12%; opacity: 0; transform: translate(-50%, -50%) scaleX(0.56); }
+}
+
+@keyframes iphone-voice-connect {
+  0%, 100% { opacity: 0.3; transform: scaleX(0.16); }
+  44% { opacity: 0.82; transform: scaleX(1); }
+  68% { opacity: 0.52; transform: scaleX(0.72); }
 }
 
 @keyframes iphone-call-result-in {
@@ -1755,6 +1920,9 @@ button:hover > .iphone-app-glyph {
   .iphone-app-glyph { width: 50px; height: 50px; }
   .iphone-app-grid { gap-inline: 4px; }
   .iphone-home-dock .iphone-app-glyph { width: 47px; height: 47px; }
+  .iphone-voice-bridge { grid-template-columns: 42px minmax(0, 1fr) 42px; gap: 5px; }
+  .iphone-voice-bridge__participant b { width: 29px; height: 29px; }
+  .iphone-voice-bridge__participant small { max-width: 42px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1773,11 +1941,43 @@ button:hover > .iphone-app-glyph {
     transform: none;
     animation: none;
   }
+
+  .iphone-voice-bridge__packets {
+    display: none;
+  }
+
+  .iphone-voice-bridge__participant b::before,
+  .iphone-voice-bridge__participant b::after,
+  .iphone-voice-bridge__channel::before,
+  .iphone-voice-bridge__state > i,
+  .iphone-voice-bridge__rail,
+  .iphone-voice-bridge__rail::before,
+  .iphone-voice-bridge__node::after {
+    animation: none !important;
+  }
+
+  .iphone-voice-bridge__rail {
+    opacity: 0.72;
+    transform: none;
+  }
 }
 
 @media (forced-colors: active) {
   .iphone-contact-row__headline b,
   .iphone-contact-metadata {
     border: 1px solid ButtonText;
+  }
+
+  .iphone-voice-bridge__channel {
+    border: 1px solid CanvasText;
+    background: Canvas;
+  }
+
+  .iphone-voice-bridge__rail,
+  .iphone-voice-bridge__node,
+  .iphone-voice-bridge__state > i,
+  .iphone-voice-bridge__packets > i {
+    background: Highlight;
+    box-shadow: none;
   }
 }

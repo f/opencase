@@ -29,6 +29,7 @@
     "lucide-static": "^1.34.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "siriwave": "^2.4.0",
     "yaml": "^2.9.0"
   },
   "devDependencies": {

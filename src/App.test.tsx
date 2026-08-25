@@ -667,6 +667,30 @@ describe('App contact discovery handoff', () => {
       .toContain('Adı geçen tanığın iletişim bilgisini bul')
     expect(host.querySelector('[data-app-id="casebook"] [aria-current="page"]')?.textContent)
       .toContain('İlk ifadeyi al')
+
+    const recentCallsButton = Array.from(phone.querySelectorAll<HTMLButtonElement>('button'))
+      .find((button) => button.textContent?.trim() === 'Son Aramalar')
+    expect(recentCallsButton).toBeDefined()
+    await act(async () => {
+      recentCallsButton!.click()
+      await flushMicrotasks()
+    })
+
+    const outgoingRows = phone.querySelectorAll<HTMLElement>('.iphone-call-list li.is-outgoing')
+    expect(outgoingRows).toHaveLength(1)
+    expect(phone.querySelectorAll('.iphone-call-list li')).toHaveLength(2)
+    expect(outgoingRows[0]?.textContent).toContain('Vaka görevlisi')
+    expect(outgoingRows[0]?.textContent).toContain('İlk ifadeyi al')
+    expect(outgoingRows[0]?.textContent).toContain('Giden')
+    expect(outgoingRows[0]?.querySelector('time')?.textContent).toBe('21:02')
+
+    await act(async () => {
+      root.render(<App />)
+      await flushMicrotasks()
+    })
+
+    expect(phone.querySelectorAll('.iphone-call-list li.is-outgoing')).toHaveLength(1)
+    expect(phone.querySelectorAll('.iphone-call-list li')).toHaveLength(2)
   })
 
   it('confirms a consequential phone action before dialing and defers dispatch until connection', async () => {

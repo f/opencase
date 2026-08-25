@@ -1367,8 +1367,8 @@ function CaseDesktop({
         />
       ),
       badge: snapshot.evidence.filter(({ observed }) => !observed).length,
-      initialBounds: { x: 930, y: 64, width: 500, height: 470 },
-      minSize: { width: 470, height: 350 },
+      initialBounds: { x: 72, y: 28, width: 920, height: 620 },
+      minSize: { width: 720, height: 500 },
       defaultOpen: false,
       desktopShortcut: true,
       startMenu: true,

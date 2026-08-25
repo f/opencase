@@ -192,6 +192,15 @@ function affordanceCostLabel(
   return `+${Math.ceil(milliseconds / 1_000)} sn`
 }
 
+function callDurationLabel(milliseconds: number | undefined): string | undefined {
+  if (milliseconds === undefined || milliseconds <= 0) return undefined
+  if (milliseconds % 60_000 === 0) return `${milliseconds / 60_000} dk`
+  if (milliseconds >= 60_000) {
+    return `${(milliseconds / 60_000).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} dk`
+  }
+  return `${Math.ceil(milliseconds / 1_000)} sn`
+}
+
 function affordanceViewModel(
   affordance: PublicCaseRuntimeState['affordances'][number],
   index: number,
@@ -440,6 +449,81 @@ export function createManifestWorkspaceModels(
     }),
   }
 
+  const phoneContacts: PhoneViewModel['contacts'] = (runtime?.actors ?? []).map((actor, actorIndex) => {
+    const exactAffordances = phoneAffordances.filter((affordance) => (
+      belongsToActor(affordance, actor.id)
+    ))
+    const exactActions = new Set(exactAffordances.flatMap((affordance) => (
+      affordance.intent.kind === 'action' ? [affordance.intent.action.action] : []
+    )))
+    return {
+      id: actor.id,
+      name: actor.displayName?.trim()
+        || actor.name?.trim()
+        || castText(manifest, actor.id, 'name')
+        || actorFallbackLabel(actorIndex),
+      roleLabel: actor.role?.trim()
+        || castRole(manifest, actor.id)
+        || 'Vaka kişisi',
+      detail: actor.conversation.reason ?? (
+        actor.conversation.canTalk
+          ? 'Görüşme için ulaşılabilir.'
+          : 'Bu kişi şu anda görüşmeye açık değil.'
+      ),
+      ...(actor.phone?.trim() ? { phoneNumber: actor.phone.trim() } : {}),
+      ...('operator' in actor && typeof actor.operator === 'string' && actor.operator.trim()
+        ? { operatorLabel: actor.operator.trim() }
+        : {}),
+      ...('contactSource' in actor && typeof actor.contactSource === 'string' && actor.contactSource.trim()
+        ? { sourceLabel: actor.contactSource.trim() }
+        : {}),
+      ...(selection.newContactIds?.includes(actor.id) ? { newlyAdded: true } : {}),
+      available: actor.conversation.canTalk,
+      actions: [
+        ...exactAffordances.map((affordance, index) => {
+          if (affordance.intent.kind !== 'action') throw new Error('Unreachable affordance kind.')
+          const costLabel = affordanceCostLabel(affordance)
+          return {
+            action: affordance.intent.action.action,
+            label: affordanceLabel(affordance, `İşlem ${index + 1}`),
+            affordanceId: affordance.id,
+            available: actorAffordanceAvailable(affordance, actor),
+            ...(costLabel ? { costLabel } : {}),
+          }
+        }),
+        ...actor.conversation.channels
+          .filter((channel) => !exactActions.has(channel.action))
+          .map((channel, index) => ({
+            ...channel,
+            label: actionLabel(channel.action, index),
+          })),
+      ],
+    }
+  })
+  const phoneContactsById = new Map(phoneContacts.map((contact) => [contact.id, contact]))
+  const completedPhoneCalls: PhoneViewModel['recentCalls'] = completedAffordances
+    .flatMap((completed, completedIndex) => {
+      if (completed.surface !== 'phone' || completed.intent.kind !== 'action') return []
+      const action = completed.intent.action
+      const contactId = action.actor ?? action.from ?? action.target
+      if (!contactId) return []
+      const contact = phoneContactsById.get(contactId)
+      if (!contact) return []
+      const durationMs = completed.cost?.milliseconds
+      const durationLabel = callDurationLabel(durationMs)
+      const startedAtMs = Math.max(0, completed.completedAtMs - (durationMs ?? 0))
+      return [{
+        id: `outgoing-${completed.id}-${completed.completedAtMs}-${completedIndex}`,
+        contactId,
+        contactName: contact.name,
+        timestampLabel: caseTimeLabel(manifest, startedAtMs),
+        detailLabel: completed.label?.trim() || actionLabel(action.action, completedIndex),
+        ...(durationLabel ? { durationLabel } : {}),
+        direction: 'outgoing' as const,
+      }]
+    })
+    .reverse()
+
   return {
     casebook: {
       heading: manifest.case.title,
@@ -575,64 +659,18 @@ export function createManifestWorkspaceModels(
       affordances: unassignedPhoneAffordances.map((affordance, index) => (
         affordanceViewModel(affordance, index, 'İşlem')
       )),
-      contacts: (runtime?.actors ?? []).map((actor, actorIndex) => {
-        const exactAffordances = phoneAffordances.filter((affordance) => (
-          belongsToActor(affordance, actor.id)
-        ))
-        const exactActions = new Set(exactAffordances.flatMap((affordance) => (
-          affordance.intent.kind === 'action' ? [affordance.intent.action.action] : []
-        )))
-        return {
-          id: actor.id,
-          name: actor.displayName?.trim()
-            || actor.name?.trim()
-            || castText(manifest, actor.id, 'name')
-            || actorFallbackLabel(actorIndex),
-          roleLabel: actor.role?.trim()
-            || castRole(manifest, actor.id)
-            || 'Vaka kişisi',
-          detail: actor.conversation.reason ?? (
-            actor.conversation.canTalk
-              ? 'Görüşme için ulaşılabilir.'
-              : 'Bu kişi şu anda görüşmeye açık değil.'
-          ),
-          ...(actor.phone?.trim() ? { phoneNumber: actor.phone.trim() } : {}),
-          ...('operator' in actor && typeof actor.operator === 'string' && actor.operator.trim()
-            ? { operatorLabel: actor.operator.trim() }
-            : {}),
-          ...('contactSource' in actor && typeof actor.contactSource === 'string' && actor.contactSource.trim()
-            ? { sourceLabel: actor.contactSource.trim() }
-            : {}),
-          ...(selection.newContactIds?.includes(actor.id) ? { newlyAdded: true } : {}),
-          available: actor.conversation.canTalk,
-          actions: [
-            ...exactAffordances.map((affordance, index) => {
-              if (affordance.intent.kind !== 'action') throw new Error('Unreachable affordance kind.')
-              const costLabel = affordanceCostLabel(affordance)
-              return {
-                action: affordance.intent.action.action,
-                label: affordanceLabel(affordance, `İşlem ${index + 1}`),
-                affordanceId: affordance.id,
-                available: actorAffordanceAvailable(affordance, actor),
-                ...(costLabel ? { costLabel } : {}),
-              }
-            }),
-            ...actor.conversation.channels
-              .filter((channel) => !exactActions.has(channel.action))
-              .map((channel, index) => ({
-                ...channel,
-                label: actionLabel(channel.action, index),
-              })),
-          ],
-        }
-      }),
-      recentCalls: [{
-        id: `opening-${callerId}`,
-        contactId: callerId,
-        contactName: callerName,
-        timestampLabel: startLabel(manifest),
-        direction: 'incoming',
-      }],
+      contacts: phoneContacts,
+      recentCalls: [
+        ...completedPhoneCalls,
+        {
+          id: `opening-${callerId}`,
+          contactId: callerId,
+          contactName: callerName,
+          timestampLabel: startLabel(manifest),
+          detailLabel: 'Vaka açılış çağrısı',
+          direction: 'incoming',
+        },
+      ],
       ...(selection.activeCallContactId ? {
         activeCall: {
           contactId: selection.activeCallContactId,

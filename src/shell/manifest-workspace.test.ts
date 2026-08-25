@@ -496,6 +496,85 @@ describe('manifest workspace projection adapter', () => {
     })
   })
 
+  it('projects completed contact calls into stable newest-first recents', () => {
+    const completedRuntime: PublicCaseRuntimeState = {
+      ...runtime,
+      completedAffordances: [{
+        id: 'first-witness-call',
+        surface: 'phone',
+        intent: { kind: 'action', action: { action: 'interview', actor: 'witness' } },
+        label: 'İlk ifadeyi al',
+        result: 'Tanık ilk ifadesini verdi.',
+        risk: 'normal',
+        cost: { clock: 'case-time', milliseconds: 60_000 },
+        completedAtMs: 120_000,
+      }, {
+        id: 'follow-up-witness-call',
+        surface: 'phone',
+        intent: { kind: 'action', action: { action: 'interview', actor: 'witness', topic: 'timeline' } },
+        label: 'Zaman çizelgesini yeniden sor',
+        result: 'Tanık zaman çizelgesini netleştirdi.',
+        risk: 'normal',
+        cost: { clock: 'case-time', milliseconds: 30_000 },
+        completedAtMs: 210_000,
+      }, {
+        id: 'search-registry',
+        surface: 'web',
+        intent: { kind: 'action', action: { action: 'search', query: 'fixture registry' } },
+        label: 'Sicili ara',
+        result: 'Sicil kaydı bulundu.',
+        risk: 'normal',
+        completedAtMs: 240_000,
+      }, {
+        id: 'call-unlisted-person',
+        surface: 'phone',
+        intent: { kind: 'action', action: { action: 'interview', actor: 'unlisted-person' } },
+        label: 'Listelenmemiş kişiyi ara',
+        result: 'Bu kayıt oyuncuya açık bir kişiye bağlanamıyor.',
+        risk: 'normal',
+        cost: { clock: 'case-time', milliseconds: 60_000 },
+        completedAtMs: 300_000,
+      }],
+    }
+
+    const models = createManifestWorkspaceModels(
+      manifest,
+      { query: '', replyDraft: '' },
+      completedRuntime,
+    )
+
+    expect(models.phone.recentCalls).toMatchObject([{
+      contactId: 'witness',
+      contactName: 'Case Witness',
+      detailLabel: 'Zaman çizelgesini yeniden sor',
+      timestampLabel: '21:03',
+      durationLabel: '30 sn',
+      direction: 'outgoing',
+    }, {
+      contactId: 'witness',
+      contactName: 'Case Witness',
+      detailLabel: 'İlk ifadeyi al',
+      timestampLabel: '21:01',
+      durationLabel: '1 dk',
+      direction: 'outgoing',
+    }, {
+      id: 'opening-caller',
+      contactId: 'caller',
+      contactName: 'Case Caller',
+      timestampLabel: '21:00',
+      direction: 'incoming',
+    }])
+    expect(models.phone.recentCalls).toHaveLength(3)
+    expect(new Set(models.phone.recentCalls.map(({ id }) => id)).size).toBe(3)
+    expect(models.phone.recentCalls.map(({ id }) => id)).toEqual(
+      createManifestWorkspaceModels(
+        manifest,
+        { query: '', replyDraft: '' },
+        completedRuntime,
+      ).phone.recentCalls.map(({ id }) => id),
+    )
+  })
+
   it('preserves every projected asset and adds only host-authorized delivery URLs', () => {
     const models = createManifestWorkspaceModels(
       manifest,

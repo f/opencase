@@ -217,6 +217,7 @@ export interface PhoneCallViewModel {
   readonly contactId: string
   readonly contactName: string
   readonly timestampLabel: string
+  readonly detailLabel?: string
   readonly durationLabel?: string
   readonly direction: 'incoming' | 'outgoing' | 'missed'
 }

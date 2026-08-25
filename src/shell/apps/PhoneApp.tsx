@@ -23,6 +23,7 @@ import shieldCheckIcon from 'lucide-static/icons/shield-check.svg'
 import signalIcon from 'lucide-static/icons/signal-high.svg'
 import volumeIcon from 'lucide-static/icons/volume-2.svg'
 import wifiIcon from 'lucide-static/icons/wifi.svg'
+import SiriWave from 'siriwave'
 
 import dedektifPhoneWallpaper from '../../assets/shell/dedektif-phone-wallpaper.png'
 import './phone-realistic.css'
@@ -71,6 +72,9 @@ export interface PhoneLabels {
   readonly resultFallback: string
   readonly detective: string
   readonly autoComplete: string
+  readonly voiceConnecting: string
+  readonly voiceLive: string
+  readonly voiceClosing: string
 }
 
 const DEFAULT_LABELS: PhoneLabels = {
@@ -110,6 +114,9 @@ const DEFAULT_LABELS: PhoneLabels = {
   resultFallback: 'Görüşme tamamlandı. Yeni bilgiler vaka notlarına işlendi.',
   detective: 'Dedektif',
   autoComplete: 'Görüşme otomatik tamamlanacak',
+  voiceConnecting: 'Bağlantı kuruluyor',
+  voiceLive: 'Canlı ses',
+  voiceClosing: 'Hat kapanıyor',
 }
 
 export interface PhoneAppProps {
@@ -336,6 +343,103 @@ function HomeScreen({ actions, contact, busy, onAction, onNavigate, onOpenContac
   )
 }
 
+type CallWaveState = 'dialing' | 'active' | 'settling'
+
+const ACTIVE_VOICE_ENVELOPE = [0.42, 0.78, 0.58, 0.96, 0.5, 0.7, 0.36, 0.86, 0.62, 0.48] as const
+
+function SiriCallWave({ state, statusLabel }: {
+  readonly state: CallWaveState
+  readonly statusLabel: string
+}) {
+  const canvasHostRef = useRef<HTMLDivElement>(null)
+  const waveRef = useRef<SiriWave | null>(null)
+
+  useEffect(() => {
+    const host = canvasHostRef.current
+    if (!host || typeof window === 'undefined') return
+
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    let resizeFrame: number | undefined
+    let envelopeTimer: number | undefined
+    let envelopeIndex = 0
+
+    const amplitude = state === 'active' ? ACTIVE_VOICE_ENVELOPE[0] : state === 'dialing' ? 0.26 : 0.025
+    const speed = state === 'active' ? 0.17 : state === 'dialing' ? 0.095 : 0.045
+
+    const buildWave = () => {
+      waveRef.current?.dispose()
+      waveRef.current = null
+      host.replaceChildren()
+
+      const bounds = host.getBoundingClientRect()
+      if (motionQuery.matches || bounds.width < 1 || bounds.height < 1) return
+
+      waveRef.current = new SiriWave({
+        container: host,
+        width: Math.round(bounds.width),
+        height: Math.round(bounds.height),
+        style: 'ios',
+        speed,
+        amplitude,
+        frequency: 5,
+        autostart: true,
+        cover: true,
+        lerpSpeed: 0.08,
+        globalCompositeOperation: 'lighter',
+        curveDefinition: [
+          { attenuation: -2, lineWidth: 1, opacity: 0.13, color: '#d6b86f' },
+          { attenuation: -6, lineWidth: 1, opacity: 0.18, color: '#7ac8b1' },
+          { attenuation: 4, lineWidth: 1, opacity: 0.26, color: '#dfeae5' },
+          { attenuation: 2, lineWidth: 1.15, opacity: 0.46, color: '#84cfb9' },
+          { attenuation: 1, lineWidth: 1.45, opacity: 0.88, color: '#dcc477' },
+        ],
+      })
+    }
+
+    const scheduleBuild = () => {
+      if (resizeFrame !== undefined) window.cancelAnimationFrame(resizeFrame)
+      resizeFrame = window.requestAnimationFrame(buildWave)
+    }
+
+    buildWave()
+    if (state === 'active') {
+      envelopeTimer = window.setInterval(() => {
+        envelopeIndex = (envelopeIndex + 1) % ACTIVE_VOICE_ENVELOPE.length
+        waveRef.current?.setAmplitude(ACTIVE_VOICE_ENVELOPE[envelopeIndex])
+      }, 280)
+    }
+
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(scheduleBuild)
+    observer?.observe(host)
+    motionQuery.addEventListener('change', scheduleBuild)
+
+    return () => {
+      if (resizeFrame !== undefined) window.cancelAnimationFrame(resizeFrame)
+      if (envelopeTimer !== undefined) window.clearInterval(envelopeTimer)
+      observer?.disconnect()
+      motionQuery.removeEventListener('change', scheduleBuild)
+      waveRef.current?.dispose()
+      waveRef.current = null
+    }
+  }, [state])
+
+  return (
+    <div
+      className={`iphone-siri-wave is-${state}`}
+      data-voice-state={state}
+      data-wave-source="siriwave"
+      aria-hidden="true"
+    >
+      <span className="iphone-siri-wave__status"><i />{statusLabel}</span>
+      <svg className="iphone-siri-wave__fallback" viewBox="0 0 240 64" preserveAspectRatio="none">
+        <path d="M2 32 C 28 32, 32 20, 50 20 S 70 46, 91 46 S 110 15, 132 15 S 151 39, 170 39 S 196 27, 238 32" />
+        <path d="M2 32 C 30 32, 40 38, 59 38 S 78 25, 101 25 S 119 43, 143 43 S 168 23, 190 23 S 211 33, 238 32" />
+      </svg>
+      <div ref={canvasHostRef} className="iphone-siri-wave__canvas" />
+    </div>
+  )
+}
+
 function OutgoingCallScreen({
   call,
   labels,
@@ -362,7 +466,7 @@ function OutgoingCallScreen({
         className={`iphone-active-call iphone-outgoing-call iphone-outgoing-call--result ${call.successful === false ? 'is-failed' : 'is-successful'}`}
         data-call-phase="result"
       >
-        <span className="detective-sr-only" role="status" aria-live="polite">{phaseLabel}</span>
+        <span className="detective-sr-only" role="status" aria-live="polite" aria-atomic="true">{phaseLabel}</span>
         <div className="iphone-call-result__seal" aria-hidden="true">
           <Icon src={call.successful === false ? phoneMissedIcon : circleCheckIcon} />
         </div>
@@ -393,7 +497,7 @@ function OutgoingCallScreen({
       className={`iphone-active-call iphone-outgoing-call is-${call.phase}`}
       data-call-phase={call.phase}
     >
-      <span className="detective-sr-only" role="status" aria-live="polite">{phaseLabel}</span>
+      <span className="detective-sr-only" role="status" aria-live="polite" aria-atomic="true">{phaseLabel}</span>
       <div className="iphone-call-avatar">
         <ContactAvatar contact={{ name: call.contactName }} large />
       </div>
@@ -402,17 +506,14 @@ function OutgoingCallScreen({
       {call.roleLabel ? <small className="iphone-outgoing-call__role">{call.roleLabel}</small> : null}
       <p className="iphone-outgoing-call__network">{labels.secureLine}</p>
 
-      {call.phase === 'dialing' ? (
-        <div className="iphone-ringing" aria-hidden="true">
-          {Array.from({ length: 18 }, (_, index) => <i key={index} />)}
-        </div>
-      ) : (
-        <div className={`iphone-speaking-visualizer ${call.phase === 'ending' ? 'is-ending' : ''}`} aria-hidden="true">
-          <span><b>D</b><small>{labels.detective}</small></span>
-          <div>{Array.from({ length: 22 }, (_, index) => <i key={index} />)}</div>
-          <span><b>{call.contactName.slice(0, 1).toLocaleUpperCase('tr')}</b><small>{call.contactName.split(' ')[0]}</small></span>
-        </div>
-      )}
+      <SiriCallWave
+        state={call.phase === 'dialing' ? 'dialing' : call.phase === 'ending' ? 'settling' : 'active'}
+        statusLabel={call.phase === 'dialing'
+          ? labels.voiceConnecting
+          : call.phase === 'ending'
+            ? labels.voiceClosing
+            : labels.voiceLive}
+      />
 
       {call.phase !== 'dialing' ? (
         <div className="iphone-auto-hangup">
@@ -549,9 +650,10 @@ export function PhoneApp({
               {model.incomingCall.body ? <TranscriptReply line={model.incomingCall.body} /> : null}
             </article>
           ) : (
-            <div className="iphone-ringing" aria-hidden="true">
-              {Array.from({ length: 18 }, (_, index) => <i key={index} />)}
-            </div>
+            <SiriCallWave
+              state={model.incomingCall.phase === 'missed' ? 'settling' : 'dialing'}
+              statusLabel={model.incomingCall.phase === 'missed' ? labels.missed : labels.incomingCall}
+            />
           )}
 
           <div className="iphone-call-actions">
@@ -616,9 +718,10 @@ export function PhoneApp({
               </div>
             </section>
           ) : (
-            <div className="iphone-call-wave" aria-hidden="true">
-              {Array.from({ length: 18 }, (_, index) => <i key={index} />)}
-            </div>
+            <SiriCallWave
+              state="active"
+              statusLabel={labels.voiceLive}
+            />
           )}
 
           <button type="button" className="iphone-hangup" onClick={onEndCall} disabled={busy || !onEndCall}>
@@ -742,8 +845,22 @@ export function PhoneApp({
             <BackButton label="Ana Ekran" onClick={() => setScreen('home')} />
             <h2 id={recentsTitleId}>{labels.recentCalls}</h2>
             <div className="iphone-segmented" aria-label="Arama filtresi">
-              <button type="button" className={recentFilter === 'all' ? 'is-active' : ''} onClick={() => setRecentFilter('all')}>Tümü</button>
-              <button type="button" className={recentFilter === 'missed' ? 'is-active' : ''} onClick={() => setRecentFilter('missed')}>{labels.missed}</button>
+              <button
+                type="button"
+                className={recentFilter === 'all' ? 'is-active' : ''}
+                aria-pressed={recentFilter === 'all'}
+                onClick={() => setRecentFilter('all')}
+              >
+                Tümü
+              </button>
+              <button
+                type="button"
+                className={recentFilter === 'missed' ? 'is-active' : ''}
+                aria-pressed={recentFilter === 'missed'}
+                onClick={() => setRecentFilter('missed')}
+              >
+                {labels.missed}
+              </button>
             </div>
           </header>
 
@@ -756,13 +873,25 @@ export function PhoneApp({
               <ul>
                 {recentCalls.map((call) => (
                   <li key={call.id} className={`is-${call.direction}`}>
-                    <button type="button" onClick={() => openContact(call.contactId)}>
+                    <button
+                      type="button"
+                      aria-label={`${call.contactName}. ${[
+                        directionLabels[call.direction],
+                        call.detailLabel,
+                        call.durationLabel,
+                      ].filter(Boolean).join(' · ')}. ${call.timestampLabel}. Kişiyi aç.`}
+                      onClick={() => openContact(call.contactId)}
+                    >
                       <span className={`iphone-call-direction iphone-call-direction--${call.direction}`}>
                         <Icon src={CALL_DIRECTION_ICON_URLS[call.direction]} />
                       </span>
                       <span>
                         <strong>{call.contactName}</strong>
-                        <small>{directionLabels[call.direction]}{call.durationLabel ? ` · ${call.durationLabel}` : ''}</small>
+                        <small>{[
+                          directionLabels[call.direction],
+                          call.detailLabel,
+                          call.durationLabel,
+                        ].filter(Boolean).join(' · ')}</small>
                       </span>
                       <time>{call.timestampLabel}</time>
                       <Icon className="iphone-info" src={infoIcon} />

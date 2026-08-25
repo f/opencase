@@ -113,31 +113,103 @@ describe('PhoneApp outgoing call presentation', () => {
     {
       phase: 'dialing' as const,
       label: 'Aranıyor…',
-      visualClass: 'iphone-ringing',
+      voiceState: 'dialing',
     },
     {
       phase: 'speaking' as const,
       label: 'Görüşme sürüyor',
-      visualClass: 'iphone-speaking-visualizer',
+      voiceState: 'active',
     },
     {
       phase: 'ending' as const,
       label: 'Arama sonlandırılıyor',
-      visualClass: 'iphone-speaking-visualizer is-ending',
+      voiceState: 'settling',
     },
-  ])('renders the $phase phase without exposing a result', ({ phase, label, visualClass }) => {
+  ])('renders the $phase phase with an accessible status and decorative SiriWave visual', ({
+    phase,
+    label,
+    voiceState,
+  }) => {
     const hiddenResult = 'This must remain hidden until the call has ended.'
-    const html = renderToStaticMarkup(
+    const host = document.createElement('div')
+    host.innerHTML = renderToStaticMarkup(
       <PhoneApp model={outgoingCallModel(phase, hiddenResult)} />,
     )
+    const screen = host.querySelector<HTMLElement>(`[data-call-phase="${phase}"]`)
 
-    expect(html).toContain(`data-call-phase="${phase}"`)
-    expect(html).toContain(label)
-    expect(html).toContain('Deniz Kaya')
-    expect(html).toContain('Gece görevlisi')
-    expect(html).toContain(visualClass)
-    expect(html).not.toContain('iphone-call-result')
-    expect(html).not.toContain(hiddenResult)
+    expect(screen).not.toBeNull()
+
+    const wave = screen!.querySelector<HTMLElement>('[data-wave-source="siriwave"]')!
+    const statuses = screen!.querySelectorAll<HTMLElement>('[role="status"]')
+
+    expect(screen!.textContent).toContain(label)
+    expect(screen!.textContent).toContain('Deniz Kaya')
+    expect(screen!.textContent).toContain('Gece görevlisi')
+    expect(screen!.querySelector('.iphone-call-result')).toBeNull()
+    expect(screen!.textContent).not.toContain(hiddenResult)
+
+    expect(statuses).toHaveLength(1)
+    expect(statuses[0]?.textContent).toBe(label)
+    expect(statuses[0]?.getAttribute('aria-live')).toBe('polite')
+    expect(statuses[0]?.getAttribute('aria-atomic')).toBe('true')
+
+    expect(wave).not.toBeNull()
+    expect(wave.dataset.voiceState).toBe(voiceState)
+    expect(wave.getAttribute('aria-hidden')).toBe('true')
+    expect(wave.querySelector('.iphone-siri-wave__fallback')).not.toBeNull()
+    expect(wave.querySelector('.iphone-siri-wave__fallback')?.hasAttribute('hidden')).toBe(false)
+    expect(wave.querySelectorAll(
+      'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    )).toHaveLength(0)
+  })
+
+  it('uses the active SiriWave visual when a connected call has no transcript yet', () => {
+    const host = document.createElement('div')
+    host.innerHTML = renderToStaticMarkup(
+      <PhoneApp
+        model={{
+          contacts: [],
+          recentCalls: [],
+          activeCall: {
+            contactId: 'witness',
+            contactName: 'Deniz Kaya',
+            elapsedLabel: '00:12',
+            transcript: [],
+          },
+        }}
+        onEndCall={() => undefined}
+      />,
+    )
+
+    const wave = host.querySelector<HTMLElement>(
+      '[data-wave-source="siriwave"][data-voice-state="active"]',
+    )!
+
+    expect(wave).not.toBeNull()
+    expect(wave.getAttribute('aria-hidden')).toBe('true')
+    expect(wave.querySelector('.iphone-siri-wave__fallback')).not.toBeNull()
+    expect(wave.querySelectorAll(
+      'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    )).toHaveLength(0)
+    expect(host.querySelector('.iphone-transcript')).toBeNull()
+  })
+
+  it('hides the SiriWave canvas but keeps its static fallback for reduced motion', () => {
+    const reducedMotionStart = phoneStyles.indexOf('@media (prefers-reduced-motion: reduce)')
+    const reducedMotionEnd = phoneStyles.indexOf(
+      '@media (forced-colors: active)',
+      reducedMotionStart,
+    )
+    const reducedMotionStyles = phoneStyles.slice(reducedMotionStart, reducedMotionEnd)
+
+    expect(reducedMotionStart).toBeGreaterThanOrEqual(0)
+    expect(phoneStyles).toContain('.iphone-siri-wave__fallback')
+    expect(reducedMotionStyles).toMatch(
+      /\.iphone-siri-wave__canvas\s*\{[^}]*display:\s*none;?[^}]*\}/su,
+    )
+    expect(reducedMotionStyles).not.toMatch(
+      /\.iphone-siri-wave__fallback\s*\{[^}]*(?:display:\s*none|visibility:\s*hidden|opacity:\s*0\s*;)/su,
+    )
   })
 
   describe('completed result', () => {
@@ -170,9 +242,15 @@ describe('PhoneApp outgoing call presentation', () => {
       ))
 
       const screen = host.querySelector<HTMLElement>('[data-call-phase="result"]')!
+      const statuses = screen.querySelectorAll<HTMLElement>('[role="status"]')
       expect(screen.classList.contains('is-successful')).toBe(true)
       expect(screen.textContent).toContain('Arama sona erdi')
       expect(screen.textContent).toContain('Gece vardiyasını sor')
+      expect(screen.querySelector('[data-wave-source="siriwave"]')).toBeNull()
+      expect(statuses).toHaveLength(1)
+      expect(statuses[0]?.textContent).toBe('Arama sona erdi')
+      expect(statuses[0]?.getAttribute('aria-live')).toBe('polite')
+      expect(statuses[0]?.getAttribute('aria-atomic')).toBe('true')
       expect(screen.querySelector('.phone-transcript__reply .detective-sr-only')?.textContent)
         .toBe(result)
 
