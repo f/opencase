@@ -61,7 +61,9 @@ describe('FilesApp authorized asset presentation', () => {
     expect(html).not.toContain('download=')
     expect(html.match(/<button type="button" class="detective-button detective-button--quiet">Aç<\/button>/g))
       .toHaveLength(4)
-    expect(html.match(/<figure class="detective-asset"/g)).toHaveLength(4)
+    expect(html.match(/<figure class="detective-asset/g)).toHaveLength(4)
+    expect(html.match(/class="detective-asset__preview"/g)).toHaveLength(3)
+    expect(html).toContain('class="detective-asset is-previewless"')
     expect(html).toContain('class="finder-toolbar"')
     expect(html).toContain('class="finder-sidebar"')
     expect(html).toContain('class="finder-file-list__columns"')
@@ -71,8 +73,33 @@ describe('FilesApp authorized asset presentation', () => {
     expect(html).toContain('class="finder-folder"')
     expect(html).toContain('class="finder-search__icon"')
     expect(html).toContain('class="finder-sidebar-icon finder-sidebar-icon--clock"')
-    expect(html).toContain('class="finder-file-icon finder-file-icon--document')
+    expect(html).not.toContain('class="finder-file-icon finder-file-icon--document')
     expect(html).not.toContain('finder-chevron')
     expect(html).not.toContain('finder-inspector__action-icon')
+  })
+
+  it('omits the preview region when a record has no previewable asset', () => {
+    const model: FilesViewModel = {
+      selectedRecordId: 'ledger',
+      affordances: [],
+      records: [{
+        id: 'ledger',
+        title: 'Production payment ledger',
+        status: 'observed',
+        summary: 'The surviving payment record from the production.',
+        assets: [],
+      }],
+    }
+
+    const html = renderToStaticMarkup(
+      <UiLocaleProvider locale="tr">
+        <FilesApp model={model} />
+      </UiLocaleProvider>,
+    )
+
+    expect(html).not.toContain('finder-inspector__blank')
+    expect(html).not.toContain('detective-asset__preview')
+    expect(html).toContain('Kanıt bilgileri')
+    expect(html).toContain('The surviving payment record from the production.')
   })
 })

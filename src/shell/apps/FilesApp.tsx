@@ -14,6 +14,7 @@ import fileVideoIcon from 'lucide-static/icons/file-video.svg'
 import folderIcon from 'lucide-static/icons/folder.svg'
 import folderOpenIcon from 'lucide-static/icons/folder-open.svg'
 import imageIcon from 'lucide-static/icons/image.svg'
+import infoIcon from 'lucide-static/icons/info.svg'
 import laptopIcon from 'lucide-static/icons/laptop.svg'
 import layoutGridIcon from 'lucide-static/icons/layout-grid.svg'
 import listIcon from 'lucide-static/icons/list.svg'
@@ -120,6 +121,17 @@ function FinderFileIcon({ asset }: { readonly asset?: AuthorizedAssetViewModel }
   )
 }
 
+function finderPreviewUrl(asset: AuthorizedAssetViewModel): string | undefined {
+  return asset.thumbnailUrl ?? (asset.kind === 'image' ? asset.deliveryUrl : undefined)
+}
+
+function hasFinderPreview(asset: AuthorizedAssetViewModel): boolean {
+  return Boolean(
+    finderPreviewUrl(asset)
+    || ((asset.kind === 'audio' || asset.kind === 'video') && asset.deliveryUrl),
+  )
+}
+
 function FinderAssetPreview({
   asset,
   labels,
@@ -129,22 +141,23 @@ function FinderAssetPreview({
   readonly labels: FilesLabels
   readonly onOpen?: (assetId: string) => void
 }) {
-  const previewUrl = asset.thumbnailUrl ?? (asset.kind === 'image' ? asset.deliveryUrl : undefined)
+  const previewUrl = finderPreviewUrl(asset)
+  const hasPreview = hasFinderPreview(asset)
   const kindLabel = labels.assetKinds[asset.kind]
 
   return (
-    <figure className="detective-asset">
-      <div className="detective-asset__preview">
-        {asset.kind === 'image' && previewUrl ? (
-          <img src={previewUrl} alt={asset.description ?? asset.label} loading="lazy" />
-        ) : asset.kind === 'audio' && asset.deliveryUrl ? (
-          <audio controls preload="metadata" src={asset.deliveryUrl} aria-label={asset.label} />
-        ) : asset.kind === 'video' && asset.deliveryUrl ? (
-          <video controls preload="metadata" src={asset.deliveryUrl} aria-label={asset.label} />
-        ) : (
-          <FinderFileIcon asset={asset} />
-        )}
-      </div>
+    <figure className={`detective-asset ${hasPreview ? '' : 'is-previewless'}`.trim()}>
+      {hasPreview ? (
+        <div className="detective-asset__preview">
+          {previewUrl ? (
+            <img src={previewUrl} alt={asset.description ?? asset.label} loading="lazy" />
+          ) : asset.kind === 'audio' && asset.deliveryUrl ? (
+            <audio controls preload="metadata" src={asset.deliveryUrl} aria-label={asset.label} />
+          ) : asset.kind === 'video' && asset.deliveryUrl ? (
+            <video controls preload="metadata" src={asset.deliveryUrl} aria-label={asset.label} />
+          ) : null}
+        </div>
+      ) : null}
       <figcaption>
         <span>
           <strong>{asset.label}</strong>
@@ -197,6 +210,7 @@ export function FilesApp({
   })
   const selected = visibleRecords.find(({ id }) => id === model.selectedRecordId)
     ?? visibleRecords[0]
+  const selectedHasPreview = selected?.assets.some(hasFinderPreview) ?? false
 
   return (
     <section className="detective-app files-app finder-app" aria-label={labels.title}>
@@ -342,7 +356,10 @@ export function FilesApp({
           {selected ? (
             <>
               <header className="finder-inspector__header">
-                <p><img src={eyeIcon} alt="" aria-hidden="true" /><span>{labels.preview}</span></p>
+                <p>
+                  <img src={selectedHasPreview ? eyeIcon : infoIcon} alt="" aria-hidden="true" />
+                  <span>{selectedHasPreview ? labels.preview : labels.details}</span>
+                </p>
                 <FinderFileIcon asset={selected.assets[0]} />
                 <h3>{selected.title}</h3>
                 <span className={`finder-status finder-status--${selected.status}`}>
@@ -362,11 +379,7 @@ export function FilesApp({
                     />
                   ))}
                 </div>
-              ) : (
-                <div className="finder-inspector__blank" aria-hidden="true">
-                  <FinderFileIcon />
-                </div>
-              )}
+              ) : null}
 
               {selected.summary ? <p className="finder-inspector__summary">{selected.summary}</p> : null}
 

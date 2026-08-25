@@ -676,6 +676,10 @@
   border-top-color: var(--finder-line);
 }
 
+.finder-inspector .detective-asset.is-previewless figcaption {
+  border-top: 0;
+}
+
 .finder-inspector .detective-asset figcaption strong {
   font-size: 0.68rem;
   font-weight: 600;
@@ -705,15 +709,6 @@
   background: #f4f8fc;
   box-shadow: none;
   transform: none;
-}
-
-.finder-inspector__blank {
-  display: grid;
-  min-height: 120px;
-  margin-block: 14px;
-  place-items: center;
-  border: 1px dashed rgba(35, 43, 49, 0.18);
-  border-radius: 8px;
 }
 
 .finder-inspector__summary {
