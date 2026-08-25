@@ -129,7 +129,17 @@ const activeSnapshot: PublicCaseRuntimeState = {
   hypotheses: [],
 }
 
+function clearPersistentUiState(): void {
+  try {
+    window.localStorage.clear()
+  } catch {
+    // Some Node versions expose localStorage without a backing file. Tests that
+    // exercise persistence install their own Storage implementation below.
+  }
+}
+
 beforeEach(() => {
+  clearPersistentUiState()
   libraryMocks.list.mockResolvedValue({
     schema: 'detective-case-catalog/v1',
     cases: [{
