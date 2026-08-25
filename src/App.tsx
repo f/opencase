@@ -88,6 +88,7 @@ import {
 } from './settings'
 import {
   type AppLocale,
+  detectBrowserLocale,
   UiLocaleProvider,
   useUiCopy,
   useUiLocale,
@@ -2426,10 +2427,13 @@ function CaseExperience({
 }
 
 export default function App() {
-  const [profileStore] = useState<PlayerProfileStore>(() => createPlayerProfileStore({
-    defaultDisplayName: 'Dedektif',
-    defaultLocale: 'tr',
-  }))
+  const [profileStore] = useState<PlayerProfileStore>(() => {
+    const defaultLocale = detectBrowserLocale()
+    return createPlayerProfileStore({
+      defaultDisplayName: defaultLocale === 'tr' ? 'Dedektif' : 'Detective',
+      defaultLocale,
+    })
+  })
   const profileState = useSyncExternalStore(
     profileStore.subscribe,
     profileStore.getSnapshot,

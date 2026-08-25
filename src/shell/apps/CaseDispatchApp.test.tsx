@@ -1,11 +1,16 @@
 // @vitest-environment happy-dom
 
-import { act } from 'react'
+import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { UiLocaleProvider } from '../../ui-locale'
 import { CaseDispatchApp } from './CaseDispatchApp'
 import type { CaseDispatchViewModel } from './types'
+
+function withTurkishLocale(children: ReactNode): ReactNode {
+  return <UiLocaleProvider locale="tr">{children}</UiLocaleProvider>
+}
 
 const model: CaseDispatchViewModel = {
   heading: 'Kayıp kırmızı dosya',
@@ -63,7 +68,7 @@ describe('CaseDispatchApp', () => {
   })
 
   it('presents the draft, evidence results, route, and filing consequences as a complete case-file app', async () => {
-    await act(async () => root.render(<CaseDispatchApp model={model} />))
+    await act(async () => root.render(withTurkishLocale(<CaseDispatchApp model={model} />)))
 
     expect(host.querySelector('.case-dispatch__rail')).not.toBeNull()
     expect(host.querySelector('.case-dispatch__document')).not.toBeNull()
@@ -91,7 +96,9 @@ describe('CaseDispatchApp', () => {
 
   it('submits only the opaque id selected by the player', async () => {
     const onSubmit = vi.fn()
-    await act(async () => root.render(<CaseDispatchApp model={model} onSubmit={onSubmit} />))
+    await act(async () => root.render(withTurkishLocale(
+      <CaseDispatchApp model={model} onSubmit={onSubmit} />,
+    )))
 
     const terminalButton = Array.from(host.querySelectorAll<HTMLButtonElement>('button'))
       .find((button) => button.textContent?.includes('Fezlekeyi savcılığa gönder'))
@@ -103,13 +110,15 @@ describe('CaseDispatchApp', () => {
   })
 
   it('disables filings while busy and explains an empty filing state', async () => {
-    await act(async () => root.render(<CaseDispatchApp model={model} busy onSubmit={vi.fn()} />))
+    await act(async () => root.render(withTurkishLocale(
+      <CaseDispatchApp model={model} busy onSubmit={vi.fn()} />,
+    )))
     expect(Array.from(host.querySelectorAll<HTMLButtonElement>('button')).every((button) => button.disabled)).toBe(true)
     expect(host.textContent).toContain('İşlem hazırlanıyor')
 
-    await act(async () => root.render(
+    await act(async () => root.render(withTurkishLocale(
       <CaseDispatchApp model={{ ...model, lifecycle: 'draft', affordances: [] }} onSubmit={vi.fn()} />,
-    ))
+    )))
     expect(host.textContent).toContain('Şu anda onay bekleyen bir işlem yok.')
     expect(host.textContent).toContain('Yeni bir işlem hazırlandığında')
     expect(host.textContent).toContain('ÇALIŞMA TASLAĞI')

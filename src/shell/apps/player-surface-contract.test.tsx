@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
+import { UiLocaleProvider } from '../../ui-locale'
 import { CaseDispatchApp } from './CaseDispatchApp'
 import { CaseBoardApp } from './CaseBoardApp'
 import { CasebookApp } from './CasebookApp'
@@ -19,6 +21,12 @@ import type {
   PhoneViewModel,
   WebResearchViewModel,
 } from './types'
+
+function renderTurkish(children: ReactNode): string {
+  return renderToStaticMarkup(
+    <UiLocaleProvider locale="tr">{children}</UiLocaleProvider>,
+  )
+}
 
 const INTERNAL_SENTINELS = {
   id: '__internal_evidence_identifier__',
@@ -254,14 +262,14 @@ function playerVisibleSurface(markup: string): string {
 }
 
 const renderedSurfaces = {
-  casebook: renderToStaticMarkup(<CasebookApp model={casebook} />),
-  caseBoard: renderToStaticMarkup(<CaseBoardApp model={caseBoard} />),
-  caseDispatch: renderToStaticMarkup(<CaseDispatchApp model={caseDispatch} />),
-  files: renderToStaticMarkup(<FilesApp model={files} />),
-  inbox: renderToStaticMarkup(<InboxApp model={inbox} />),
-  phone: renderToStaticMarkup(<PhoneApp model={phone} />),
-  web: renderToStaticMarkup(<WebResearchApp model={web} />),
-  rail: renderToStaticMarkup(<EvidenceQuestionsRail model={rail} />),
+  casebook: renderTurkish(<CasebookApp model={casebook} />),
+  caseBoard: renderTurkish(<CaseBoardApp model={caseBoard} />),
+  caseDispatch: renderTurkish(<CaseDispatchApp model={caseDispatch} />),
+  files: renderTurkish(<FilesApp model={files} />),
+  inbox: renderTurkish(<InboxApp model={inbox} />),
+  phone: renderTurkish(<PhoneApp model={phone} />),
+  web: renderTurkish(<WebResearchApp model={web} />),
+  rail: renderTurkish(<EvidenceQuestionsRail model={rail} />),
 }
 
 describe('player-facing shell contract', () => {

@@ -143,7 +143,14 @@ function clearPersistentUiState(): void {
   }
 }
 
+let browserLanguages: readonly string[]
+
 beforeEach(() => {
+  browserLanguages = ['tr-TR']
+  vi.stubGlobal('navigator', {
+    get languages() { return browserLanguages },
+    get language() { return browserLanguages[0] ?? '' },
+  })
   clearPersistentUiState()
   libraryMocks.list.mockResolvedValue({
     schema: 'detective-case-catalog/v1',
@@ -163,6 +170,10 @@ beforeEach(() => {
       manifest,
     }],
   })
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
 })
 
 async function flushMicrotasks(): Promise<void> {
@@ -199,6 +210,7 @@ describe('App wall-clock session recovery', () => {
   beforeEach(() => {
     ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
     vi.useFakeTimers()
+    vi.stubGlobal('localStorage', memoryStorage())
     hostMocks.status
       .mockResolvedValueOnce({
         schema: 'detective-demo-session/v1',
@@ -309,6 +321,61 @@ describe('App wall-clock session recovery', () => {
     expect(settingsSlot.textContent).toContain('Application language')
     expect(document.documentElement.lang).toBe('en-US')
     expect(host.querySelector('[data-testid="desktop-shell"]')).not.toBeNull()
+  })
+
+  it('detects the initial browser language and keeps a Settings override after reload', async () => {
+    browserLanguages = ['fr-FR', 'en-GB']
+    hostMocks.status.mockReset().mockResolvedValue({
+      schema: 'detective-demo-session/v1',
+      caseId: manifest.case.id,
+      caseVersion: manifest.case.version,
+      locale: 'tr',
+      saveId: 'primary',
+      exists: true,
+      assetSessionId: 'asset-session-browser-locale',
+      snapshot: activeSnapshot,
+    })
+    libraryMocks.list.mockClear()
+
+    await act(async () => {
+      root.render(<App />)
+      await flushMicrotasks()
+    })
+
+    expect(libraryMocks.list.mock.calls[0]?.[0]).toBe('en')
+    expect(host.querySelector('.settings-workspace')?.getAttribute('data-locale')).toBe('en')
+    expect(document.documentElement.lang).toBe('en-US')
+    expect(JSON.parse(window.localStorage.getItem(PLAYER_PROFILES_STORAGE_KEY)!))
+      .toMatchObject({ profiles: [{ displayName: 'Detective', preferredLocale: 'en' }] })
+
+    const settingsSlot = host.querySelector<HTMLElement>('[data-testid="settings-slot"]')!
+    await act(async () => {
+      Array.from(settingsSlot.querySelectorAll<HTMLButtonElement>('button')).find((button) => (
+        button.textContent?.trim() === 'Language'
+      ))!.click()
+    })
+    await act(async () => {
+      settingsSlot.querySelector<HTMLInputElement>(
+        'input[name$="interface-locale"][value="tr"]',
+      )!.click()
+      await flushMicrotasks()
+    })
+
+    expect(document.documentElement.lang).toBe('tr-TR')
+    expect(JSON.parse(window.localStorage.getItem(PLAYER_PROFILES_STORAGE_KEY)!))
+      .toMatchObject({ profiles: [{ preferredLocale: 'tr' }] })
+
+    await act(async () => root.unmount())
+    root = createRoot(host)
+    libraryMocks.list.mockClear()
+    await act(async () => {
+      root.render(<App />)
+      await flushMicrotasks()
+    })
+
+    expect(libraryMocks.list.mock.calls[0]?.[0]).toBe('tr')
+    expect(host.querySelector('.settings-workspace')?.getAttribute('data-locale')).toBe('tr')
+    expect(document.documentElement.lang).toBe('tr-TR')
   })
 })
 

@@ -1,11 +1,16 @@
 // @vitest-environment happy-dom
 
-import { act } from 'react'
+import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { UiLocaleProvider } from '../../ui-locale'
 import { CasebookApp } from './CasebookApp'
 import type { CasebookViewModel } from './types'
+
+function withTurkishLocale(children: ReactNode): ReactNode {
+  return <UiLocaleProvider locale="tr">{children}</UiLocaleProvider>
+}
 
 const model: CasebookViewModel = {
   synopsis: 'Bu kısa özet kenar çubuğunda tekrar gösterilmemeli.',
@@ -49,9 +54,9 @@ describe('CasebookApp contact actions', () => {
 
   it('renders authored lookups below the selected note and returns only the opaque affordance id', async () => {
     const onContactAction = vi.fn()
-    await act(async () => root.render(
+    await act(async () => root.render(withTurkishLocale(
       <CasebookApp model={model} onContactAction={onContactAction} />,
-    ))
+    )))
 
     const noteBody = host.querySelector('.casebook-page__body')!
     const actions = host.querySelector<HTMLElement>('.casebook-contact-actions')!

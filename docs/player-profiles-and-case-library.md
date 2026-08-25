@@ -43,6 +43,14 @@ case presentation. Case locale negotiation tries the exact locale, then its
 base language, then the case's `case.locale` default. Changing presentation
 copy does not append an event or modify a save.
 
+For a brand-new browser profile, the application checks `navigator.languages`
+in preference order and selects the first supported `tr` or `en` base language.
+It uses `navigator.language` when the ordered list is unavailable. English is
+the fallback when the browser preference is unavailable or none of its
+languages are supported. The detected choice is stored in the new profile.
+After that, the saved profile and the Language setting are authoritative; a
+later browser-language change does not overwrite the player's choice.
+
 ## Static distribution and spoilers
 
 Built-in cases are compiled during `npm run generate:public`. Each case emits:

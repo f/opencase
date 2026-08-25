@@ -18,6 +18,8 @@ const dockedApp: ShellAppDefinition = {
   placement: 'right-dock',
 }
 
+const turkishShellProps = { locale: 'tr' as const }
+
 describe('DesktopShell fixed docks', () => {
   it('keeps a non-closable right dock open and omits all window controls', () => {
     const persistedClosedLayout: DesktopLayoutSnapshot = {
@@ -36,6 +38,7 @@ describe('DesktopShell fixed docks', () => {
 
     const html = renderToStaticMarkup(
       <DesktopShell
+        {...turkishShellProps}
         apps={[dockedApp]}
         layoutPersistence={{ load: () => persistedClosedLayout }}
       />,
@@ -68,6 +71,7 @@ describe('DesktopShell fixed docks', () => {
 
     const html = renderToStaticMarkup(
       <DesktopShell
+        {...turkishShellProps}
         apps={[{ ...dockedApp, closable: true, defaultOpen: true }]}
         layoutPersistence={{ load: () => persistedClosedLayout }}
       />,
@@ -81,7 +85,10 @@ describe('DesktopShell fixed docks', () => {
 
   it('gives an open closable dock one dedicated close control without floating controls', () => {
     const html = renderToStaticMarkup(
-      <DesktopShell apps={[{ ...dockedApp, closable: true, defaultOpen: true }]} />,
+      <DesktopShell
+        {...turkishShellProps}
+        apps={[{ ...dockedApp, closable: true, defaultOpen: true }]}
+      />,
     )
 
     expect(html).toContain('has-right-dock')
@@ -104,6 +111,7 @@ describe('DesktopShell fixed docks', () => {
     await act(async () => {
       root.render(
         <DesktopShell
+          {...turkishShellProps}
           apps={[{
             ...dockedApp,
             closable: true,
@@ -136,6 +144,7 @@ describe('DesktopShell fixed docks', () => {
   it('retains movement and resize affordances for regular windows', () => {
     const html = renderToStaticMarkup(
       <DesktopShell
+        {...turkishShellProps}
         apps={[{ ...dockedApp, placement: 'floating', defaultOpen: true }]}
         brand="opencase"
       />,
@@ -162,6 +171,7 @@ describe('DesktopShell fixed docks', () => {
     await act(async () => {
       root.render(
         <DesktopShell
+          {...turkishShellProps}
           apps={[{ ...dockedApp, placement: 'floating', defaultOpen: true }]}
           brand="opencase"
           settingsSlot={(
@@ -223,6 +233,7 @@ describe('DesktopShell fixed docks', () => {
     await act(async () => {
       root.render(
         <DesktopShell
+          {...turkishShellProps}
           apps={[]}
           settingsSlot={<button type="button">Setting action</button>}
           settingsWindowActions={{ onMinimize: minimize, onMaximize: maximize }}
@@ -304,6 +315,7 @@ describe('DesktopShell fixed docks', () => {
       await act(async () => {
         root.render(
           <DesktopShell
+            {...turkishShellProps}
             apps={[
               { ...dockedApp, id: 'floating-app', placement: 'floating', defaultOpen: true },
               { ...dockedApp, defaultOpen: true },

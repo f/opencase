@@ -24,9 +24,10 @@ import shieldIcon from 'lucide-static/icons/shield-check.svg'
 import trashIcon from 'lucide-static/icons/trash-2.svg'
 import userIcon from 'lucide-static/icons/user-round.svg'
 
+import { detectBrowserLocale, type AppLocale } from '../ui-locale'
 import './settings-workspace.css'
 
-export type SettingsLocale = 'tr' | 'en'
+export type SettingsLocale = AppLocale
 
 export interface SettingsProfile {
   readonly id: string
@@ -286,7 +287,7 @@ const SECTIONS: readonly { id: SettingsSection; icon: string }[] = [
 ]
 
 function normalizedLocale(value: string | undefined): SettingsLocale {
-  return value?.toLowerCase().startsWith('en') ? 'en' : 'tr'
+  return detectBrowserLocale(value ? [value] : undefined)
 }
 
 function initials(value: string): string {

@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
 
-import { act } from 'react'
+import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { UiLocaleProvider } from '../../ui-locale'
 import {
   CASE_BOARD_STATE_SCHEMA,
   type CaseBoardPersistence,
@@ -11,6 +12,10 @@ import {
 } from '../case-board-state'
 import { CaseBoardApp } from './CaseBoardApp'
 import type { CaseBoardViewModel } from './types'
+
+function withTurkishLocale(children: ReactNode): ReactNode {
+  return <UiLocaleProvider locale="tr">{children}</UiLocaleProvider>
+}
 
 const model: CaseBoardViewModel = {
   heading: 'Gece Vardiyası',
@@ -70,9 +75,9 @@ describe('CaseBoardApp', () => {
 
   it('connects two public cards by their tacks and toggles the pair', async () => {
     const store = persistence()
-    await act(async () => root.render(
+    await act(async () => root.render(withTurkishLocale(
       <CaseBoardApp model={model} persistence={store} />,
-    ))
+    )))
 
     const tacks = Array.from(host.querySelectorAll<HTMLButtonElement>('.case-board-tack'))
     expect(tacks).toHaveLength(2)
@@ -96,9 +101,9 @@ describe('CaseBoardApp', () => {
 
   it('opens an evidence image through its opaque asset handle only', async () => {
     const onOpenAsset = vi.fn()
-    await act(async () => root.render(
+    await act(async () => root.render(withTurkishLocale(
       <CaseBoardApp model={model} onOpenAsset={onOpenAsset} />,
-    ))
+    )))
 
     const open = host.querySelector<HTMLButtonElement>('button.case-board-card__photo')!
     expect(open.getAttribute('aria-haspopup')).toBe('dialog')
@@ -117,9 +122,9 @@ describe('CaseBoardApp', () => {
       },
       connections: [{ from: 'fixture-board-person', to: 'fixture-board-private' }],
     })
-    await act(async () => root.render(
+    await act(async () => root.render(withTurkishLocale(
       <CaseBoardApp model={model} persistence={store} />,
-    ))
+    )))
 
     const card = host.querySelector<HTMLElement>('.case-board-card--person')!
     expect(card.style.left).toBe('20%')

@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
+import { UiLocaleProvider } from '../../ui-locale'
 import { FilesApp } from './FilesApp'
 import type { FilesViewModel } from './types'
 
@@ -47,7 +48,9 @@ describe('FilesApp authorized asset presentation', () => {
     }
 
     const html = renderToStaticMarkup(
-      <FilesApp model={model} onOpenAsset={() => undefined} />,
+      <UiLocaleProvider locale="tr">
+        <FilesApp model={model} onOpenAsset={() => undefined} />
+      </UiLocaleProvider>,
     )
 
     expect(html).toContain('<img')

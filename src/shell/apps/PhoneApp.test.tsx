@@ -7,6 +7,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { UiLocaleProvider } from '../../ui-locale'
 import { PhoneApp } from './PhoneApp'
 import type { PhoneViewModel } from './types'
 
@@ -51,7 +52,11 @@ describe('PhoneApp conversation replies', () => {
       affordances: [{ id: 'call-lead', label: 'Call the night clerk', costLabel: '2 min' }],
     }
 
-    const html = renderToStaticMarkup(<PhoneApp model={model} onAffordance={() => undefined} />)
+    const html = renderToStaticMarkup(
+      <UiLocaleProvider locale="tr">
+        <PhoneApp model={model} onAffordance={() => undefined} />
+      </UiLocaleProvider>,
+    )
 
     expect(html).toContain('Marmara')
     expect(html).toContain('<time dateTime="21:07" aria-label="Vaka saati 21:07">21:07</time>')
@@ -82,7 +87,11 @@ describe('PhoneApp conversation replies', () => {
       },
     }
 
-    const html = renderToStaticMarkup(<PhoneApp model={model} onEndCall={() => undefined} />)
+    const html = renderToStaticMarkup(
+      <UiLocaleProvider locale="tr">
+        <PhoneApp model={model} onEndCall={() => undefined} />
+      </UiLocaleProvider>,
+    )
 
     expect(html).toContain(`<span class="detective-sr-only">${reply}</span>`)
     expect(html.match(/class="phone-transcript__word"/g)).toHaveLength(7)
@@ -106,7 +115,9 @@ describe('PhoneApp conversation replies', () => {
       },
     }
 
-    const html = renderToStaticMarkup(<PhoneApp model={model} />)
+    const html = renderToStaticMarkup(
+      <UiLocaleProvider locale="tr"><PhoneApp model={model} /></UiLocaleProvider>,
+    )
 
     expect(html).toContain(`<span class="detective-sr-only">${briefing}</span>`)
     expect(html.match(/class="phone-transcript__word"/g)).toHaveLength(6)
@@ -139,7 +150,9 @@ describe('PhoneApp outgoing call presentation', () => {
     const hiddenResult = 'This must remain hidden until the call has ended.'
     const host = document.createElement('div')
     host.innerHTML = renderToStaticMarkup(
-      <PhoneApp model={outgoingCallModel(phase, hiddenResult)} />,
+      <UiLocaleProvider locale="tr">
+        <PhoneApp model={outgoingCallModel(phase, hiddenResult)} />
+      </UiLocaleProvider>,
     )
     const screen = host.querySelector<HTMLElement>(`[data-call-phase="${phase}"]`)
 
@@ -172,20 +185,22 @@ describe('PhoneApp outgoing call presentation', () => {
   it('uses the active SiriWave visual when a connected call has no transcript yet', () => {
     const host = document.createElement('div')
     host.innerHTML = renderToStaticMarkup(
-      <PhoneApp
-        model={{
-          clockLabel: '21:10',
-          contacts: [],
-          recentCalls: [],
-          activeCall: {
-            contactId: 'witness',
-            contactName: 'Deniz Kaya',
-            elapsedLabel: '00:12',
-            transcript: [],
-          },
-        }}
-        onEndCall={() => undefined}
-      />,
+      <UiLocaleProvider locale="tr">
+        <PhoneApp
+          model={{
+            clockLabel: '21:10',
+            contacts: [],
+            recentCalls: [],
+            activeCall: {
+              contactId: 'witness',
+              contactName: 'Deniz Kaya',
+              elapsedLabel: '00:12',
+              transcript: [],
+            },
+          }}
+          onEndCall={() => undefined}
+        />
+      </UiLocaleProvider>,
     )
 
     const wave = host.querySelector<HTMLElement>(
@@ -242,10 +257,12 @@ describe('PhoneApp outgoing call presentation', () => {
       const onDismissOutgoingCall = vi.fn()
 
       await act(async () => root.render(
-        <PhoneApp
-          model={outgoingCallModel('result', result)}
-          onDismissOutgoingCall={onDismissOutgoingCall}
-        />,
+        <UiLocaleProvider locale="tr">
+          <PhoneApp
+            model={outgoingCallModel('result', result)}
+            onDismissOutgoingCall={onDismissOutgoingCall}
+          />
+        </UiLocaleProvider>,
       ))
 
       const screen = host.querySelector<HTMLElement>('[data-call-phase="result"]')!

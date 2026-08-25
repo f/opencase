@@ -312,7 +312,7 @@ export function createManifestWorkspaceModels(
   selection: ManifestWorkspaceSelection,
   runtime?: PublicCaseRuntimeState,
   assetDeliveryUrl?: ShellAssetDeliveryUrl,
-  interfaceLocale: AppLocale = 'tr',
+  interfaceLocale: AppLocale = 'en',
 ): ManifestWorkspaceModels {
   const copy = WORKSPACE_COPY[interfaceLocale]
   const callerId = manifest.opening.call?.from ?? 'case-desk'

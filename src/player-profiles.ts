@@ -343,7 +343,7 @@ export function createPlayerProfileStore(
     options.defaultDisplayName ?? 'Detective',
     'invalid-display-name',
   )
-  const initialLocale = preferredLocale(options.defaultLocale ?? 'tr', 'invalid-locale')
+  const initialLocale = preferredLocale(options.defaultLocale ?? 'en', 'invalid-locale')
   const fallback = defaultState(initialDisplayName, initialLocale)
   const listeners = new Set<() => void>()
   const report = (error: PlayerProfileStoreError): void => {

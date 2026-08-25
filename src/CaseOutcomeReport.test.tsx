@@ -5,6 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { CaseOutcomeReport, type CaseOutcomeReportValue } from './CaseOutcomeReport'
+import { UiLocaleProvider } from './ui-locale'
 
 const assessedOutcome: CaseOutcomeReportValue = {
   title: 'Doğru Sonuç, Geç Özür',
@@ -54,6 +55,14 @@ const assessedOutcome: CaseOutcomeReportValue = {
   },
 }
 
+function turkishOutcome(outcome: CaseOutcomeReportValue) {
+  return (
+    <UiLocaleProvider locale="tr">
+      <CaseOutcomeReport outcome={outcome} />
+    </UiLocaleProvider>
+  )
+}
+
 describe('CaseOutcomeReport', () => {
   let host: HTMLDivElement
   let root: Root
@@ -72,7 +81,7 @@ describe('CaseOutcomeReport', () => {
   })
 
   it('shows the method score and opens the weakest category with resolved behavior details', async () => {
-    await act(async () => root.render(<CaseOutcomeReport outcome={assessedOutcome} />))
+    await act(async () => root.render(turkishOutcome(assessedOutcome)))
 
     expect(host.querySelector('#outcome-title')?.textContent).toBe('Doğru Sonuç, Geç Özür')
     expect(host.querySelector('.case-outcome-report__score-stamp')?.getAttribute('aria-label'))
@@ -91,7 +100,7 @@ describe('CaseOutcomeReport', () => {
 
   it('keeps the compact outcome layout when no assessment was authored', async () => {
     await act(async () => root.render(
-      <CaseOutcomeReport outcome={{ title: 'Vaka çözüldü', body: 'Kanıtlar sonuca ulaştı.' }} />,
+      turkishOutcome({ title: 'Vaka çözüldü', body: 'Kanıtlar sonuca ulaştı.' }),
     ))
 
     expect(host.querySelector('.case-outcome-report--compact')).not.toBeNull()
@@ -122,7 +131,7 @@ describe('CaseOutcomeReport', () => {
       },
     }
 
-    await act(async () => root.render(<CaseOutcomeReport outcome={outcome} />))
+    await act(async () => root.render(turkishOutcome(outcome)))
 
     expect(host.textContent).toContain('Değerlendirme alanı 1')
     expect(host.textContent).toContain('Bu ölçüt için değerlendirme notu bulunmuyor.')

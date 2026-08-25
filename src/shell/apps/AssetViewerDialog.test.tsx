@@ -39,6 +39,7 @@ vi.mock('react', async (importOriginal) => {
 })
 
 import { AssetViewerDialog } from './AssetViewerDialog'
+import { UiLocaleProvider } from '../../ui-locale'
 import type { AuthorizedAssetViewModel } from './types'
 
 const TECHNICAL_DELIVERY_URL = '/api/demo/session/asset?assetSessionId=opaque-secret'
@@ -73,7 +74,9 @@ describe('AssetViewerDialog delivery boundary', () => {
     const revokeObjectUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
 
     const loadingMarkup = renderToStaticMarkup(
-      AssetViewerDialog({ asset: documentAsset, onClose: vi.fn() }),
+      <UiLocaleProvider locale="tr">
+        <AssetViewerDialog asset={documentAsset} onClose={vi.fn()} />
+      </UiLocaleProvider>,
     )
     expect(loadingMarkup).toContain('Dosya açılıyor…')
     expect(loadingMarkup).toContain('class="detective-modal modal-overlay asset-viewer-dialog"')
@@ -100,7 +103,9 @@ describe('AssetViewerDialog delivery boundary', () => {
     expect(hookHarness.state).toEqual({ status: 'ready', url: OPAQUE_BLOB_URL })
 
     const readyMarkup = renderToStaticMarkup(
-      AssetViewerDialog({ asset: documentAsset, onClose: vi.fn() }),
+      <UiLocaleProvider locale="tr">
+        <AssetViewerDialog asset={documentAsset} onClose={vi.fn()} />
+      </UiLocaleProvider>,
     )
     expect(readyMarkup).toContain(`src="${OPAQUE_BLOB_URL}"`)
     expect(readyMarkup).toContain('title="İmzalı teslim tutanağı"')

@@ -1,8 +1,16 @@
+import type { ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
+import { UiLocaleProvider } from '../../ui-locale'
 import { InboxApp } from './InboxApp'
 import type { InboxViewModel } from './types'
+
+function renderTurkish(children: ReactNode): string {
+  return renderToStaticMarkup(
+    <UiLocaleProvider locale="tr">{children}</UiLocaleProvider>,
+  )
+}
 
 const forensicsModel: InboxViewModel = {
   workspaceLabel: 'Dedektif Ekibi',
@@ -43,7 +51,7 @@ const forensicsModel: InboxViewModel = {
 
 describe('InboxApp workspace', () => {
   it('renders a realistic channel workspace with a dedicated forensics lead', () => {
-    const html = renderToStaticMarkup(<InboxApp model={forensicsModel} onSelectThread={() => undefined} />)
+    const html = renderTurkish(<InboxApp model={forensicsModel} onSelectThread={() => undefined} />)
 
     expect(html).toContain('Dedektif Ekibi içinde ara')
     expect(html).toContain('Gelen Kutusu')
@@ -75,7 +83,7 @@ describe('InboxApp workspace', () => {
       }],
     }
 
-    const html = renderToStaticMarkup(<InboxApp model={model} />)
+    const html = renderTurkish(<InboxApp model={model} />)
 
     expect(html).toContain('<strong>Ece Aydın</strong> yazıyor')
     expect(html).toContain(`<span class="detective-sr-only">${reply}</span>`)
@@ -98,7 +106,7 @@ describe('InboxApp workspace', () => {
       }],
     }
 
-    const html = renderToStaticMarkup(<InboxApp model={model} />)
+    const html = renderTurkish(<InboxApp model={model} />)
 
     expect(html).toContain('workspace-avatar--detective')
     expect(html).toContain('>AY</span>')
@@ -124,7 +132,7 @@ describe('InboxApp workspace', () => {
       }],
     }
 
-    const html = renderToStaticMarkup(
+    const html = renderTurkish(
       <InboxApp
         model={model}
         onOpenAttachment={() => undefined}
@@ -158,7 +166,7 @@ describe('InboxApp workspace', () => {
       }],
     }
 
-    const html = renderToStaticMarkup(
+    const html = renderTurkish(
       <InboxApp model={model} onOpenAttachment={() => undefined} />,
     )
 
@@ -189,7 +197,7 @@ describe('InboxApp workspace', () => {
       }],
     }
 
-    const html = renderToStaticMarkup(<InboxApp model={model} />)
+    const html = renderTurkish(<InboxApp model={model} />)
     expect(html).not.toContain('workspace-image-attachment')
     expect(html).not.toContain('/assets/hidden.png')
   })

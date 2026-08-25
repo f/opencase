@@ -55,7 +55,7 @@ describe('local player profiles', () => {
       profiles: [{
         id: LEGACY_PLAYER_PROFILE_ID,
         displayName: 'Detective',
-        preferredLocale: 'tr',
+        preferredLocale: 'en',
       }],
     })
     expect(Object.isFrozen(store.getSnapshot())).toBe(true)

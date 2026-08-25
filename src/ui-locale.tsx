@@ -1,8 +1,49 @@
-import { createContext, type ReactNode, useContext, useEffect } from 'react'
+import { createContext, type ReactNode, useContext, useLayoutEffect } from 'react'
 
 export type AppLocale = 'tr' | 'en'
 
-const UiLocaleContext = createContext<AppLocale>('tr')
+export const DEFAULT_APP_LOCALE: AppLocale = 'en'
+
+function supportedLocale(value: string | undefined): AppLocale | undefined {
+  const base = value?.trim().split(/[-_]/u, 1)[0]?.toLowerCase()
+  return base === 'tr' || base === 'en' ? base : undefined
+}
+
+/**
+ * Negotiates the first interface language supported by the application.
+ *
+ * Passing candidates keeps the function deterministic in tests. With no
+ * argument it reads the browser preference order. Unsupported or unavailable
+ * browser languages fall back to English, never Turkish.
+ */
+export function detectBrowserLocale(candidates?: readonly string[]): AppLocale {
+  let languages = candidates
+  if (!languages) {
+    if (typeof navigator === 'undefined') return DEFAULT_APP_LOCALE
+
+    try {
+      if (navigator.languages?.length > 0) languages = navigator.languages
+    } catch {
+      // Some privacy-focused browsers block the ordered preference list.
+    }
+
+    if (!languages) {
+      try {
+        languages = navigator.language ? [navigator.language] : []
+      } catch {
+        return DEFAULT_APP_LOCALE
+      }
+    }
+  }
+
+  for (const candidate of languages) {
+    const locale = supportedLocale(candidate)
+    if (locale) return locale
+  }
+  return DEFAULT_APP_LOCALE
+}
+
+const UiLocaleContext = createContext<AppLocale>(DEFAULT_APP_LOCALE)
 
 export function UiLocaleProvider({
   locale,
@@ -11,7 +52,7 @@ export function UiLocaleProvider({
   readonly locale: AppLocale
   readonly children: ReactNode
 }) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = document.documentElement
     const previousLanguage = root.lang
     root.lang = localeTag(locale)

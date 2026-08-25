@@ -1,11 +1,16 @@
 // @vitest-environment happy-dom
 
-import { act } from 'react'
+import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { UiLocaleProvider } from '../../ui-locale'
 import { InboxApp } from './InboxApp'
 import type { InboxViewModel } from './types'
+
+function withTurkishLocale(children: ReactNode): ReactNode {
+  return <UiLocaleProvider locale="tr">{children}</UiLocaleProvider>
+}
 
 const baseModel: InboxViewModel = {
   selectedChannelId: 'forensics',
@@ -82,9 +87,9 @@ describe('InboxApp quick prompts', () => {
 
   it('shows only the selected Forensics prompts and returns the opaque token', async () => {
     const onQuickPrompt = vi.fn()
-    await act(async () => root.render(
+    await act(async () => root.render(withTurkishLocale(
       <InboxApp model={baseModel} onQuickPrompt={onQuickPrompt} />,
-    ))
+    )))
 
     const group = host.querySelector<HTMLElement>('.workspace-quick-prompts')
     const prompts = Array.from(host.querySelectorAll<HTMLButtonElement>('.workspace-quick-prompt'))
@@ -104,7 +109,7 @@ describe('InboxApp quick prompts', () => {
   })
 
   it('hides prompts outside Forensics and disables unavailable or waiting questions', async () => {
-    await act(async () => root.render(<InboxApp model={baseModel} />))
+    await act(async () => root.render(withTurkishLocale(<InboxApp model={baseModel} />)))
     expect(Array.from(host.querySelectorAll<HTMLButtonElement>('.workspace-quick-prompt'))
       .every(({ disabled }) => disabled)).toBe(true)
 
@@ -115,9 +120,9 @@ describe('InboxApp quick prompts', () => {
         index === 0 ? { ...prompt, status: 'pending' as const } : prompt
       )),
     }
-    await act(async () => root.render(
+    await act(async () => root.render(withTurkishLocale(
       <InboxApp model={pendingModel} onQuickPrompt={onQuickPrompt} />,
-    ))
+    )))
     const pendingPrompts = Array.from(
       host.querySelectorAll<HTMLButtonElement>('.workspace-quick-prompt'),
     )
@@ -131,14 +136,14 @@ describe('InboxApp quick prompts', () => {
       selectedChannelId: 'case-desk',
       selectedThreadId: 'case-thread',
     }
-    await act(async () => root.render(
+    await act(async () => root.render(withTurkishLocale(
       <InboxApp model={caseDeskModel} onQuickPrompt={onQuickPrompt} />,
-    ))
+    )))
     expect(host.querySelector('.workspace-quick-prompts')).toBeNull()
 
-    await act(async () => root.render(
+    await act(async () => root.render(withTurkishLocale(
       <InboxApp model={{ ...baseModel, sending: true }} onQuickPrompt={onQuickPrompt} />,
-    ))
+    )))
     expect(Array.from(host.querySelectorAll<HTMLButtonElement>('.workspace-quick-prompt'))
       .every(({ disabled }) => disabled)).toBe(true)
   })

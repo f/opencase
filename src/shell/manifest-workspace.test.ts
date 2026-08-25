@@ -323,6 +323,8 @@ describe('manifest workspace projection adapter', () => {
       manifest,
       { query: '', replyDraft: '' },
       runtime,
+      undefined,
+      'tr',
     )
 
     expect(models.phone.contacts).toEqual([{
@@ -372,6 +374,8 @@ describe('manifest workspace projection adapter', () => {
       manifest,
       { query: '', replyDraft: '' },
       runtimeWithDeductionResult,
+      undefined,
+      'tr',
     )
 
     expect(models.caseDispatch.affordances).toEqual([{
@@ -477,6 +481,8 @@ describe('manifest workspace projection adapter', () => {
       manifest,
       { query: 'fixture registry', replyDraft: '', activeCallContactId: 'witness' },
       completedRuntime,
+      undefined,
+      'tr',
     )
 
     expect(models.phone.activeCall?.transcript).toEqual([
@@ -561,6 +567,8 @@ describe('manifest workspace projection adapter', () => {
       manifest,
       { query: '', replyDraft: '' },
       completedRuntime,
+      undefined,
+      'tr',
     )
 
     expect(models.phone.recentCalls).toMatchObject([{
@@ -601,6 +609,7 @@ describe('manifest workspace projection adapter', () => {
       { query: '', replyDraft: '' },
       runtime,
       ({ id }) => `/api/authorized-asset?handle=${encodeURIComponent(id)}`,
+      'tr',
     )
 
     expect(models.files.records[0]?.assets).toEqual([

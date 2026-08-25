@@ -275,7 +275,7 @@ export function DesktopShell({
   settingsWindowActions,
   notificationSlot,
   startLabel = 'Desk',
-  locale = 'tr',
+  locale = 'en',
   layoutPersistence,
   onLayoutChange,
   onLayoutPersistenceError,

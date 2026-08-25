@@ -5,6 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ModalBackground } from '../../AccessibleModal'
+import { UiLocaleProvider } from '../../ui-locale'
 import { AssetViewerDialog } from './AssetViewerDialog'
 import type { AuthorizedAssetViewModel } from './types'
 
@@ -59,7 +60,9 @@ describe('AssetViewerDialog modal behavior', () => {
   })
 
   it('blocks the desktop, focuses the close control, and restores focus after Escape', async () => {
-    await act(async () => root.render(<ViewerHarness />))
+    await act(async () => root.render(
+      <UiLocaleProvider locale="tr"><ViewerHarness /></UiLocaleProvider>,
+    ))
     const opener = host.querySelector<HTMLButtonElement>('#open-viewer')!
     opener.focus()
 
@@ -92,7 +95,9 @@ describe('AssetViewerDialog modal behavior', () => {
   })
 
   it('keeps the existing backdrop dismissal behavior', async () => {
-    await act(async () => root.render(<ViewerHarness />))
+    await act(async () => root.render(
+      <UiLocaleProvider locale="tr"><ViewerHarness /></UiLocaleProvider>,
+    ))
     const opener = host.querySelector<HTMLButtonElement>('#open-viewer')!
     opener.focus()
     await act(async () => opener.click())
@@ -115,7 +120,11 @@ describe('AssetViewerDialog modal behavior', () => {
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:authorized-audio')
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
 
-    await act(async () => root.render(<ViewerHarness selectedAsset={audioAsset} />))
+    await act(async () => root.render(
+      <UiLocaleProvider locale="tr">
+        <ViewerHarness selectedAsset={audioAsset} />
+      </UiLocaleProvider>,
+    ))
     const opener = host.querySelector<HTMLButtonElement>('#open-viewer')!
     opener.focus()
 

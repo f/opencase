@@ -4,6 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { UiLocaleProvider } from '../../ui-locale'
 import { PhoneApp } from './PhoneApp'
 import type { PhoneViewModel } from './types'
 
@@ -49,7 +50,9 @@ describe('PhoneApp controlled contact opening', () => {
   })
 
   it('does not open or focus a contact without an explicit host request', async () => {
-    await act(async () => root.render(<PhoneApp model={model} />))
+    await act(async () => root.render(
+      <UiLocaleProvider locale="tr"><PhoneApp model={model} /></UiLocaleProvider>,
+    ))
 
     expect(host.querySelector('.iphone-home')).not.toBeNull()
     expect(host.querySelector('.iphone-contact-detail')).toBeNull()
@@ -59,11 +62,13 @@ describe('PhoneApp controlled contact opening', () => {
   it('opens the requested contact once per nonce and focuses its heading', async () => {
     const onSelectContact = vi.fn()
     await act(async () => root.render(
-      <PhoneApp
-        model={model}
-        onSelectContact={onSelectContact}
-        openContactRequest={{ contactId: 'witness', nonce: 1 }}
-      />,
+      <UiLocaleProvider locale="tr">
+        <PhoneApp
+          model={model}
+          onSelectContact={onSelectContact}
+          openContactRequest={{ contactId: 'witness', nonce: 1 }}
+        />
+      </UiLocaleProvider>,
     ))
 
     const heading = host.querySelector<HTMLHeadingElement>('.iphone-contact-hero h2')!
@@ -76,26 +81,32 @@ describe('PhoneApp controlled contact opening', () => {
     expect(host.textContent).toContain('Adli İnceleme')
 
     await act(async () => root.render(
-      <PhoneApp
-        model={model}
-        onSelectContact={onSelectContact}
-        openContactRequest={{ contactId: 'witness', nonce: 1 }}
-      />,
+      <UiLocaleProvider locale="tr">
+        <PhoneApp
+          model={model}
+          onSelectContact={onSelectContact}
+          openContactRequest={{ contactId: 'witness', nonce: 1 }}
+        />
+      </UiLocaleProvider>,
     ))
     expect(onSelectContact).toHaveBeenCalledTimes(1)
 
     await act(async () => root.render(
-      <PhoneApp
-        model={model}
-        onSelectContact={onSelectContact}
-        openContactRequest={{ contactId: 'witness', nonce: 2 }}
-      />,
+      <UiLocaleProvider locale="tr">
+        <PhoneApp
+          model={model}
+          onSelectContact={onSelectContact}
+          openContactRequest={{ contactId: 'witness', nonce: 2 }}
+        />
+      </UiLocaleProvider>,
     ))
     expect(onSelectContact).toHaveBeenCalledTimes(2)
   })
 
   it('shows contact metadata and a visible new-state label in the contacts list', async () => {
-    await act(async () => root.render(<PhoneApp model={model} />))
+    await act(async () => root.render(
+      <UiLocaleProvider locale="tr"><PhoneApp model={model} /></UiLocaleProvider>,
+    ))
     const contactsButton = Array.from(host.querySelectorAll<HTMLButtonElement>('.iphone-app-grid button'))
       .find((button) => button.textContent?.includes('Kişiler'))!
     await act(async () => contactsButton.click())
