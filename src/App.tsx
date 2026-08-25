@@ -1882,7 +1882,7 @@ function CaseDesktop({
           onClosePage={() => select('activeResearchResultId', undefined)}
         />
       ),
-      initialBounds: { x: 910, y: 486, width: 525, height: 308 },
+      initialBounds: { x: 180, y: 54, width: 960, height: 640 },
       minSize: { width: 450, height: 280 },
       defaultOpen: false,
       desktopShortcut: true,
