@@ -903,6 +903,11 @@
     margin: 0;
   }
 
+  .finder-inspector__header .finder-file-icon:not(.has-thumbnail) > img {
+    width: 30px;
+    height: 30px;
+  }
+
   .finder-inspector__header h3 {
     align-self: center;
     margin: 0;
