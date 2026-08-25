@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 
 import casebookIcon from 'lucide-static/icons/notebook-pen.svg'
 import caseBoardIcon from 'lucide-static/icons/network.svg'
@@ -13,6 +21,11 @@ import webIcon from 'lucide-static/icons/compass.svg'
 import dedektifWallpaper from './assets/shell/dedektif-wallpaper.png'
 import { AccessibleModal, ModalBackground } from './AccessibleModal'
 import { CaseOutcomeReport } from './CaseOutcomeReport'
+import {
+  CaseLibraryClientError,
+  caseLibraryClient,
+  type CaseCatalogEntry,
+} from './case-library-client'
 import {
   createLocalStorageLayoutPersistence,
   DesktopShell,
@@ -43,7 +56,6 @@ import {
   createAsyncForensicsRequest,
   createForensicsRequest,
   FORENSICS_LEAD_NAME,
-  FORENSICS_LEAD_ROLE,
   FORENSICS_THREAD_ID,
   FORENSICS_TYPING_DELAY_MS,
   forensicsReplyDurationMs,
@@ -61,9 +73,25 @@ import {
 } from './shell/manifest-workspace'
 import type { PublicCaseRuntimeState } from './case-runtime/protocol'
 import {
+  createPlayerProfileStore,
+  type PlayerPreferredLocale,
+  type PlayerProfileStore,
+} from './player-profiles'
+import {
+  SettingsWorkspace,
+  type InstalledCaseSummary,
+  type SettingsImportRequest,
+  type SettingsImportState,
+} from './settings'
+import {
+  type AppLocale,
+  UiLocaleProvider,
+  useUiCopy,
+  useUiLocale,
+} from './ui-locale'
+import {
   createDemoAssetUrl,
   demoSessionClient,
-  PRIMARY_DEMO_SAVE_ID,
   type DemoBrowserIntent,
   type DemoCaseSessionRef,
   type DemoCommandResponse,
@@ -94,22 +122,355 @@ const CASE_PREFERENCE_KEY = 'karanlik-oda:selected-case'
 
 type OpeningPhase = 'checking' | 'ringing' | 'missed' | 'connected' | 'active' | 'restarting' | 'error'
 
-function desktopLayoutKey(manifest: ShellPublicCaseManifest): string {
-  return `karanlik-oda:${manifest.case.id}:${manifest.case.version}:${PRIMARY_DEMO_SAVE_ID}:desktop-layout`
+interface AppCopy {
+  readonly newEvidence: string
+  readonly evidence: string
+  readonly evidenceAdded: (title: string) => string
+  readonly evidenceAddedMany: (count: number) => string
+  readonly dispatchReady: string
+  readonly dispatchReadyMany: (count: number) => string
+  readonly contactResearchReady: string
+  readonly contactResearchReadyMany: (count: number) => string
+  readonly evidenceInspected: (title: string) => string
+  readonly deductionVerified: string
+  readonly actionCompleted: string
+  readonly actionFailed: string
+  readonly actionUnavailable: string
+  readonly dispatchCompleted: string
+  readonly activeCallFirst: string
+  readonly lineBusy: string
+  readonly callFailed: string
+  readonly contactUnavailable: string
+  readonly conversation: string
+  readonly callCompleted: string
+  readonly noAdditionalFinding: string
+  readonly forensicsReviewComplete: (title: string, detail: string) => string
+  readonly forensicsReviewRequest: (lead: string, title: string) => string
+  readonly newPerson: string
+  readonly forensicsReviewNotice: (title: string, lead: string) => string
+  readonly forensicsRequestNotice: (subject: string, lead: string) => string
+  readonly forensicsReviewFailed: string
+  readonly forensicsRequestFailed: string
+  readonly recordUnavailable: string
+  readonly recordAlreadyReviewed: string
+  readonly forensicsCompletingReview: (lead: string) => string
+  readonly sentForReview: (title: string, lead: string) => string
+  readonly researchUnavailable: string
+  readonly forensicsCompletingRequest: (lead: string) => string
+  readonly investigationRequest: string
+  readonly requestSent: (subject: string, lead: string) => string
+  readonly noRequests: string
+  readonly forensicReview: string
+  readonly now: string
+  readonly typing: string
+  readonly detective: string
+  readonly investigatorRole: string
+  readonly system: string
+  readonly contactAdded: (name: string) => string
+  readonly openContact: (name: string) => string
+  readonly openContactAccessible: (name: string) => string
+  readonly bureau: string
+  readonly forensicsLeadRole: string
+  readonly askLead: string
+  readonly caseDeskTopic: string
+  readonly forensicsTopic: string
+  readonly operations: string
+  readonly operationsTopic: string
+  readonly evidenceChain: string
+  readonly evidenceChainTopic: string
+  readonly shiftHandoff: string
+  readonly shiftHandoffTopic: string
+  readonly officeManagement: string
+  readonly officeManagementTopic: string
+  readonly casebookApp: string
+  readonly caseBoardApp: string
+  readonly dispatchApp: string
+  readonly inboxApp: string
+  readonly evidenceRailApp: string
+  readonly deductionUnavailable: string
+  readonly searchUnavailable: string
+  readonly desktopAria: (title: string) => string
+  readonly finalSubmission: string
+  readonly caseAction: string
+  readonly finalDecision: string
+  readonly consequentialAction: string
+  readonly confirmAction: string
+  readonly actionConsequence: string
+  readonly duration: (minutes: number) => string
+  readonly cancel: string
+  readonly submitFinalReport: string
+  readonly approveAndSend: string
+  readonly takeAction: string
+  readonly inspectDesktop: string
+  readonly playAgain: string
+  readonly newInvestigation: string
+  readonly restartTitle: string
+  readonly restartDescription: string
+  readonly eraseAndRestart: string
+  readonly unknownCaller: string
+  readonly caseLiaison: string
+  readonly secureCaseLine: string
+  readonly incomingCall: string
+  readonly newCaseCall: string
+  readonly incomingCallAria: (title: string) => string
+  readonly bootFailed: string
+  readonly bootPreparing: string
+  readonly bootFailureDetail: string
+  readonly loading: string
+  readonly connectionFailed: string
+  readonly caseStartFailed: string
+  readonly caseResetFailed: string
+  readonly commandErrors: Readonly<Record<string, string>>
+  readonly commandErrorFallback: string
+}
+
+const APP_COPY: Readonly<Record<AppLocale, AppCopy>> = {
+  tr: {
+    newEvidence: 'Yeni kanıt',
+    evidence: 'Kanıt',
+    evidenceAdded: (title) => `${title} Finder'a eklendi.`,
+    evidenceAddedMany: (count) => `${count} yeni kanıt Finder'a eklendi.`,
+    dispatchReady: 'Dosya İşlemleri’nde yeni bir onay bekliyor.',
+    dispatchReadyMany: (count) => `Dosya İşlemleri’nde ${count} yeni onay bekliyor.`,
+    contactResearchReady: 'Vaka Notları’nda yeni bir kişi araştırması hazır.',
+    contactResearchReadyMany: (count) => `Vaka Notları’nda ${count} yeni kişi araştırması hazır.`,
+    evidenceInspected: (title) => `${title} incelendi. Bulgular Vaka Notları'na eklendi.`,
+    deductionVerified: 'Çıkarım kanıtlarla doğrulandı.',
+    actionCompleted: 'İşlem tamamlandı. Yeni bilgiler Vaka Notları’na işlendi.',
+    actionFailed: 'İşlem tamamlanamadı. Tekrar deneyin.',
+    actionUnavailable: 'Bu hamle artık kullanılabilir değil.',
+    dispatchCompleted: 'İşlem iletildi. Sonuç vaka dosyasına kaydedildi.',
+    activeCallFirst: 'Önce devam eden görüşmeyi tamamla.',
+    lineBusy: 'Hat şu anda başka bir işlemle meşgul. Biraz sonra tekrar ara.',
+    callFailed: 'Arama tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.',
+    contactUnavailable: 'Bu kişi artık telefon rehberinde görünmüyor.',
+    conversation: 'Görüşme',
+    callCompleted: 'Görüşme tamamlandı. Yeni bilgiler vaka notlarına işlendi.',
+    noAdditionalFinding: 'Kayıt kontrol edildi; ek bir bulgu görünmüyor.',
+    forensicsReviewComplete: (title, detail) => `“${title}” için inceleme tamam. ${detail}`,
+    forensicsReviewRequest: (lead, title) => `${lead}, “${title}” kaydını incelemeye alır mısın? Görünen içeriği ve önemli ayrıntıları kontrol et.`,
+    newPerson: 'Yeni kişi',
+    forensicsReviewNotice: (title, lead) => `${title} incelemesi tamamlandı. ${lead} bulguları paylaştı.`,
+    forensicsRequestNotice: (subject, lead) => `${subject} tamamlandı. ${lead} yanıtını paylaştı.`,
+    forensicsReviewFailed: 'İncelemeyi tamamlayamadım. Kaydı yeniden gönderebilir misin?',
+    forensicsRequestFailed: 'İsteği tamamlayamadım. Soruyu yeniden gönderebilir misin?',
+    recordUnavailable: 'Bu kayıt artık erişilebilir değil.',
+    recordAlreadyReviewed: 'Bu kayıt zaten incelendi.',
+    forensicsCompletingReview: (lead) => `${lead} mevcut incelemeyi tamamlıyor.`,
+    sentForReview: (title, lead) => `${title} inceleme için ${lead}'a gönderildi.`,
+    researchUnavailable: 'Bu araştırma isteği artık kullanılamıyor.',
+    forensicsCompletingRequest: (lead) => `${lead} mevcut isteği tamamlıyor.`,
+    investigationRequest: 'Soruşturma isteği',
+    requestSent: (subject, lead) => `${subject} isteği ${lead}'a gönderildi.`,
+    noRequests: 'Henüz istek yok.',
+    forensicReview: 'Adli inceleme',
+    now: 'Şimdi',
+    typing: 'yazıyor',
+    detective: 'Dedektif',
+    investigatorRole: 'Soruşturma sorumlusu',
+    system: 'Sistem',
+    contactAdded: (name) => `${name} Kişiler’e eklendi.`,
+    openContact: (name) => `${name} kişisini iPhone’da aç`,
+    openContactAccessible: (name) => `${name} kişi kartını iPhone’da aç`,
+    bureau: 'Dedektif Bürosu',
+    forensicsLeadRole: 'İç ekip · Adli inceleme lideri',
+    askLead: 'Ece’ye sor',
+    caseDeskTopic: 'Aktif vaka, saha notları ve görev bildirimleri',
+    forensicsTopic: 'Kanıt incelemeleri ve soruşturma talepleri',
+    operations: 'operasyon',
+    operationsTopic: 'Saha koordinasyonu',
+    evidenceChain: 'delil-zinciri',
+    evidenceChainTopic: 'Teslim ve muhafaza kayıtları',
+    shiftHandoff: 'nöbet-devir',
+    shiftHandoffTopic: 'Vardiya notları ve açık işler',
+    officeManagement: 'büro-yönetimi',
+    officeManagementTopic: 'Ekip içi duyurular',
+    casebookApp: 'Vaka Notları',
+    caseBoardApp: 'Vaka Panosu',
+    dispatchApp: 'Dosya İşlemleri',
+    inboxApp: 'Gelen Kutusu',
+    evidenceRailApp: 'Kanıt / Sorular',
+    deductionUnavailable: 'Bu çıkarım artık değerlendirilebilir değil.',
+    searchUnavailable: 'Bu arama için doğrulanmış bir yol yok. Önerilen araştırmalardan birini kullan.',
+    desktopAria: (title) => `${title} dedektif çalışma masası`,
+    finalSubmission: 'Nihai dosya gönderimi',
+    caseAction: 'Dosya işlemi',
+    finalDecision: 'Son karar',
+    consequentialAction: 'Sonucu olan hamle',
+    confirmAction: 'Bu hamleyi yapmak istiyor musun?',
+    actionConsequence: 'Bu hamle soruşturmanın gidişini kalıcı olarak değiştirebilir.',
+    duration: (minutes) => `${minutes} dk sürecek`,
+    cancel: 'Vazgeç',
+    submitFinalReport: 'Nihai raporu ilet',
+    approveAndSend: 'Onayla ve ilet',
+    takeAction: 'Hamleyi yap',
+    inspectDesktop: 'Masaüstünü incele',
+    playAgain: 'Yeniden oyna',
+    newInvestigation: 'Yeni soruşturma',
+    restartTitle: 'Bu vakaya baştan başlamak istiyor musun?',
+    restartDescription: 'Gözlemler, çıkarımlar, görüşmeler, geçen süre ve bu vakaya ait masa düzeni silinecek.',
+    eraseAndRestart: 'Sil ve baştan başla',
+    unknownCaller: 'Bilinmeyen arayan',
+    caseLiaison: 'Vaka bağlantısı',
+    secureCaseLine: 'Güvenli Vaka Hattı',
+    incomingCall: 'Gelen Çağrı',
+    newCaseCall: 'Yeni vaka çağrısı',
+    incomingCallAria: (title) => `${title} gelen vaka çağrısı`,
+    bootFailed: 'Vaka masası açılamadı',
+    bootPreparing: 'Güvenli masa hazırlanıyor',
+    bootFailureDetail: 'Vaka dosyaları yüklenemedi. Sayfayı yenileyip tekrar deneyin.',
+    loading: 'Yükleniyor',
+    connectionFailed: 'Bağlantı kurulamadı. Sayfayı yenileyip tekrar deneyin.',
+    caseStartFailed: 'Vaka başlatılamadı. Tekrar deneyin.',
+    caseResetFailed: 'Vaka sıfırlanamadı. Tekrar deneyin.',
+    commandErrors: {
+      'evidence-locked': 'Bu kanıta henüz erişimin yok. Önce açık ipuçlarını takip et.',
+      'evidence-already-observed': 'Bu kanıt zaten incelendi.',
+      'evidence-not-observed': 'Bu hamleden önce ilgili kanıtı incelemelisin.',
+      'deduction-unproven': 'Bu çıkarım için henüz yeterli kanıt yok.',
+      'deduction-requires-support': 'Önce önceki çıkarımları tamamlamalısın.',
+      'deduction-already-supported': 'Bu çıkarım zaten doğrulandı.',
+      'actor-unavailable': 'Bu kişi şu anda görüşmeye açık değil.',
+      'affordance-unavailable': 'Bu fırsat artık açık değil. Güncel ipuçlarına bak.',
+      'affordance-command-mismatch': 'Bu hamle şu anda bu şekilde yapılamıyor.',
+      'final-conclusion-locked': 'Vaka için son karar zaten verildi.',
+      'case-ended': 'Bu vaka kapandı. Yeni bir hamle yapılamaz.',
+    },
+    commandErrorFallback: 'Bu hamle şu anda yapılamıyor.',
+  },
+  en: {
+    newEvidence: 'New evidence',
+    evidence: 'Evidence',
+    evidenceAdded: (title) => `${title} was added to Finder.`,
+    evidenceAddedMany: (count) => `${count} new evidence records were added to Finder.`,
+    dispatchReady: 'A new approval is waiting in Case Actions.',
+    dispatchReadyMany: (count) => `${count} new approvals are waiting in Case Actions.`,
+    contactResearchReady: 'A new contact research task is ready in Case Notes.',
+    contactResearchReadyMany: (count) => `${count} new contact research tasks are ready in Case Notes.`,
+    evidenceInspected: (title) => `${title} was reviewed. The findings were added to Case Notes.`,
+    deductionVerified: 'The deduction was verified with evidence.',
+    actionCompleted: 'Action completed. New information was added to Case Notes.',
+    actionFailed: 'The action could not be completed. Try again.',
+    actionUnavailable: 'This action is no longer available.',
+    dispatchCompleted: 'The action was sent. Its result was saved to the case file.',
+    activeCallFirst: 'Finish the current call first.',
+    lineBusy: 'The line is busy with another action. Call again shortly.',
+    callFailed: 'The call could not be completed. Check the connection and try again.',
+    contactUnavailable: 'This person is no longer in the phone contacts.',
+    conversation: 'Call',
+    callCompleted: 'Call completed. New information was added to the case notes.',
+    noAdditionalFinding: 'The record was checked; there are no additional findings.',
+    forensicsReviewComplete: (title, detail) => `Review complete for “${title}”. ${detail}`,
+    forensicsReviewRequest: (lead, title) => `${lead}, can you review “${title}”? Check the visible content and any important details.`,
+    newPerson: 'New person',
+    forensicsReviewNotice: (title, lead) => `${title} review completed. ${lead} shared the findings.`,
+    forensicsRequestNotice: (subject, lead) => `${subject} completed. ${lead} shared a reply.`,
+    forensicsReviewFailed: 'I could not complete the review. Can you send the record again?',
+    forensicsRequestFailed: 'I could not complete the request. Can you send the question again?',
+    recordUnavailable: 'This record is no longer available.',
+    recordAlreadyReviewed: 'This record has already been reviewed.',
+    forensicsCompletingReview: (lead) => `${lead} is finishing the current review.`,
+    sentForReview: (title, lead) => `${title} was sent to ${lead} for review.`,
+    researchUnavailable: 'This research request is no longer available.',
+    forensicsCompletingRequest: (lead) => `${lead} is finishing the current request.`,
+    investigationRequest: 'Investigation request',
+    requestSent: (subject, lead) => `${subject} was sent to ${lead}.`,
+    noRequests: 'No requests yet.',
+    forensicReview: 'Forensics review',
+    now: 'Now',
+    typing: 'typing',
+    detective: 'Detective',
+    investigatorRole: 'Investigator in charge',
+    system: 'System',
+    contactAdded: (name) => `${name} was added to Contacts.`,
+    openContact: (name) => `Open ${name} on iPhone`,
+    openContactAccessible: (name) => `Open ${name}'s contact card on iPhone`,
+    bureau: 'Dedektif Bureau',
+    forensicsLeadRole: 'Internal team · Forensics lead',
+    askLead: 'Ask Ece',
+    caseDeskTopic: 'Active case, field notes, and task updates',
+    forensicsTopic: 'Evidence reviews and investigation requests',
+    operations: 'operations',
+    operationsTopic: 'Field coordination',
+    evidenceChain: 'chain-of-custody',
+    evidenceChainTopic: 'Evidence transfer and custody records',
+    shiftHandoff: 'shift-handoff',
+    shiftHandoffTopic: 'Shift notes and open work',
+    officeManagement: 'office-management',
+    officeManagementTopic: 'Internal team announcements',
+    casebookApp: 'Case Notes',
+    caseBoardApp: 'Case Board',
+    dispatchApp: 'Case Actions',
+    inboxApp: 'Inbox',
+    evidenceRailApp: 'Evidence / Questions',
+    deductionUnavailable: 'This deduction can no longer be evaluated.',
+    searchUnavailable: 'There is no verified path for this search. Use one of the suggested research tasks.',
+    desktopAria: (title) => `${title} detective workspace`,
+    finalSubmission: 'Final case submission',
+    caseAction: 'Case action',
+    finalDecision: 'Final decision',
+    consequentialAction: 'Consequential action',
+    confirmAction: 'Do you want to take this action?',
+    actionConsequence: 'This action may permanently change the course of the investigation.',
+    duration: (minutes) => `Takes ${minutes} min`,
+    cancel: 'Cancel',
+    submitFinalReport: 'Submit final report',
+    approveAndSend: 'Approve and send',
+    takeAction: 'Take action',
+    inspectDesktop: 'Review desktop',
+    playAgain: 'Play again',
+    newInvestigation: 'New investigation',
+    restartTitle: 'Do you want to restart this case?',
+    restartDescription: 'Observations, deductions, calls, elapsed time, and this case\'s desktop layout will be erased.',
+    eraseAndRestart: 'Erase and restart',
+    unknownCaller: 'Unknown caller',
+    caseLiaison: 'Case liaison',
+    secureCaseLine: 'Secure Case Line',
+    incomingCall: 'Incoming Call',
+    newCaseCall: 'New case call',
+    incomingCallAria: (title) => `Incoming case call for ${title}`,
+    bootFailed: 'Could not open the case desk',
+    bootPreparing: 'Preparing secure desk',
+    bootFailureDetail: 'The case files could not be loaded. Refresh the page and try again.',
+    loading: 'Loading',
+    connectionFailed: 'Could not connect. Refresh the page and try again.',
+    caseStartFailed: 'The case could not be started. Try again.',
+    caseResetFailed: 'The case could not be reset. Try again.',
+    commandErrors: {
+      'evidence-locked': 'You do not have access to this evidence yet. Follow the available leads first.',
+      'evidence-already-observed': 'This evidence has already been reviewed.',
+      'evidence-not-observed': 'Review the related evidence before taking this action.',
+      'deduction-unproven': 'There is not enough evidence for this deduction yet.',
+      'deduction-requires-support': 'Complete the earlier deductions first.',
+      'deduction-already-supported': 'This deduction has already been verified.',
+      'actor-unavailable': 'This person is not available to talk right now.',
+      'affordance-unavailable': 'This opportunity is no longer available. Check the current leads.',
+      'affordance-command-mismatch': 'This action cannot be taken this way right now.',
+      'final-conclusion-locked': 'The final decision for this case has already been made.',
+      'case-ended': 'This case is closed. No new actions can be taken.',
+    },
+    commandErrorFallback: 'This action cannot be taken right now.',
+  },
+}
+
+function desktopLayoutKey(manifest: ShellPublicCaseManifest, saveId: string): string {
+  return `dedektif:v1:profile:${saveId}:case:${manifest.case.id}:${manifest.case.version}:desktop-layout`
 }
 
 function forensicsWorkflowKey(
   manifest: ShellPublicCaseManifest,
   assetSessionId: string,
+  saveId: string,
 ): string {
-  return `karanlik-oda:${manifest.case.id}:${manifest.case.version}:${PRIMARY_DEMO_SAVE_ID}:${assetSessionId}:forensics-workflow`
+  return `dedektif:v1:profile:${saveId}:case:${manifest.case.id}:${manifest.case.version}:${assetSessionId}:forensics-workflow`
 }
 
 function caseBoardStateKey(
   manifest: ShellPublicCaseManifest,
   caseDigest: string,
+  saveId: string,
 ): string {
-  return `karanlik-oda:${manifest.case.id}:${manifest.case.version}:${caseDigest}:${PRIMARY_DEMO_SAVE_ID}:case-board`
+  return `dedektif:v1:profile:${saveId}:case:${manifest.case.id}:${manifest.case.version}:${caseDigest}:case-board`
 }
 
 function browserLocalStorage(): Storage | undefined {
@@ -131,14 +492,10 @@ function playerFacingLabel(value: string): string {
   return value.replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-function remainingLabel(milliseconds: number): string {
-  const minutes = Math.max(0, Math.ceil(milliseconds / 60_000))
-  return `${minutes} dk kaldı`
-}
-
 function completedForensicsReply(
   snapshot: PublicCaseRuntimeState,
   request: ForensicsRequestRecord,
+  copy: AppCopy,
 ): string | undefined {
   if (request.kind === 'async-interaction') {
     return snapshot.completedAffordances
@@ -155,13 +512,13 @@ function completedForensicsReply(
     .filter((text): text is string => Boolean(text))
   const detail = findings.length > 0
     ? findings.join(' ')
-    : evidence.description?.trim() || 'Kayıt kontrol edildi; ek bir bulgu görünmüyor.'
-  return `“${request.evidenceTitle}” için inceleme tamam. ${detail}`.slice(0, 12_000)
+    : evidence.description?.trim() || copy.noAdditionalFinding
+  return copy.forensicsReviewComplete(request.evidenceTitle, detail).slice(0, 12_000)
 }
 
-function forensicsRequestBody(request: ForensicsRequestRecord): string {
+function forensicsRequestBody(request: ForensicsRequestRecord, copy: AppCopy): string {
   if (request.kind === 'async-interaction') return request.requestBody
-  return `${FORENSICS_LEAD_NAME}, “${request.evidenceTitle}” kaydını incelemeye alır mısın? Görünen içeriği ve önemli ayrıntıları kontrol et.`
+  return copy.forensicsReviewRequest(FORENSICS_LEAD_NAME, request.evidenceTitle)
 }
 
 function forensicsRequestSubject(request: ForensicsRequestRecord): string {
@@ -171,6 +528,7 @@ function forensicsRequestSubject(request: ForensicsRequestRecord): string {
 function revealedActor(
   snapshot: PublicCaseRuntimeState,
   request: ForensicsRequestRecord,
+  copy: AppCopy,
 ): { readonly id: string; readonly name: string } | undefined {
   if (request.kind !== 'async-interaction') return undefined
   const completed = snapshot.completedAffordances.find(({ id }) => id === request.affordanceId)
@@ -180,7 +538,7 @@ function revealedActor(
   if (!actor) return undefined
   return {
     id: actor.id,
-    name: actor.displayName?.trim() || actor.name?.trim() || 'Yeni kişi',
+    name: actor.displayName?.trim() || actor.name?.trim() || copy.newPerson,
   }
 }
 
@@ -189,11 +547,12 @@ function completeForensicsRecord(
   snapshot: PublicCaseRuntimeState,
   replyBody: string,
   replyLabel: string,
+  copy: AppCopy,
 ): ForensicsRequestRecord {
   if (request.kind === 'evidence-review') {
     return { ...request, status: 'complete', replyBody, replyLabel }
   }
-  const actor = revealedActor(snapshot, request)
+  const actor = revealedActor(snapshot, request, copy)
   return {
     ...request,
     status: 'complete',
@@ -254,38 +613,26 @@ function outgoingCallDurations(): {
       }
 }
 
-function playerCommandError(code: string): string {
-  const messages: Record<string, string> = {
-    'evidence-locked': 'Bu kanıta henüz erişimin yok. Önce açık ipuçlarını takip et.',
-    'evidence-already-observed': 'Bu kanıt zaten incelendi.',
-    'evidence-not-observed': 'Bu hamleden önce ilgili kanıtı incelemelisin.',
-    'deduction-unproven': 'Bu çıkarım için henüz yeterli kanıt yok.',
-    'deduction-requires-support': 'Önce önceki çıkarımları tamamlamalısın.',
-    'deduction-already-supported': 'Bu çıkarım zaten doğrulandı.',
-    'actor-unavailable': 'Bu kişi şu anda görüşmeye açık değil.',
-    'affordance-unavailable': 'Bu fırsat artık açık değil. Güncel ipuçlarına bak.',
-    'affordance-command-mismatch': 'Bu hamle şu anda bu şekilde yapılamıyor.',
-    'final-conclusion-locked': 'Vaka için son karar zaten verildi.',
-    'case-ended': 'Bu vaka kapandı. Yeni bir hamle yapılamaz.',
-  }
-  return messages[code] ?? 'Bu hamle şu anda yapılamıyor.'
+function playerCommandError(code: string, copy: AppCopy): string {
+  return copy.commandErrors[code] ?? copy.commandErrorFallback
 }
 
 function outgoingCallOutcome(
   execution: IntentExecution,
   completedBefore: number,
   match: PhoneCallResultMatch,
+  copy: AppCopy,
 ): { readonly successful: boolean; readonly result: string } {
   if (execution.kind === 'busy') {
-    return { successful: false, result: 'Hat şu anda başka bir işlemle meşgul. Biraz sonra tekrar ara.' }
+    return { successful: false, result: copy.lineBusy }
   }
   if (execution.kind === 'failed') {
-    return { successful: false, result: 'Arama tamamlanamadı. Bağlantıyı kontrol edip tekrar dene.' }
+    return { successful: false, result: copy.callFailed }
   }
   if (!execution.response.ok) {
     return {
       successful: false,
-      result: playerCommandError(execution.response.error.code),
+      result: playerCommandError(execution.response.error.code, copy),
     }
   }
   const matchingResults = execution.response.snapshot.completedAffordances
@@ -303,7 +650,7 @@ function outgoingCallOutcome(
     ?.trim()
   return {
     successful: true,
-    result: latestPhoneResult || 'Görüşme tamamlandı. Yeni bilgiler vaka notlarına işlendi.',
+    result: latestPhoneResult || copy.callCompleted,
   }
 }
 
@@ -323,6 +670,133 @@ function localizedManifestUrl(
   )?.manifestUrl ?? packageEntry.manifestUrl
 }
 
+async function loadStaticCaseCatalog(
+  locale: string,
+  signal: AbortSignal,
+): Promise<readonly CaseCatalogEntry[]> {
+  const response = await fetch('/generated/cases.json', { signal })
+  if (!response.ok) throw new Error(`Manifest index: ${response.status}`)
+  const index = await response.json() as PublicCaseIndex
+  return Promise.all(index.packages.map(async (packageEntry) => {
+    const manifestResponse = await fetch(
+      localizedManifestUrl(packageEntry, [locale]),
+      { signal },
+    )
+    if (!manifestResponse.ok) throw new Error(`Localized manifest: ${manifestResponse.status}`)
+    const manifest = await manifestResponse.json() as ShellPublicCaseManifest
+    return Object.freeze({
+      id: packageEntry.caseId,
+      version: packageEntry.caseVersion,
+      caseDigest: packageEntry.caseDigest,
+      packageDigest: manifest.integrity.manifest,
+      title: manifest.case.title,
+      synopsis: manifest.case.synopsis,
+      durationMinutes: manifest.case.durationMinutes,
+      locale: manifest.case.locale ?? packageEntry.defaultLocale,
+      defaultLocale: packageEntry.defaultLocale,
+      locales: packageEntry.locales.map(({ locale: availableLocale }) => availableLocale),
+      source: { kind: 'built-in' as const, label: 'Dedektif' },
+      verification: { level: 'built-in' as const, authoredTests: 0 },
+      manifest,
+    })
+  }))
+}
+
+function installedCaseSummary(entry: CaseCatalogEntry): InstalledCaseSummary {
+  return {
+    id: caseSelectionKey(entry),
+    version: entry.version,
+    title: entry.title,
+    synopsis: entry.synopsis,
+    locales: entry.locales,
+    source: entry.source.kind === 'built-in'
+      ? { kind: 'built-in', label: entry.source.label }
+      : {
+          kind: entry.source.kind,
+          url: entry.source.url,
+          ...(entry.source.revision ? { label: entry.source.revision.slice(0, 8) } : {}),
+        },
+    verification: entry.verification.level === 'compiler-and-smoke'
+      ? 'compatible'
+      : 'verified',
+  }
+}
+
+function caseSelectionKey(entry: Pick<CaseCatalogEntry, 'id' | 'version'>): string {
+  return `${entry.id}@${entry.version}`
+}
+
+function selectedCatalogEntry(
+  catalog: readonly CaseCatalogEntry[] | null,
+  selection: string | undefined,
+): CaseCatalogEntry | undefined {
+  if (!catalog || catalog.length === 0) return undefined
+  if (!selection) return catalog[0]
+  return catalog.find((entry) => caseSelectionKey(entry) === selection)
+    ?? catalog.find(({ id }) => id === selection)
+    ?? catalog[0]
+}
+
+function importFailureCopy(locale: PlayerPreferredLocale, error: unknown): {
+  readonly message: string
+  readonly details?: string
+} {
+  const fallback = locale === 'tr'
+    ? 'Vaka eklenemedi. Bağlantıyı ve vaka dosyasını kontrol et.'
+    : 'The case could not be added. Check the link and case files.'
+  if (!(error instanceof CaseLibraryClientError)) return { message: fallback }
+  const known: Readonly<Record<string, readonly [string, string]>> = {
+    'case-tests-failed': [
+      'Vakanın kendi testlerinden biri başarısız oldu.',
+      'One or more authored case tests failed.',
+    ],
+    'case-validation-failed': [
+      'Vaka dosyaları Dedektif formatına uymuyor.',
+      'The case files do not match the Dedektif format.',
+    ],
+    'direct-yaml-assets-unsupported': [
+      'Tek YAML bağlantıları varlık içeremez. Görsel veya ses için GitHub klasörü kullan.',
+      'Direct YAML cannot include assets. Use a GitHub folder for images or audio.',
+    ],
+    'direct-yaml-i18n-unsupported': [
+      'Tek YAML bağlantısında çeviri anahtarları kullanılamaz. Metinleri doğrudan YAML içine yaz.',
+      'Direct YAML cannot use translation keys. Put literal text in the YAML file.',
+    ],
+    'github-case-not-found': [
+      'GitHub bağlantısında bir case.yml bulunamadı.',
+      'No case.yml was found at the GitHub URL.',
+    ],
+    'case-version-conflict': [
+      'Bu vaka sürümü farklı içerikle zaten yüklü.',
+      'This case version is already installed with different content.',
+    ],
+    'unsafe-import-url': [
+      'Yalnızca herkese açık ve güvenli HTTPS bağlantıları kullanılabilir.',
+      'Only public, safe HTTPS links can be imported.',
+    ],
+  }
+  const copy = known[error.code]
+  const details = error.diagnostics
+    .map((diagnostic) => [diagnostic.path, diagnostic.message].filter(Boolean).join(': '))
+    .join('\n')
+  return {
+    message: copy ? copy[locale === 'tr' ? 0 : 1] : error.message || fallback,
+    ...(details ? { details } : {}),
+  }
+}
+
+function clearProfileSidecars(profileId: string): void {
+  try {
+    const prefix = `dedektif:v1:profile:${profileId}:`
+    const keys = Array.from({ length: window.localStorage.length }, (_, index) => (
+      window.localStorage.key(index)
+    )).filter((key): key is string => Boolean(key?.startsWith(prefix)))
+    for (const key of keys) window.localStorage.removeItem(key)
+  } catch {
+    // Profile metadata remains authoritative when browser storage is restricted.
+  }
+}
+
 function readCasePreference(): string | undefined {
   try {
     return window.localStorage.getItem(CASE_PREFERENCE_KEY) ?? undefined
@@ -339,119 +813,47 @@ function writeCasePreference(caseId: string): void {
   }
 }
 
-interface WorkspaceSettingsProps {
-  readonly cases: readonly ShellPublicCaseManifest[]
+interface WorkspaceSettingsContext {
   readonly activeCaseId: string
-  readonly casePickerLabel: string
-  readonly statusLabel: string
+  readonly activeCaseLocale: string
+  readonly caseStatus: 'not-started' | 'active' | 'ended'
+  readonly autosaveStatus: 'idle' | 'saving' | 'saved' | 'error'
   readonly busy?: boolean
   readonly deadline?: {
     readonly title?: string
     readonly remainingMs: number
   }
-  readonly onSelectCase: (caseId: string) => void
-  readonly onRestart?: () => void
+  readonly onRestart: () => void
 }
 
-function WorkspaceSettings({
-  cases,
-  activeCaseId,
-  casePickerLabel,
-  statusLabel,
-  busy = false,
-  deadline,
-  onSelectCase,
-  onRestart,
-}: WorkspaceSettingsProps) {
-  const activeCase = cases.find(({ case: candidate }) => candidate.id === activeCaseId)
-  const urgent = deadline !== undefined && deadline.remainingMs <= 5 * 60_000
-
-  return (
-    <div className="workspace-settings">
-      <section className="workspace-settings__case" aria-label="Seçili vaka">
-        <span className={`workspace-settings__state ${busy ? 'is-busy' : urgent ? 'is-urgent' : ''}`} aria-hidden="true" />
-        <div>
-          <small>{casePickerLabel}</small>
-          <strong>{activeCase?.case.title ?? 'Vaka'}</strong>
-          <span>{statusLabel}</span>
-        </div>
-      </section>
-
-      <label className="workspace-settings__picker">
-        <span>{casePickerLabel}</span>
-        <select
-          value={activeCaseId}
-          aria-label={casePickerLabel}
-          disabled={busy}
-          onChange={(event) => onSelectCase(event.currentTarget.value)}
-        >
-          {cases.map((candidate) => (
-            <option key={candidate.case.id} value={candidate.case.id}>
-              {candidate.case.title}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <div className="workspace-settings__details">
-        {deadline ? (
-          <section className={`workspace-settings__detail is-deadline ${urgent ? 'is-urgent' : ''}`}>
-            <small>Yaklaşan süre</small>
-            <strong>{deadline.title ?? 'Zaman sınırı'}</strong>
-            <span>{remainingLabel(deadline.remainingMs)}</span>
-          </section>
-        ) : null}
-        <section className="workspace-settings__detail">
-          <small>{onRestart ? 'Otomatik kayıt' : 'Masa durumu'}</small>
-          <strong aria-live="polite">{
-            onRestart ? busy ? 'Kaydediliyor' : 'Kaydedildi' : statusLabel
-          }</strong>
-          <span>{onRestart ? 'İlerleme otomatik olarak kaydedilir.' : 'Vaka seçimini buradan değiştirebilirsin.'}</span>
-        </section>
-      </div>
-
-      {onRestart ? (
-        <button
-          className="workspace-settings__restart"
-          type="button"
-          disabled={busy}
-          onClick={onRestart}
-        >
-          <img src={rotateCcwIcon} alt="" />
-          <span>
-            <strong>Vakayı baştan başlat</strong>
-            <small>Gözlemleri, çıkarımları ve masa düzenini sıfırlar.</small>
-          </span>
-        </button>
-      ) : null}
-    </div>
-  )
-}
+type RenderWorkspaceSettings = (context: WorkspaceSettingsContext) => ReactNode
 
 interface CaseDesktopProps {
   readonly manifest: ShellPublicCaseManifest
-  readonly cases: readonly ShellPublicCaseManifest[]
   readonly snapshot: PublicCaseRuntimeState
   readonly assetSessionId: string
   readonly runEpoch: number
-  readonly onSelectCase: (caseId: string) => void
+  readonly saveId: string
+  readonly renderSettings: RenderWorkspaceSettings
   readonly onCommand: (intent: DemoBrowserIntent) => Promise<DemoCommandResponse>
   readonly onRestart: () => Promise<void>
 }
 
 function CaseDesktop({
   manifest,
-  cases,
   snapshot,
   assetSessionId,
   runEpoch,
-  onSelectCase,
+  saveId,
+  renderSettings,
   onCommand,
   onRestart,
 }: CaseDesktopProps) {
+  const uiLocale = useUiLocale()
+  const copy = useUiCopy(APP_COPY)
   const workflowKey = useMemo(
-    () => forensicsWorkflowKey(manifest, assetSessionId),
-    [assetSessionId, manifest],
+    () => forensicsWorkflowKey(manifest, assetSessionId, saveId),
+    [assetSessionId, manifest, saveId],
   )
   const [selection, setSelection] = useState<ManifestWorkspaceSelection>({
     query: '',
@@ -588,8 +990,8 @@ function CaseDesktop({
       selectedRecordId: added[0].id,
     }))
     const notice = added.length === 1
-      ? `${added[0].title ?? 'Yeni kanıt'} Finder'a eklendi.`
-      : `${added.length} yeni kanıt Finder'a eklendi.`
+      ? copy.evidenceAdded(added[0].title ?? copy.newEvidence)
+      : copy.evidenceAddedMany(added.length)
     if (outgoingPhoneCallRef.current) {
       pendingPhoneFollowUpAppRef.current = 'files'
       pendingPhoneFollowUpNoticeRef.current = notice
@@ -597,7 +999,7 @@ function CaseDesktop({
       setCommandNotice(notice)
       focusApp('files')
     }
-  }, [focusApp, snapshot.evidence])
+  }, [copy, focusApp, snapshot.evidence])
 
   useEffect(() => {
     const current = snapshot.affordances.flatMap((affordance) => (
@@ -611,8 +1013,8 @@ function CaseDesktop({
     if (added.length === 0) return
 
     const notice = added.length === 1
-      ? 'Dosya İşlemleri’nde yeni bir onay bekliyor.'
-      : `Dosya İşlemleri’nde ${added.length} yeni onay bekliyor.`
+      ? copy.dispatchReady
+      : copy.dispatchReadyMany(added.length)
     if (outgoingPhoneCallRef.current) {
       pendingPhoneFollowUpAppRef.current = 'case-dispatch'
       pendingPhoneFollowUpNoticeRef.current = notice
@@ -620,7 +1022,7 @@ function CaseDesktop({
       setCommandNotice(notice)
       focusApp('case-dispatch')
     }
-  }, [focusApp, snapshot.affordances])
+  }, [copy, focusApp, snapshot.affordances])
 
   useEffect(() => {
     const current = snapshot.affordances.flatMap((affordance) => (
@@ -638,8 +1040,8 @@ function CaseDesktop({
       selectedEntryId: undefined,
     }))
     const notice = added.length === 1
-      ? 'Vaka Notları’nda yeni bir kişi araştırması hazır.'
-      : `Vaka Notları’nda ${added.length} yeni kişi araştırması hazır.`
+      ? copy.contactResearchReady
+      : copy.contactResearchReadyMany(added.length)
     if (outgoingPhoneCallRef.current) {
       pendingPhoneFollowUpAppRef.current = 'casebook'
       pendingPhoneFollowUpNoticeRef.current = notice
@@ -647,7 +1049,7 @@ function CaseDesktop({
       setCommandNotice(notice)
       focusApp('casebook')
     }
-  }, [focusApp, snapshot.affordances])
+  }, [copy, focusApp, snapshot.affordances])
 
   useEffect(() => {
     setOutcomeDismissed(false)
@@ -687,19 +1089,20 @@ function CaseDesktop({
         caseId: snapshot.case.id,
         caseVersion: snapshot.case.version,
         locale: manifest.case.locale ?? 'tr',
-        saveId: PRIMARY_DEMO_SAVE_ID,
+        saveId,
         assetSessionId,
         caseDigest: snapshot.case.digest,
       }, asset.id),
+      uiLocale,
     ),
-    [assetSessionId, contactActionStatuses, manifest, newContactIds, selection, snapshot],
+    [assetSessionId, contactActionStatuses, manifest, newContactIds, saveId, selection, snapshot, uiLocale],
   )
   const phoneModel = useMemo<PhoneViewModel>(() => (
     outgoingPhoneCall ? { ...models.phone, outgoingCall: outgoingPhoneCall } : models.phone
   ), [models.phone, outgoingPhoneCall])
   const caseBoardKey = useMemo(
-    () => caseBoardStateKey(manifest, snapshot.case.digest),
-    [manifest, snapshot.case.digest],
+    () => caseBoardStateKey(manifest, snapshot.case.digest, saveId),
+    [manifest, saveId, snapshot.case.digest],
   )
   const caseBoardPersistence = useMemo(
     () => createCaseBoardPersistence(caseBoardKey),
@@ -710,8 +1113,8 @@ function CaseDesktop({
     [manifest.case.title, models.files, models.phone],
   )
   const layoutPersistence = useMemo(
-    () => createLocalStorageLayoutPersistence(desktopLayoutKey(manifest)),
-    [manifest.case.id, manifest.case.version],
+    () => createLocalStorageLayoutPersistence(desktopLayoutKey(manifest, saveId)),
+    [manifest.case.id, manifest.case.version, saveId],
   )
   const select = <Key extends keyof ManifestWorkspaceSelection>(
     key: Key,
@@ -735,51 +1138,51 @@ function CaseDesktop({
     try {
       const result = await onCommand(intent)
       if (!result.ok) {
-        if (!options.silent) setCommandNotice(playerCommandError(result.error.code))
+        if (!options.silent) setCommandNotice(playerCommandError(result.error.code, copy))
         return { kind: 'response', response: result }
       }
       if (!options.silent) {
         if (intent.kind === 'observe') {
           const title = snapshot.evidence.find(({ id }) => id === intent.evidenceId)?.title
-          setCommandNotice(`${title ?? 'Kanıt'} incelendi. Bulgular Vaka Notları'na eklendi.`)
+          setCommandNotice(copy.evidenceInspected(title ?? copy.evidence))
         } else if (intent.kind === 'deduce') {
-          setCommandNotice('Çıkarım kanıtlarla doğrulandı.')
+          setCommandNotice(copy.deductionVerified)
         } else {
-          setCommandNotice('İşlem tamamlandı. Yeni bilgiler Vaka Notları’na işlendi.')
+          setCommandNotice(copy.actionCompleted)
         }
       }
       return { kind: 'response', response: result }
     } catch {
-      if (!options.silent) setCommandNotice('İşlem tamamlanamadı. Tekrar deneyin.')
+      if (!options.silent) setCommandNotice(copy.actionFailed)
       return { kind: 'failed' }
     } finally {
       commandBusyRef.current = false
       if (desktopMountedRef.current) setCommandBusy(false)
     }
-  }, [onCommand, snapshot.evidence])
+  }, [copy, onCommand, snapshot.evidence])
   const executeAffordance = useCallback(async (affordanceId: string): Promise<IntentExecution> => {
     const affordance = snapshot.affordances.find(({ id }) => id === affordanceId)
     if (!affordance) {
-      setCommandNotice('Bu hamle artık kullanılabilir değil.')
+      setCommandNotice(copy.actionUnavailable)
       return { kind: 'failed' }
     }
     return affordance.intent.kind === 'deduce'
       ? executeIntent(affordance.intent)
       : executeIntent({ kind: 'action', ...affordance.intent.action })
-  }, [executeIntent, snapshot.affordances])
+  }, [copy, executeIntent, snapshot.affordances])
   const dispatchAffordance = useCallback(async (affordanceId: string): Promise<boolean> => {
     const affordance = snapshot.affordances.find(({ id }) => id === affordanceId)
     const execution = await executeAffordance(affordanceId)
     const accepted = execution.kind === 'response' && execution.response.ok
     if (accepted && affordance?.surface === 'casebook' && affordance.intent.kind === 'action') {
-      setCommandNotice('İşlem iletildi. Sonuç vaka dosyasına kaydedildi.')
+      setCommandNotice(copy.dispatchCompleted)
     }
     return accepted
-  }, [executeAffordance, snapshot.affordances])
+  }, [copy, executeAffordance, snapshot.affordances])
   const requestAffordance = useCallback(async (affordanceId: string): Promise<boolean> => {
     const affordance = snapshot.affordances.find(({ id }) => id === affordanceId)
     if (!affordance) {
-      setCommandNotice('Bu hamle artık kullanılabilir değil.')
+      setCommandNotice(copy.actionUnavailable)
       return false
     }
     if (affordance.risk !== 'normal' || affordance.confirmation) {
@@ -787,7 +1190,7 @@ function CaseDesktop({
       return false
     }
     return dispatchAffordance(affordanceId)
-  }, [dispatchAffordance, snapshot.affordances])
+  }, [copy, dispatchAffordance, snapshot.affordances])
 
   const startOutgoingPhoneCall = useCallback((
     contactId: string,
@@ -796,16 +1199,16 @@ function CaseDesktop({
     execute: (sessionId: number) => Promise<IntentExecution>,
   ) => {
     if (outgoingPhoneCallRef.current) {
-      setCommandNotice('Önce devam eden görüşmeyi tamamla.')
+      setCommandNotice(copy.activeCallFirst)
       return
     }
     if (commandBusyRef.current) {
-      setCommandNotice('Hat şu anda başka bir işlemle meşgul. Biraz sonra tekrar ara.')
+      setCommandNotice(copy.lineBusy)
       return
     }
     const contact = models.phone.contacts.find(({ id }) => id === contactId)
     if (!contact) {
-      setCommandNotice('Bu kişi artık telefon rehberinde görünmüyor.')
+      setCommandNotice(copy.contactUnavailable)
       return
     }
 
@@ -847,7 +1250,7 @@ function CaseDesktop({
         executionPromise,
       ])
       if (outgoingPhoneCallSessionRef.current !== sessionId) return
-      const outcome = outgoingCallOutcome(execution, completedBefore, resultMatch)
+      const outcome = outgoingCallOutcome(execution, completedBefore, resultMatch, copy)
       updateOutgoingPhoneCall({
         ...initialCall,
         phase: 'ending',
@@ -862,7 +1265,7 @@ function CaseDesktop({
         ...outcome,
       })
     })()
-  }, [focusApp, models.phone.contacts, snapshot.completedAffordances.length, updateOutgoingPhoneCall, waitForOutgoingCall])
+  }, [copy, focusApp, models.phone.contacts, snapshot.completedAffordances.length, updateOutgoingPhoneCall, waitForOutgoingCall])
 
   const startPhoneAffordance = useCallback((affordance: PublicAffordance): boolean => {
     if (affordance.surface !== 'phone' || affordance.intent.kind !== 'action') return false
@@ -872,7 +1275,7 @@ function CaseDesktop({
 
     startOutgoingPhoneCall(
       contactId,
-      affordance.label?.trim() || 'Görüşme',
+      affordance.label?.trim() || copy.conversation,
       { affordanceId: affordance.id },
       (sessionId) => executeIntent(
         { kind: 'action', ...actionIntent },
@@ -880,7 +1283,7 @@ function CaseDesktop({
       ),
     )
     return true
-  }, [executeIntent, models.phone.contacts, startOutgoingPhoneCall])
+  }, [copy, executeIntent, models.phone.contacts, startOutgoingPhoneCall])
 
   const dismissOutgoingPhoneCall = useCallback(() => {
     const completedCall = outgoingPhoneCallRef.current
@@ -913,9 +1316,9 @@ function CaseDesktop({
           changed = true
           return []
         }
-        const replyBody = completedForensicsReply(snapshot, request)
+        const replyBody = completedForensicsReply(snapshot, request, copy)
         if (!replyBody) return [request]
-        const actor = revealedActor(snapshot, request)
+        const actor = revealedActor(snapshot, request, copy)
         if (
           request.status === 'complete'
           && request.replyBody
@@ -927,11 +1330,12 @@ function CaseDesktop({
           snapshot,
           replyBody,
           request.replyLabel ?? replyLabel,
+          copy,
         )]
       })
       return changed ? { ...current, requests } : current
     })
-  }, [manifest, snapshot])
+  }, [copy, manifest, snapshot])
 
   const pendingForensicsRequest = useMemo(
     () => forensicsWorkflow.requests.find(({ status }) => status === 'waiting'),
@@ -964,7 +1368,7 @@ function CaseDesktop({
 
           const response = execution.kind === 'response' ? execution.response : undefined
           const responseSnapshot = response?.snapshot ?? snapshot
-          const replyBody = completedForensicsReply(responseSnapshot, request)
+          const replyBody = completedForensicsReply(responseSnapshot, request, copy)
           const alreadyResolved = request.kind === 'evidence-review' && response && !response.ok
             ? response.error.code === 'evidence-already-observed' && Boolean(replyBody)
             : request.kind === 'async-interaction' && Boolean(replyBody)
@@ -974,7 +1378,13 @@ function CaseDesktop({
             setForensicsWorkflow((current) => updateForensicsRequest(
               current,
               request.id,
-              (item) => completeForensicsRecord(item, responseSnapshot, replyBody, replyLabel),
+              (item) => completeForensicsRecord(
+                item,
+                responseSnapshot,
+                replyBody,
+                replyLabel,
+                copy,
+              ),
             ))
             setStreamingForensicsReply({
               requestId: request.id,
@@ -982,15 +1392,15 @@ function CaseDesktop({
             })
             setCommandNotice(
               request.kind === 'evidence-review'
-                ? `${request.evidenceTitle} incelemesi tamamlandı. ${FORENSICS_LEAD_NAME} bulguları paylaştı.`
-                : `${request.subjectLabel} tamamlandı. ${FORENSICS_LEAD_NAME} yanıtını paylaştı.`,
+                ? copy.forensicsReviewNotice(request.evidenceTitle, FORENSICS_LEAD_NAME)
+                : copy.forensicsRequestNotice(request.subjectLabel, FORENSICS_LEAD_NAME),
             )
             return
           }
 
           const failureBody = request.kind === 'evidence-review'
-            ? 'İncelemeyi tamamlayamadım. Kaydı yeniden gönderebilir misin?'
-            : 'İsteği tamamlayamadım. Soruyu yeniden gönderebilir misin?'
+            ? copy.forensicsReviewFailed
+            : copy.forensicsRequestFailed
           setForensicsWorkflow((current) => updateForensicsRequest(current, request.id, (item) => ({
             ...item,
             status: 'failed',
@@ -1014,7 +1424,7 @@ function CaseDesktop({
     return () => {
       if (retryTimer !== undefined) window.clearTimeout(retryTimer)
     }
-  }, [executeAffordance, executeIntent, manifest, pendingForensicsRequest, snapshot])
+  }, [copy, executeAffordance, executeIntent, manifest, pendingForensicsRequest, snapshot])
 
   useEffect(() => {
     if (!streamingForensicsReply) return
@@ -1030,7 +1440,7 @@ function CaseDesktop({
   const requestForensicsReview = useCallback((evidenceId: string) => {
     const record = models.files.records.find(({ id }) => id === evidenceId)
     if (!record) {
-      setCommandNotice('Bu kayıt artık erişilebilir değil.')
+      setCommandNotice(copy.recordUnavailable)
       return
     }
 
@@ -1038,11 +1448,11 @@ function CaseDesktop({
     focusApp('inbox')
 
     if (record.status === 'observed') {
-      setCommandNotice('Bu kayıt zaten incelendi.')
+      setCommandNotice(copy.recordAlreadyReviewed)
       return
     }
     if (pendingForensicsRequest || streamingForensicsReply) {
-      setCommandNotice(`${FORENSICS_LEAD_NAME} mevcut incelemeyi tamamlıyor.`)
+      setCommandNotice(copy.forensicsCompletingReview(FORENSICS_LEAD_NAME))
       return
     }
 
@@ -1055,8 +1465,8 @@ function CaseDesktop({
       requestedLabel: caseClockLabel(manifest, snapshot.clocks.caseTimeMs),
     })
     setForensicsWorkflow((current) => appendForensicsRequest(current, request))
-    setCommandNotice(`${record.title} inceleme için ${FORENSICS_LEAD_NAME}'a gönderildi.`)
-  }, [focusApp, manifest, models.files.records, pendingForensicsRequest, snapshot.clocks.caseTimeMs, streamingForensicsReply])
+    setCommandNotice(copy.sentForReview(record.title, FORENSICS_LEAD_NAME))
+  }, [copy, focusApp, manifest, models.files.records, pendingForensicsRequest, snapshot.clocks.caseTimeMs, streamingForensicsReply])
 
   const requestAsyncForensicsAction = useCallback((affordanceId: string) => {
     const affordance = snapshot.affordances.find(({ id }) => id === affordanceId)
@@ -1067,19 +1477,19 @@ function CaseDesktop({
       || interaction?.kind !== 'async-message'
       || !interaction.request?.trim()
     ) {
-      setCommandNotice('Bu araştırma isteği artık kullanılamıyor.')
+      setCommandNotice(copy.researchUnavailable)
       return
     }
 
     setSelection((current) => ({ ...current, selectedThreadId: FORENSICS_THREAD_ID }))
     focusApp('inbox')
     if (pendingForensicsRequest || streamingForensicsReply) {
-      setCommandNotice(`${FORENSICS_LEAD_NAME} mevcut isteği tamamlıyor.`)
+      setCommandNotice(copy.forensicsCompletingRequest(FORENSICS_LEAD_NAME))
       return
     }
 
     const requestedAtWallMs = Date.now()
-    const subjectLabel = affordance.label?.trim() || 'Soruşturma isteği'
+    const subjectLabel = affordance.label?.trim() || copy.investigationRequest
     const request = createAsyncForensicsRequest({
       affordanceId,
       subjectLabel,
@@ -1089,8 +1499,8 @@ function CaseDesktop({
       requestedLabel: caseClockLabel(manifest, snapshot.clocks.caseTimeMs),
     })
     setForensicsWorkflow((current) => appendForensicsRequest(current, request))
-    setCommandNotice(`${subjectLabel} isteği ${FORENSICS_LEAD_NAME}'a gönderildi.`)
-  }, [focusApp, manifest, pendingForensicsRequest, snapshot, streamingForensicsReply])
+    setCommandNotice(copy.requestSent(subjectLabel, FORENSICS_LEAD_NAME))
+  }, [copy, focusApp, manifest, pendingForensicsRequest, snapshot, streamingForensicsReply])
 
   const openDiscoveredContact = useCallback((requestId: string) => {
     const request = forensicsWorkflow.requests.find(({ id }) => id === requestId)
@@ -1121,24 +1531,24 @@ function CaseDesktop({
     const forensicsSelected = selectedThreadId === FORENSICS_THREAD_ID
     const latestRequest = forensicsWorkflow.requests.at(-1)
     const preview = latestRequest?.replyBody
-      ?? (latestRequest ? forensicsRequestBody(latestRequest) : 'Henüz istek yok.')
+      ?? (latestRequest ? forensicsRequestBody(latestRequest, copy) : copy.noRequests)
     const forensicsThread = {
       id: FORENSICS_THREAD_ID,
       channelId: 'forensics',
       sender: FORENSICS_LEAD_NAME,
-      subject: latestRequest ? forensicsRequestSubject(latestRequest) : 'Adli inceleme',
+      subject: latestRequest ? forensicsRequestSubject(latestRequest) : copy.forensicReview,
       preview,
-      timestampLabel: latestRequest?.replyLabel ?? latestRequest?.requestedLabel ?? 'Şimdi',
+      timestampLabel: latestRequest?.replyLabel ?? latestRequest?.requestedLabel ?? copy.now,
       unread: !forensicsSelected && latestRequest?.status === 'complete',
-      ...(pendingForensicsRequest ? { badgeLabel: 'yazıyor' } : {}),
+      ...(pendingForensicsRequest ? { badgeLabel: copy.typing } : {}),
     }
     const forensicsMessages = forensicsWorkflow.requests.flatMap((request) => {
       const requestMessage = {
         id: `${request.id}:request`,
-        author: 'Dedektif',
-        roleLabel: 'Soruşturma sorumlusu',
+        author: copy.detective,
+        roleLabel: copy.investigatorRole,
         avatarLabel: 'D',
-        body: forensicsRequestBody(request),
+        body: forensicsRequestBody(request, copy),
         timestampLabel: request.requestedLabel,
         direction: 'outgoing' as const,
       }
@@ -1151,7 +1561,7 @@ function CaseDesktop({
       const replyMessage = {
         id: `${request.id}:reply`,
         author: FORENSICS_LEAD_NAME,
-        roleLabel: FORENSICS_LEAD_ROLE,
+        roleLabel: copy.forensicsLeadRole,
         avatarLabel: 'EA',
         body: request.replyBody,
         timestampLabel: request.replyLabel ?? request.requestedLabel,
@@ -1175,25 +1585,25 @@ function CaseDesktop({
       ) return [requestMessage, replyMessage]
       return [requestMessage, replyMessage, {
         id: `${request.id}:contact-added`,
-        author: 'Sistem',
-        body: `${request.revealedActorName} Kişiler’e eklendi.`,
+        author: copy.system,
+        body: copy.contactAdded(request.revealedActorName),
         timestampLabel: request.replyLabel ?? request.requestedLabel,
         direction: 'system' as const,
         cta: {
           id: request.id,
-          label: `${request.revealedActorName} kişisini iPhone’da aç`,
-          accessibleLabel: `${request.revealedActorName} kişi kartını iPhone’da aç`,
+          label: copy.openContact(request.revealedActorName),
+          accessibleLabel: copy.openContactAccessible(request.revealedActorName),
         },
       }]
     })
     return {
       ...models.inbox,
-      workspaceLabel: 'Dedektif Bürosu',
+      workspaceLabel: copy.bureau,
       channelLead: {
         name: FORENSICS_LEAD_NAME,
-        roleLabel: 'Adli İnceleme Lideri',
+        roleLabel: copy.forensicsLeadRole,
         avatarLabel: 'EA',
-        promptLabel: 'Ece’ye sor',
+        promptLabel: copy.askLead,
       },
       selectedThreadId,
       selectedChannelId: forensicsSelected ? 'forensics' : 'case-desk',
@@ -1202,37 +1612,37 @@ function CaseDesktop({
           id: 'case-desk',
           label: caseChannelName,
           ...(baseThreadId ? { threadId: baseThreadId } : {}),
-          topic: 'Aktif vaka, saha notları ve görev bildirimleri',
+          topic: copy.caseDeskTopic,
         },
         {
           id: 'forensics',
           label: 'forensics',
           threadId: FORENSICS_THREAD_ID,
-          topic: 'Kanıt incelemeleri ve soruşturma talepleri',
+          topic: copy.forensicsTopic,
           ...(!forensicsSelected && latestRequest?.status === 'complete' ? { unreadCount: 1 } : {}),
         },
         {
           id: 'operations',
-          label: 'operasyon',
-          topic: 'Saha koordinasyonu',
+          label: copy.operations,
+          topic: copy.operationsTopic,
           private: true,
         },
         {
           id: 'evidence-chain',
-          label: 'delil-zinciri',
-          topic: 'Teslim ve muhafaza kayıtları',
+          label: copy.evidenceChain,
+          topic: copy.evidenceChainTopic,
           private: true,
         },
         {
           id: 'shift-handoff',
-          label: 'nöbet-devir',
-          topic: 'Vardiya notları ve açık işler',
+          label: copy.shiftHandoff,
+          topic: copy.shiftHandoffTopic,
           private: true,
         },
         {
           id: 'office-management',
-          label: 'büro-yönetimi',
-          topic: 'Ekip içi duyurular',
+          label: copy.officeManagement,
+          topic: copy.officeManagementTopic,
           private: true,
         },
       ],
@@ -1241,7 +1651,7 @@ function CaseDesktop({
       typingAuthor: forensicsSelected && pendingForensicsRequest ? FORENSICS_LEAD_NAME : undefined,
       sending: forensicsSelected && forensicsBusy,
     }
-  }, [caseChannelName, forensicsWorkflow.requests, models.files.records, models.inbox, pendingForensicsRequest, selection.selectedThreadId, streamingForensicsReply])
+  }, [caseChannelName, copy, forensicsWorkflow.requests, models.files.records, models.inbox, pendingForensicsRequest, selection.selectedThreadId, streamingForensicsReply])
 
   const openAsset = useMemo<AuthorizedAssetViewModel | undefined>(() => {
     if (!openAssetId) return undefined
@@ -1263,7 +1673,7 @@ function CaseDesktop({
   const apps = useMemo<readonly ShellAppDefinition[]>(() => [
     {
       id: 'casebook',
-      title: 'Vaka Notları',
+      title: copy.casebookApp,
       icon: { type: 'image', src: casebookIcon },
       content: (
         <CasebookApp
@@ -1273,7 +1683,7 @@ function CaseDesktop({
               candidate.intent.kind === 'deduce' && candidate.intent.deductionId === deductionId
             ))
             if (!affordance) {
-              setCommandNotice('Bu çıkarım artık değerlendirilebilir değil.')
+              setCommandNotice(copy.deductionUnavailable)
               return
             }
             void requestAffordance(affordance.id)
@@ -1307,7 +1717,7 @@ function CaseDesktop({
     },
     {
       id: 'case-board',
-      title: 'Vaka Panosu',
+      title: copy.caseBoardApp,
       icon: { type: 'image', src: caseBoardIcon },
       content: (
         <CaseBoardApp
@@ -1327,7 +1737,7 @@ function CaseDesktop({
     },
     {
       id: 'case-dispatch',
-      title: 'Dosya İşlemleri',
+      title: copy.dispatchApp,
       icon: { type: 'image', src: dispatchIcon },
       content: (
         <CaseDispatchApp
@@ -1347,7 +1757,7 @@ function CaseDesktop({
     },
     {
       id: 'inbox',
-      title: 'Gelen Kutusu',
+      title: copy.inboxApp,
       icon: { type: 'image', src: inboxIcon },
       content: (
         <InboxApp
@@ -1384,7 +1794,7 @@ function CaseDesktop({
               ?.find((candidate) => (
                 candidate.action === action && candidate.actorField === actorField
               ))
-              ?.label ?? 'Görüşme'
+              ?.label ?? copy.conversation
             const intent = {
               kind: 'action',
               action,
@@ -1471,7 +1881,7 @@ function CaseDesktop({
               && affordance.intent.action.query === query
             ))
             if (!offered) {
-              setCommandNotice('Bu arama için doğrulanmış bir yol yok. Önerilen araştırmalardan birini kullan.')
+              setCommandNotice(copy.searchUnavailable)
               return
             }
             void requestAffordance(offered.id)
@@ -1492,7 +1902,7 @@ function CaseDesktop({
     },
     {
       id: 'evidence-rail',
-      title: 'Kanıt / Sorular',
+      title: copy.evidenceRailApp,
       icon: { type: 'image', src: evidenceIcon },
       content: (
         <EvidenceQuestionsRail
@@ -1515,7 +1925,7 @@ function CaseDesktop({
       startMenu: true,
       taskbarPinned: false,
     },
-  ], [caseBoardKey, caseBoardModel, caseBoardPersistence, commandBusy, dismissOutgoingPhoneCall, executeIntent, focusApp, forensicsBusy, inboxModel, models, newContactIds.length, openDiscoveredContact, phoneModel, phoneOpenContactRequest, requestAffordance, requestAsyncForensicsAction, requestForensicsReview, snapshot.affordances, snapshot.evidence, startOutgoingPhoneCall, startPhoneAffordance])
+  ], [caseBoardKey, caseBoardModel, caseBoardPersistence, commandBusy, copy, dismissOutgoingPhoneCall, executeIntent, focusApp, forensicsBusy, inboxModel, models, newContactIds.length, openDiscoveredContact, phoneModel, phoneOpenContactRequest, requestAffordance, requestAsyncForensicsAction, requestForensicsReview, snapshot.affordances, snapshot.evidence, startOutgoingPhoneCall, startPhoneAffordance])
 
   const pendingAffordance = pendingAffordanceId
     ? snapshot.affordances.find(({ id }) => id === pendingAffordanceId)
@@ -1550,26 +1960,31 @@ function CaseDesktop({
           apps={apps}
           brand="dedektif"
           subtitle={manifest.case.title}
-          ariaLabel={`${manifest.case.title} dedektif çalışma masası`}
+          ariaLabel={copy.desktopAria(manifest.case.title)}
           backgroundImage={dedektifWallpaper}
           brandIcon={{ type: 'image', src: casebookIcon }}
           startLabel="dedektif"
+          locale={uiLocale}
           layoutPersistence={layoutPersistence}
           focusRequest={focusRequest}
           settingsSlot={(
-            <WorkspaceSettings
-              cases={cases}
-              activeCaseId={manifest.case.id}
-              casePickerLabel="Aktif vaka"
-              statusLabel={snapshot.status === 'ended' ? 'Vaka sonuçlandı' : 'Soruşturma devam ediyor'}
-              busy={commandBusy || restartBusy}
-              deadline={nextDeadline}
-              onSelectCase={onSelectCase}
-              onRestart={() => {
-                setRestartFromOutcome(false)
-                setConfirmRestart(true)
-              }}
-            />
+            renderSettings({
+              activeCaseId: `${manifest.case.id}@${manifest.case.version}`,
+              activeCaseLocale: manifest.case.locale ?? uiLocale,
+              caseStatus: snapshot.status === 'ended' ? 'ended' : 'active',
+              autosaveStatus: commandBusy || restartBusy ? 'saving' : 'saved',
+              busy: commandBusy || restartBusy,
+              ...(nextDeadline ? { deadline: nextDeadline } : {}),
+              onRestart: () => {
+                if (restartBusyRef.current || commandBusyRef.current) return
+                restartBusyRef.current = true
+                setRestartBusy(true)
+                void onRestart().finally(() => {
+                  restartBusyRef.current = false
+                  setRestartBusy(false)
+                })
+              },
+            })
           )}
           notificationSlot={commandNotice ? (
             <span className="workspace-status__notice" role="status">{commandNotice}</span>
@@ -1594,18 +2009,20 @@ function CaseDesktop({
             <div className="modal-sheet__copy">
               <span className="modal-sheet__eyebrow">{
                 pendingIsDispatch
-                  ? pendingAffordance.risk === 'terminal' ? 'Nihai dosya gönderimi' : 'Dosya işlemi'
-                  : pendingAffordance.risk === 'terminal' ? 'Son karar' : 'Sonucu olan hamle'
+                  ? pendingAffordance.risk === 'terminal' ? copy.finalSubmission : copy.caseAction
+                  : pendingAffordance.risk === 'terminal' ? copy.finalDecision : copy.consequentialAction
               }</span>
-              <h2 id="decision-title">{pendingAffordance.label ?? 'Bu hamleyi yapmak istiyor musun?'}</h2>
-              <p id="decision-description">{pendingAffordance.confirmation ?? 'Bu hamle soruşturmanın gidişini kalıcı olarak değiştirebilir.'}</p>
+              <h2 id="decision-title">{pendingAffordance.label ?? copy.confirmAction}</h2>
+              <p id="decision-description">{pendingAffordance.confirmation ?? copy.actionConsequence}</p>
               {pendingAffordance.cost?.milliseconds ? (
-                <small className="modal-sheet__cost">{remainingLabel(pendingAffordance.cost.milliseconds).replace('kaldı', 'sürecek')}</small>
+                <small className="modal-sheet__cost">{
+                  copy.duration(Math.max(0, Math.ceil(pendingAffordance.cost.milliseconds / 60_000)))
+                }</small>
               ) : null}
             </div>
           </div>
           <footer className="modal-sheet__actions">
-            <button type="button" onClick={() => setPendingAffordanceId(undefined)}>Vazgeç</button>
+            <button type="button" onClick={() => setPendingAffordanceId(undefined)}>{copy.cancel}</button>
             <button
               type="button"
               className="is-danger"
@@ -1617,8 +2034,8 @@ function CaseDesktop({
               }}
             >
               {pendingIsDispatch
-                ? pendingAffordance.risk === 'terminal' ? 'Nihai raporu ilet' : 'Onayla ve ilet'
-                : 'Hamleyi yap'}
+                ? pendingAffordance.risk === 'terminal' ? copy.submitFinalReport : copy.approveAndSend
+                : copy.takeAction}
             </button>
           </footer>
         </AccessibleModal>
@@ -1635,13 +2052,13 @@ function CaseDesktop({
         >
           <CaseOutcomeReport outcome={snapshot.outcome} />
           <footer className="modal-sheet__actions">
-            <button type="button" onClick={() => setOutcomeDismissed(true)}>Masaüstünü incele</button>
+            <button type="button" onClick={() => setOutcomeDismissed(true)}>{copy.inspectDesktop}</button>
             <button type="button" className="is-primary" onClick={() => {
               setOutcomeDismissed(true)
               setRestartFromOutcome(true)
               setConfirmRestart(true)
             }}>
-              Yeniden oyna
+              {copy.playAgain}
             </button>
           </footer>
         </AccessibleModal>
@@ -1659,9 +2076,9 @@ function CaseDesktop({
           <div className="modal-sheet__content">
             <span className="modal-sheet__icon" aria-hidden="true"><img src={rotateCcwIcon} alt="" /></span>
             <div className="modal-sheet__copy">
-              <span className="modal-sheet__eyebrow">Yeni soruşturma</span>
-              <h2 id="restart-title">Bu vakaya baştan başlamak istiyor musun?</h2>
-              <p id="restart-description">Gözlemler, çıkarımlar, görüşmeler, geçen süre ve bu vakaya ait masa düzeni silinecek.</p>
+              <span className="modal-sheet__eyebrow">{copy.newInvestigation}</span>
+              <h2 id="restart-title">{copy.restartTitle}</h2>
+              <p id="restart-description">{copy.restartDescription}</p>
             </div>
           </div>
           <footer className="modal-sheet__actions">
@@ -1670,7 +2087,7 @@ function CaseDesktop({
               disabled={restartBusy}
               onClick={dismissRestartDialog}
             >
-              Vazgeç
+              {copy.cancel}
             </button>
             <button
               type="button"
@@ -1690,7 +2107,7 @@ function CaseDesktop({
                 })
               }}
             >
-              Sil ve baştan başla
+              {copy.eraseAndRestart}
             </button>
           </footer>
         </AccessibleModal>
@@ -1701,31 +2118,33 @@ function CaseDesktop({
 
 interface OpeningDesktopProps {
   readonly manifest: ShellPublicCaseManifest
-  readonly cases: readonly ShellPublicCaseManifest[]
   readonly phase: 'ringing' | 'missed' | 'connected'
   readonly busy: boolean
   readonly error?: string
   readonly onAnswer: () => void
   readonly onDecline: () => void
   readonly onAccept: () => void
-  readonly onSelectCase: (caseId: string) => void
+  readonly onRestart: () => void
+  readonly renderSettings: RenderWorkspaceSettings
 }
 
 function OpeningDesktop({
   manifest,
-  cases,
   phase,
   busy,
   error,
   onAnswer,
   onDecline,
   onAccept,
-  onSelectCase,
+  onRestart,
+  renderSettings,
 }: OpeningDesktopProps) {
+  const uiLocale = useUiLocale()
+  const copy = useUiCopy(APP_COPY)
   const callerId = manifest.opening.call?.from ?? 'case-desk'
-  const callerName = castValue(manifest, callerId, 'name') ?? 'Bilinmeyen arayan'
+  const callerName = castValue(manifest, callerId, 'name') ?? copy.unknownCaller
   const roleLabel = playerFacingLabel(
-    castValue(manifest, callerId, 'role') ?? 'Vaka bağlantısı',
+    castValue(manifest, callerId, 'role') ?? copy.caseLiaison,
   )
   const model = useMemo(() => ({
     clockLabel: caseClockLabel(manifest, 0),
@@ -1740,20 +2159,9 @@ function OpeningDesktop({
       timestampLabel: manifest.case.time?.startsAt,
     },
   }), [callerId, callerName, manifest, phase, roleLabel])
-  const settingsStatus = busy
-    ? 'Vaka hazırlanıyor'
-    : phase === 'ringing'
-      ? 'Arama yanıt bekliyor'
-      : phase === 'connected'
-        ? 'Vaka özeti hazır'
-        : phase === 'missed'
-          ? 'Arama kaçırıldı'
-          : phase === 'error'
-            ? 'Bağlantı kurulamadı'
-            : 'Yeni vaka hazır'
   const apps = useMemo<readonly ShellAppDefinition[]>(() => [{
     id: 'incoming-phone',
-    title: phase === 'connected' ? 'Güvenli Vaka Hattı' : 'Gelen Çağrı',
+    title: phase === 'connected' ? copy.secureCaseLine : copy.incomingCall,
     icon: { type: 'image', src: phoneIcon },
     content: (
       <PhoneApp
@@ -1771,26 +2179,27 @@ function OpeningDesktop({
     defaultActive: true,
     initialZIndex: 100,
     taskbarPinned: true,
-  }], [busy, model, onAccept, onAnswer, onDecline, phase])
+  }], [busy, copy, model, onAccept, onAnswer, onDecline, phase])
 
   return (
     <DesktopShell
       apps={apps}
       brand="dedektif"
-      subtitle="Yeni vaka çağrısı"
-      ariaLabel={`${manifest.case.title} gelen vaka çağrısı`}
+      subtitle={copy.newCaseCall}
+      ariaLabel={copy.incomingCallAria(manifest.case.title)}
       backgroundImage={dedektifWallpaper}
       brandIcon={{ type: 'image', src: phoneIcon }}
       startLabel="dedektif"
+      locale={uiLocale}
       settingsSlot={(
-        <WorkspaceSettings
-          cases={cases}
-          activeCaseId={manifest.case.id}
-          casePickerLabel="Gelen vaka"
-          statusLabel={settingsStatus}
-          busy={busy}
-          onSelectCase={onSelectCase}
-        />
+        renderSettings({
+          activeCaseId: `${manifest.case.id}@${manifest.case.version}`,
+          activeCaseLocale: manifest.case.locale ?? uiLocale,
+          caseStatus: 'not-started',
+          autosaveStatus: busy ? 'saving' : 'idle',
+          busy,
+          onRestart,
+        })
       )}
       notificationSlot={error ? <span className="workspace-status__notice" role="status">{error}</span> : null}
     />
@@ -1798,6 +2207,7 @@ function OpeningDesktop({
 }
 
 function BootScreen({ error }: { readonly error?: boolean }) {
+  const copy = useUiCopy(APP_COPY)
   return (
     <main className="case-boot" aria-live="polite">
       <div className="case-boot__mark">
@@ -1805,13 +2215,13 @@ function BootScreen({ error }: { readonly error?: boolean }) {
         <span aria-hidden="true" />
       </div>
       <p>dedektif</p>
-      <h1>{error ? 'Vaka masası açılamadı' : 'Güvenli masa hazırlanıyor'}</h1>
+      <h1>{error ? copy.bootFailed : copy.bootPreparing}</h1>
       {error ? (
         <p className="case-boot__detail">
-          Vaka dosyaları yüklenemedi. Sayfayı yenileyip tekrar deneyin.
+          {copy.bootFailureDetail}
         </p>
       ) : (
-        <div className="case-boot__progress" aria-label="Yükleniyor"><span /></div>
+        <div className="case-boot__progress" aria-label={copy.loading}><span /></div>
       )}
     </main>
   )
@@ -1819,11 +2229,14 @@ function BootScreen({ error }: { readonly error?: boolean }) {
 
 interface CaseExperienceProps {
   readonly manifest: ShellPublicCaseManifest
-  readonly cases: readonly ShellPublicCaseManifest[]
-  readonly onSelectCase: (caseId: string) => void
+  readonly saveId: string
+  readonly renderSettings: RenderWorkspaceSettings
 }
 
-function CaseExperience({ manifest, cases, onSelectCase }: CaseExperienceProps) {
+function CaseExperience({ manifest, saveId, renderSettings }: CaseExperienceProps) {
+  const copy = useUiCopy(APP_COPY)
+  const copyRef = useRef(copy)
+  copyRef.current = copy
   const [phase, setPhase] = useState<OpeningPhase>('checking')
   const [snapshot, setSnapshot] = useState<PublicCaseRuntimeState>()
   const [assetSessionId, setAssetSessionId] = useState<string>()
@@ -1834,8 +2247,8 @@ function CaseExperience({ manifest, cases, onSelectCase }: CaseExperienceProps) 
     caseId: manifest.case.id,
     caseVersion: manifest.case.version,
     locale: manifest.case.locale ?? 'tr',
-    saveId: PRIMARY_DEMO_SAVE_ID,
-  }), [manifest.case.id, manifest.case.locale, manifest.case.version])
+    saveId,
+  }), [manifest.case.id, manifest.case.locale, manifest.case.version, saveId])
   const shouldPollWallClock = phase === 'active' && snapshot?.status === 'active' && (
     snapshot.deadlines.some(({ clock, status }) => clock === 'wall' && status === 'scheduled')
   )
@@ -1861,7 +2274,7 @@ function CaseExperience({ manifest, cases, onSelectCase }: CaseExperienceProps) 
       })
       .catch(() => {
         if (!current) return
-        setError('Bağlantı kurulamadı. Sayfayı yenileyip tekrar deneyin.')
+        setError(copyRef.current.connectionFailed)
         setPhase('ringing')
       })
     return () => { current = false }
@@ -1908,18 +2321,18 @@ function CaseExperience({ manifest, cases, onSelectCase }: CaseExperienceProps) 
       if (!started.snapshot) throw new Error('Missing case state.')
       if (!started.assetSessionId) throw new Error('Missing asset session.')
       createCaseBoardPersistence(
-        caseBoardStateKey(manifest, started.snapshot.case.digest),
+        caseBoardStateKey(manifest, started.snapshot.case.digest, saveId),
       ).clear()
       setSnapshot(started.snapshot)
       setAssetSessionId(started.assetSessionId)
       setRunEpoch((current) => current + 1)
       setPhase('active')
     } catch {
-      setError('Vaka başlatılamadı. Tekrar deneyin.')
+      setError(copy.caseStartFailed)
     } finally {
       setBusy(false)
     }
-  }, [manifest, sessionRef])
+  }, [copy, manifest, saveId, sessionRef])
 
   const command = useCallback(async (intent: DemoBrowserIntent): Promise<DemoCommandResponse> => {
     const result = await demoSessionClient.command(sessionRef, intent)
@@ -1937,16 +2350,16 @@ function CaseExperience({ manifest, cases, onSelectCase }: CaseExperienceProps) 
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
     try {
       await demoSessionClient.restart(sessionRef)
-      createLocalStorageLayoutPersistence(desktopLayoutKey(manifest)).clear?.()
+      createLocalStorageLayoutPersistence(desktopLayoutKey(manifest, saveId)).clear?.()
       if (snapshot) {
         createCaseBoardPersistence(
-          caseBoardStateKey(manifest, snapshot.case.digest),
+          caseBoardStateKey(manifest, snapshot.case.digest, saveId),
         ).clear()
       }
       if (assetSessionId) {
         clearForensicsWorkflow(
           browserLocalStorage(),
-          forensicsWorkflowKey(manifest, assetSessionId),
+          forensicsWorkflowKey(manifest, assetSessionId, saveId),
         )
       }
       setSnapshot(undefined)
@@ -1954,23 +2367,23 @@ function CaseExperience({ manifest, cases, onSelectCase }: CaseExperienceProps) 
       setRunEpoch((current) => current + 1)
       setPhase('ringing')
     } catch {
-      setError('Vaka sıfırlanamadı. Tekrar deneyin.')
+      setError(copy.caseResetFailed)
       setPhase(snapshot ? 'active' : 'ringing')
     } finally {
       setBusy(false)
     }
-  }, [assetSessionId, manifest, sessionRef, snapshot])
+  }, [assetSessionId, copy, manifest, saveId, sessionRef, snapshot])
 
   if (phase === 'checking' || phase === 'restarting') return <BootScreen />
   if (phase === 'active' && snapshot && assetSessionId) {
     return (
       <CaseDesktop
         manifest={manifest}
-        cases={cases}
         snapshot={snapshot}
         assetSessionId={assetSessionId}
         runEpoch={runEpoch}
-        onSelectCase={onSelectCase}
+        saveId={saveId}
+        renderSettings={renderSettings}
         onCommand={command}
         onRestart={restart}
       />
@@ -1980,72 +2393,183 @@ function CaseExperience({ manifest, cases, onSelectCase }: CaseExperienceProps) 
   return (
     <OpeningDesktop
       manifest={manifest}
-      cases={cases}
       phase={phase === 'connected' ? 'connected' : phase === 'missed' ? 'missed' : 'ringing'}
       busy={busy}
       error={error}
       onAnswer={() => setPhase('connected')}
       onDecline={() => setPhase('missed')}
       onAccept={() => { void acceptCase() }}
-      onSelectCase={onSelectCase}
+      onRestart={() => { void restart() }}
+      renderSettings={renderSettings}
     />
   )
 }
 
 export default function App() {
-  const [index, setIndex] = useState<PublicCaseIndex | null>(null)
+  const [profileStore] = useState<PlayerProfileStore>(() => createPlayerProfileStore({
+    defaultDisplayName: 'Dedektif',
+    defaultLocale: 'tr',
+  }))
+  const profileState = useSyncExternalStore(
+    profileStore.subscribe,
+    profileStore.getSnapshot,
+    profileStore.getSnapshot,
+  )
+  const activeProfile = profileStore.getProfile(profileState.activeProfileId)!
+  const [catalog, setCatalog] = useState<readonly CaseCatalogEntry[] | null>(null)
   const [loadError, setLoadError] = useState(false)
-  const [selectedCaseId, setSelectedCaseId] = useState(readCasePreference)
+  const [importState, setImportState] = useState<SettingsImportState>({ status: 'idle' })
+  const preferredLocale: PlayerPreferredLocale = activeProfile.preferredLocale
+  const selectedCaseId = activeProfile.selectedCaseId
+    ?? (activeProfile.id === 'primary' ? readCasePreference() : undefined)
+  const requestedCaseLocale = selectedCaseId
+    ? activeProfile.caseLocales?.[selectedCaseId] ?? preferredLocale
+    : preferredLocale
 
   useEffect(() => {
     const controller = new AbortController()
-    fetch('/generated/cases.json', { signal: controller.signal })
-      .then((response) => {
-        if (!response.ok) throw new Error(`Manifest index: ${response.status}`)
-        return response.json() as Promise<PublicCaseIndex>
-      })
-      .then(async (value) => {
-        const cases = await Promise.all(
-          value.packages.map(async (packageEntry) => {
-            const response = await fetch(
-              localizedManifestUrl(packageEntry, [packageEntry.defaultLocale]),
-              { signal: controller.signal },
-            )
-            if (!response.ok) throw new Error(`Localized manifest: ${response.status}`)
-            return response.json() as Promise<ShellPublicCaseManifest>
-          }),
-        )
-        setIndex({ ...value, cases })
-        setSelectedCaseId((current) => (
-          current && cases.some(({ case: candidate }) => candidate.id === current)
-            ? current
-            : cases[0]?.case.id
-        ))
-      })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === 'AbortError') return
-        setLoadError(true)
-      })
+    setLoadError(false)
+    setCatalog(null)
+    void (async () => {
+      let cases: readonly CaseCatalogEntry[]
+      try {
+        const response = await caseLibraryClient.list(requestedCaseLocale, controller.signal)
+        if (response.schema !== 'detective-case-catalog/v1' || !Array.isArray(response.cases)) {
+          throw new Error('The case catalog response is not compatible.')
+        }
+        cases = response.cases
+      } catch (hostError) {
+        if (controller.signal.aborted) return
+        try {
+          cases = await loadStaticCaseCatalog(requestedCaseLocale, controller.signal)
+        } catch (staticError) {
+          if (controller.signal.aborted) return
+          throw staticError instanceof Error ? staticError : hostError
+        }
+      }
+      if (controller.signal.aborted) return
+      setCatalog(cases)
+      const selectedEntry = selectedCatalogEntry(cases, selectedCaseId)
+      const selected = selectedEntry ? caseSelectionKey(selectedEntry) : undefined
+      if (selected && activeProfile.selectedCaseId !== selected) {
+        profileStore.updateProfile(activeProfile.id, { selectedCaseId: selected })
+      }
+    })().catch(() => {
+      if (controller.signal.aborted) return
+      setLoadError(true)
+    })
     return () => controller.abort()
-  }, [])
+  }, [
+    activeProfile.id,
+    activeProfile.selectedCaseId,
+    profileStore,
+    requestedCaseLocale,
+    selectedCaseId,
+  ])
 
   const selectCase = (caseId: string) => {
-    writeCasePreference(caseId)
-    setSelectedCaseId(caseId)
+    if (activeProfile.id === 'primary') writeCasePreference(caseId)
+    profileStore.updateProfile(activeProfile.id, { selectedCaseId: caseId })
   }
 
-  if (loadError) return <BootScreen error />
-  if (!index || index.cases.length === 0) return <BootScreen />
+  const importCase = async (request: SettingsImportRequest): Promise<void> => {
+    const timers: number[] = []
+    setImportState({ status: 'progress', stage: 'connecting', progress: 8 })
+    timers.push(window.setTimeout(() => {
+      setImportState({ status: 'progress', stage: 'downloading', progress: 30 })
+    }, 180))
+    timers.push(window.setTimeout(() => {
+      setImportState({ status: 'progress', stage: 'checking', progress: 62 })
+    }, 850))
+    timers.push(window.setTimeout(() => {
+      setImportState({ status: 'progress', stage: 'installing', progress: 88 })
+    }, 1_650))
+    try {
+      const imported = await caseLibraryClient.importCase(request, requestedCaseLocale)
+      for (const timer of timers) window.clearTimeout(timer)
+      setCatalog((current) => {
+        const next = [
+          ...(current ?? []).filter(({ id, version }) => (
+            id !== imported.entry.id || version !== imported.entry.version
+          )),
+          imported.entry,
+        ]
+        return next.sort((left, right) => left.title.localeCompare(right.title, preferredLocale))
+      })
+      profileStore.updateProfile(activeProfile.id, {
+        selectedCaseId: caseSelectionKey(imported.entry),
+      })
+      setImportState({
+        status: 'success',
+        caseTitle: imported.entry.title,
+      })
+    } catch (error) {
+      for (const timer of timers) window.clearTimeout(timer)
+      setImportState({ status: 'error', ...importFailureCopy(preferredLocale, error) })
+    }
+  }
 
-  const selected = index.cases.find(({ case: candidate }) => candidate.id === selectedCaseId)
-    ?? index.cases[0]
+  const selected = selectedCatalogEntry(catalog, selectedCaseId)
+  const installedCases = (catalog ?? []).map(installedCaseSummary)
+  const renderSettings: RenderWorkspaceSettings = (context) => (
+    <SettingsWorkspace
+      profiles={profileState.profiles}
+      activeProfileId={activeProfile.id}
+      installedCases={installedCases}
+      activeCaseId={context.activeCaseId}
+      activeCaseLocale={context.activeCaseLocale}
+      caseStatus={context.caseStatus}
+      autosaveStatus={context.autosaveStatus}
+      locale={preferredLocale}
+      importState={importState}
+      busy={Boolean(context.busy) || importState.status === 'progress'}
+      {...(context.deadline ? { deadline: context.deadline } : {})}
+      onProfileSwitch={(profileId) => profileStore.setActiveProfile(profileId)}
+      onProfileCreate={(profile) => profileStore.createProfile({
+        ...profile,
+        ...(selected ? { selectedCaseId: caseSelectionKey(selected) } : {}),
+        makeActive: true,
+      })}
+      onProfileRename={(profileId, displayName) => {
+        profileStore.updateProfile(profileId, { displayName })
+      }}
+      onProfileDelete={(profileId) => {
+        clearProfileSidecars(profileId)
+        profileStore.deleteProfile(profileId)
+      }}
+      onLanguageChange={(locale) => {
+        profileStore.updateProfile(activeProfile.id, {
+          preferredLocale: locale,
+          caseLocales: {
+            ...activeProfile.caseLocales,
+            [context.activeCaseId]: context.activeCaseLocale,
+          },
+        })
+      }}
+      onCaseLanguageChange={(locale) => {
+        profileStore.updateProfile(activeProfile.id, {
+          caseLocales: {
+            ...activeProfile.caseLocales,
+            [context.activeCaseId]: locale,
+          },
+        })
+      }}
+      onCaseSelect={selectCase}
+      onImport={importCase}
+      onRestart={context.onRestart}
+    />
+  )
 
   return (
-    <CaseExperience
-      key={`${selected.case.id}:${selected.case.version}`}
-      manifest={selected}
-      cases={index.cases}
-      onSelectCase={selectCase}
-    />
+    <UiLocaleProvider locale={preferredLocale}>
+      {loadError ? <BootScreen error /> : !selected ? <BootScreen /> : (
+        <CaseExperience
+          key={`${activeProfile.id}:${selected.id}:${selected.version}:${selected.locale}`}
+          manifest={selected.manifest}
+          saveId={activeProfile.id}
+          renderSettings={renderSettings}
+        />
+      )}
+    </UiLocaleProvider>
   )
 }

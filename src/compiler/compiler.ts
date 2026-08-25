@@ -1608,6 +1608,23 @@ function validateCapabilityVocabulary(
         collector.error('E_ACTION_ARGUMENT', `Action argument '${key}' must be a string.`, path.concat(key))
       }
     }
+    const verb = typeof value[discriminator] === 'string'
+      ? normalizeVerb(value[discriminator])
+      : undefined
+    if (
+      (verb === 'report-suspect' || verb === 'submit-conclusion') &&
+      (
+        typeof value.target !== 'string' ||
+        value.actor !== undefined ||
+        value.from !== undefined
+      )
+    ) {
+      collector.error(
+        'E_DECISION_ACTION_ROUTE',
+        `Decision action '${verb}' requires target and cannot route through actor or from.`,
+        path,
+      )
+    }
   }
 
   const validateUnlock = (value: unknown, path: Path): void => {
@@ -2314,7 +2331,8 @@ function validateCrossReferences(source: AnyRecord, collector: DiagnosticCollect
       if (
         isRecord(reaction) &&
         isRecord(reaction.on) &&
-        reaction.on.action === 'submit-conclusion' &&
+        typeof reaction.on.action === 'string' &&
+        normalizeVerb(reaction.on.action) === 'submit-conclusion' &&
         typeof reaction.on.target === 'string'
       ) {
         decisionTargets.add(reaction.on.target)
@@ -2344,6 +2362,26 @@ function validateCrossReferences(source: AnyRecord, collector: DiagnosticCollect
   }
   for (const [affordanceId, affordance] of mapEntries(source.affordances)) {
     if (isRecord(affordance.action)) {
+      if (normalizeVerb(String(affordance.action.action)) === 'report-suspect') {
+        assertKnown(
+          collector,
+          affordance.action.target,
+          cast,
+          'E_UNKNOWN_ACTOR',
+          'actor',
+          ['affordances', affordanceId, 'action', 'target'],
+        )
+      }
+      if (normalizeVerb(String(affordance.action.action)) === 'submit-conclusion') {
+        assertKnown(
+          collector,
+          affordance.action.target,
+          decisionTargets,
+          'E_UNKNOWN_FINAL_TARGET',
+          'final target',
+          ['affordances', affordanceId, 'action', 'target'],
+        )
+      }
       if (affordance.action.evidence !== undefined) {
         assertKnown(
           collector,

@@ -5,6 +5,11 @@ import { join, resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createServer, type ViteDevServer } from 'vite'
 
+import type {
+  CaseImportRemoteLoader,
+  RemoteLoadOptions,
+  RemoteLoadResponse,
+} from '../case-library'
 import { createDemoAssetUrl, PRIMARY_DEMO_SAVE_ID } from '../../src/demo-host-client'
 import { createDemoHostVitePlugin } from './vite-plugin'
 
@@ -16,6 +21,206 @@ afterEach(async () => {
   await Promise.all(temporaryDirectories.splice(0).map((directory) => (
     rm(directory, { recursive: true, force: true })
   )))
+})
+
+async function startDemoHost(
+  dataDirectory: string,
+  caseImportRemoteLoader?: CaseImportRemoteLoader,
+): Promise<string> {
+  const server = await createServer({
+    configFile: false,
+    logLevel: 'silent',
+    plugins: [createDemoHostVitePlugin({
+      casesDirectory: resolve(import.meta.dirname, '..', '..', 'cases'),
+      dataDirectory,
+      ...(caseImportRemoteLoader ? { caseImportRemoteLoader } : {}),
+    })],
+    server: { host: '127.0.0.1', port: 0 },
+  })
+  runningServers.push(server)
+  await server.listen()
+  const address = server.httpServer?.address()
+  if (!address || typeof address === 'string') throw new Error('Expected a TCP dev server.')
+  return `http://127.0.0.1:${address.port}`
+}
+
+describe('case library HTTP endpoints', () => {
+  it('returns a player-safe built-in catalog localized to the requested language', async () => {
+    const dataDirectory = await mkdtemp(join(tmpdir(), 'detective-catalog-http-'))
+    temporaryDirectories.push(dataDirectory)
+    const origin = await startDemoHost(dataDirectory)
+
+    const englishResponse = await fetch(`${origin}/api/case-library?locale=en`)
+    expect(englishResponse.status).toBe(200)
+    expect(englishResponse.headers.get('cache-control')).toBe('no-store')
+    const english = await englishResponse.json() as {
+      schema: string
+      cases: Array<{
+        id: string
+        title: string
+        locale: string
+        source: { kind: string; label?: string }
+        verification: { level: string; authoredTests: number }
+        manifest: { case: { title: string } }
+      }>
+    }
+    expect(english.schema).toBe('detective-case-catalog/v1')
+    expect(english.cases).toHaveLength(2)
+    expect(english.cases).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: 'official.son-prova',
+        title: 'Final Rehearsal',
+        locale: 'en',
+        source: { kind: 'built-in', label: 'Dedektif' },
+        verification: { level: 'built-in', authoredTests: 0 },
+        manifest: expect.objectContaining({
+          case: expect.objectContaining({ title: 'Final Rehearsal' }),
+        }),
+      }),
+      expect.objectContaining({
+        id: 'community.fka.yedi-dakika',
+        title: 'Seven Minutes',
+        locale: 'en',
+      }),
+    ]))
+
+    const turkishResponse = await fetch(`${origin}/api/case-library?locale=tr`)
+    expect(turkishResponse.status).toBe(200)
+    const turkish = await turkishResponse.json() as {
+      cases: Array<{ id: string; title: string; locale: string }>
+    }
+    expect(turkish.cases).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'official.son-prova', title: 'Son Prova', locale: 'tr' }),
+      expect.objectContaining({ id: 'community.fka.yedi-dakika', title: 'Yedi Dakika', locale: 'tr' }),
+    ]))
+  }, 30_000)
+
+  it('rejects malformed catalog and import requests at the HTTP boundary', async () => {
+    const dataDirectory = await mkdtemp(join(tmpdir(), 'detective-library-invalid-http-'))
+    temporaryDirectories.push(dataDirectory)
+    const origin = await startDemoHost(dataDirectory)
+
+    const missingLocale = await fetch(`${origin}/api/case-library`)
+    expect(missingLocale.status).toBe(400)
+    expect(await missingLocale.json()).toEqual({
+      error: {
+        code: 'invalid-request',
+        message: "Query parameter 'locale' is required once.",
+      },
+    })
+
+    const extraQuery = await fetch(`${origin}/api/case-library?locale=en&debug=true`)
+    expect(extraQuery.status).toBe(400)
+    expect(await extraQuery.json()).toEqual({
+      error: {
+        code: 'invalid-request',
+        message: "Unsupported query parameter 'debug'.",
+      },
+    })
+
+    const wrongContentType = await fetch(`${origin}/api/case-library/import`, {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain' },
+      body: '{}',
+    })
+    expect(wrongContentType.status).toBe(415)
+    expect(await wrongContentType.json()).toEqual({
+      error: {
+        code: 'invalid-content-type',
+        message: 'Requests must use application/json.',
+      },
+    })
+
+    const extraBodyField = await fetch(`${origin}/api/case-library/import`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        kind: 'yaml',
+        url: 'https://cases.example/first-clue.yml',
+        locale: 'en',
+        trusted: true,
+      }),
+    })
+    expect(extraBodyField.status).toBe(400)
+    expect(await extraBodyField.json()).toEqual({
+      error: {
+        code: 'invalid-request',
+        message: "Unsupported body field 'trusted'.",
+      },
+    })
+  }, 30_000)
+
+  it('imports a direct YAML case and immediately exposes it through the catalog', async () => {
+    const dataDirectory = await mkdtemp(join(tmpdir(), 'detective-library-import-http-'))
+    temporaryDirectories.push(dataDirectory)
+    const directUrl = 'https://cases.example/first-clue.yml'
+    const sourcePath = resolve(
+      import.meta.dirname,
+      '..',
+      '..',
+      'examples',
+      'cases',
+      'first-clue',
+      'case.yml',
+    )
+    const source = await readFile(sourcePath)
+    const requests: string[] = []
+    const loader: CaseImportRemoteLoader = {
+      async load(url: string, options: RemoteLoadOptions): Promise<RemoteLoadResponse> {
+        requests.push(url)
+        expect(options.maxBytes).toBeGreaterThanOrEqual(source.byteLength)
+        if (url !== directUrl) throw new Error(`Unexpected remote request: ${url}`)
+        return {
+          url,
+          status: 200,
+          headers: { 'content-type': 'application/yaml' },
+          body: source,
+        }
+      },
+    }
+    const origin = await startDemoHost(dataDirectory, loader)
+
+    const importResponse = await fetch(`${origin}/api/case-library/import`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ kind: 'yaml', url: directUrl, locale: 'en' }),
+    })
+    expect(importResponse.status).toBe(201)
+    const imported = await importResponse.json() as {
+      schema: string
+      entry: {
+        id: string
+        version: string
+        title: string
+        locale: string
+        source: { kind: string; url: string }
+        verification: { level: string; authoredTests: number }
+      }
+    }
+    expect(imported).toMatchObject({
+      schema: 'detective-case-import/v1',
+      entry: {
+        id: 'examples.first-clue',
+        version: '0.1.0',
+        title: 'The First Clue',
+        locale: 'en',
+        source: { kind: 'yaml', url: directUrl },
+        verification: { level: 'compiler-and-smoke', authoredTests: 0 },
+      },
+    })
+    expect(requests).toEqual([directUrl])
+
+    const catalogResponse = await fetch(`${origin}/api/case-library?locale=en`)
+    expect(catalogResponse.status).toBe(200)
+    const catalog = await catalogResponse.json() as {
+      cases: Array<{ id: string; source: { kind: string; url?: string } }>
+    }
+    expect(catalog.cases).toHaveLength(3)
+    expect(catalog.cases).toContainEqual(expect.objectContaining({
+      id: 'examples.first-clue',
+      source: { kind: 'yaml', url: directUrl },
+    }))
+  }, 30_000)
 })
 
 describe('demo asset HTTP endpoint', () => {
@@ -40,7 +245,7 @@ describe('demo asset HTTP endpoint', () => {
       {
         ref: {
           caseId: 'community.fka.yedi-dakika',
-          caseVersion: '0.4.1',
+          caseVersion: '0.4.2',
           locale: 'tr',
           saveId: PRIMARY_DEMO_SAVE_ID,
         },

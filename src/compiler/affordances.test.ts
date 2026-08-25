@@ -267,6 +267,71 @@ describe('public affordance compilation', () => {
     expect(result.diagnostics.map(({ code }) => code)).toContain('E_PUBLIC_AFFORDANCE_LEAK')
   })
 
+  it('requires person decisions to route through a known target', () => {
+    for (const malformed of [
+      '{action: report-suspect, actor: witness}',
+      '{action: submit-conclusion, from: witness}',
+      '{action: report-suspect}',
+    ]) {
+      const result = compileContact(CONTACT_SOURCE.replace(
+        '{action: interview, actor: witness}',
+        malformed,
+      ))
+      expect(result.ok).toBe(false)
+      expect(result.diagnostics).toContainEqual(expect.objectContaining({
+        code: 'E_DECISION_ACTION_ROUTE',
+        path: '/affordances/interview_witness/action',
+      }))
+    }
+
+    const unknown = compileContact(CONTACT_SOURCE.replace(
+      '{action: interview, actor: witness}',
+      '{action: report-suspect, target: invented_person}',
+    ))
+    expect(unknown.ok).toBe(false)
+    expect(unknown.diagnostics).toContainEqual(expect.objectContaining({
+      code: 'E_UNKNOWN_ACTOR',
+      path: '/affordances/interview_witness/action/target',
+    }))
+
+    const unknownFinal = compileContact(CONTACT_SOURCE.replace(
+      '{action: interview, actor: witness}',
+      '{action: submit-conclusion, target: invented_person}',
+    ))
+    expect(unknownFinal.ok).toBe(false)
+    expect(unknownFinal.diagnostics).toContainEqual(expect.objectContaining({
+      code: 'E_UNKNOWN_FINAL_TARGET',
+      path: '/affordances/interview_witness/action/target',
+    }))
+  })
+
+  it('accepts the submit alias for an authored abstract final target', () => {
+    const result = compile(SOURCE
+      .replace(
+        'action: {action: search, query: synthetic-query}',
+        'action: {action: submit, target: mediate}',
+      )
+      .replace(
+        'flags: []',
+        `flags: [mediated]
+reactions:
+  - on: {action: submit, target: mediate}
+    once: true
+    do: [{mark: mediated}]`,
+      )
+      .replace('reactions:\n  - on: {observed: seed.value}', '  - on: {observed: seed.value}')
+      .replace('final_target: caller', 'final_target: mediate'))
+
+    expect(result.ok, result.diagnostics.map(({ message }) => message).join('\n')).toBe(true)
+    expect(result.ir?.affordances).toContainEqual(expect.objectContaining({
+      id: 'later_search',
+      intent: {
+        kind: 'action',
+        action: {kind: 'action', verb: 'submit-conclusion', target: 'mediate'},
+      },
+    }))
+  })
+
   it('rejects an observed trigger that does not name a declared observation', () => {
     const result = compile(SOURCE.replace('observed: seed.value', 'observed: seed.absent'))
 

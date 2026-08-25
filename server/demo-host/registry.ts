@@ -28,6 +28,8 @@ export interface TrustedDemoCase {
 export interface DemoCaseRegistry {
   get(caseId: string, caseVersion: string): TrustedDemoCase
   list(): readonly TrustedDemoCase[]
+  /** Adds one already validated immutable package to the live trusted registry. */
+  add(compiled: CompiledCasePackage): TrustedDemoCase
 }
 
 export interface LoadDemoCaseRegistryOptions {
@@ -38,7 +40,11 @@ export interface LoadDemoCaseRegistryOptions {
 
 export class DemoCaseRegistryError extends Error {
   constructor(
-    readonly code: 'unknown-case' | 'case-version-mismatch' | 'duplicate-case',
+    readonly code:
+      | 'unknown-case'
+      | 'case-version-mismatch'
+      | 'duplicate-case'
+      | 'case-build-conflict',
     message: string,
   ) {
     super(message)
@@ -55,16 +61,24 @@ export async function loadDemoCaseRegistry(
   const packages = await Promise.all(
     packageDirectories.map((directory) => compileCasePackage(directory)),
   )
-  const byId = new Map<string, TrustedDemoCase>()
+  const byId = new Map<string, Map<string, TrustedDemoCase>>()
   const now = options.now ?? Date.now
   const nextId = options.nextId ?? randomUUID
 
-  for (const compiled of packages) {
+  const add = (compiled: CompiledCasePackage): TrustedDemoCase => {
     const { id: caseId, version: caseVersion } = compiled.result.ir.case
-    if (byId.has(caseId)) {
+    const versions = byId.get(caseId) ?? new Map<string, TrustedDemoCase>()
+    const existing = versions.get(caseVersion)
+    if (existing) {
+      if (
+        existing.compiled.kernelDigest === compiled.kernelDigest &&
+        existing.compiled.packageDigest === compiled.packageDigest
+      ) {
+        return existing
+      }
       throw new DemoCaseRegistryError(
-        'duplicate-case',
-        `The trusted case registry contains duplicate case id '${caseId}'.`,
+        'case-build-conflict',
+        `Case '${caseId}' version '${caseVersion}' is already installed with different content.`,
       )
     }
     const runtime = createCaseRuntime(compileToKernelIR(compiled.result.ir), {
@@ -74,7 +88,7 @@ export async function loadDemoCaseRegistry(
       },
       wallClock: { now },
     })
-    byId.set(caseId, Object.freeze({
+    const trustedCase = Object.freeze({
       caseId,
       caseVersion,
       packageSlug: compiled.packageSlug,
@@ -84,22 +98,22 @@ export async function loadDemoCaseRegistry(
         createCasePresentationCatalog(compiled.localization, requestedLocale),
       locale: (requestedLocale: string) =>
         negotiateCaseLocale(compiled.localization, requestedLocale),
-    }))
+    })
+    versions.set(caseVersion, trustedCase)
+    byId.set(caseId, versions)
+    return trustedCase
   }
 
-  const list = Object.freeze(
-    [...byId.values()].sort((left, right) =>
-      left.caseId < right.caseId ? -1 : left.caseId > right.caseId ? 1 : 0,
-    ),
-  )
+  for (const compiled of packages) add(compiled)
 
   return Object.freeze({
     get(caseId: string, caseVersion: string): TrustedDemoCase {
-      const candidate = byId.get(caseId)
-      if (!candidate) {
+      const versions = byId.get(caseId)
+      if (!versions) {
         throw new DemoCaseRegistryError('unknown-case', 'The requested case is not installed.')
       }
-      if (candidate.caseVersion !== caseVersion) {
+      const candidate = versions.get(caseVersion)
+      if (!candidate) {
         throw new DemoCaseRegistryError(
           'case-version-mismatch',
           'The requested case version is not the installed build.',
@@ -107,6 +121,21 @@ export async function loadDemoCaseRegistry(
       }
       return candidate
     },
-    list: () => list,
+    list: () => Object.freeze(
+      [...byId.values()]
+        .flatMap((versions) => [...versions.values()])
+        .sort((left, right) =>
+          left.caseId < right.caseId
+            ? -1
+            : left.caseId > right.caseId
+              ? 1
+              : left.caseVersion < right.caseVersion
+                ? -1
+                : left.caseVersion > right.caseVersion
+                  ? 1
+                  : 0,
+        ),
+    ),
+    add,
   })
 }

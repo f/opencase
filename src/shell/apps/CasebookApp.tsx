@@ -11,6 +11,7 @@ import squarePenIcon from 'lucide-static/icons/square-pen.svg'
 import typeIcon from 'lucide-static/icons/type.svg'
 import userSearchIcon from 'lucide-static/icons/user-search.svg'
 
+import { useUiCopy, type AppLocale } from '../../ui-locale'
 import { AppScaffold, CountBadge, EmptyState } from './shared'
 import type { CasebookViewModel, DeductionStatus } from './types'
 import './casebook-realistic.css'
@@ -35,28 +36,37 @@ export interface CasebookLabels {
   readonly contactActionReady: string
   readonly contactActionPending: string
   readonly contactActionCompleted: string
+  readonly calls: string
+  readonly browser: string
+  readonly files: string
+  readonly teamSpace: string
+  readonly casePlan: string
+  readonly openSteps: (count: number) => string
+  readonly leadHint: string
 }
 
-const DEFAULT_LABELS: CasebookLabels = {
-  title: 'Vaka Notları',
-  eyebrow: 'Vaka Notları',
-  notes: 'Notlar',
-  deductions: 'Çıkarımlar',
-  emptyNotes: 'Henüz bir saha notu yok.',
-  emptyDeductions: 'Henüz değerlendirilecek bir çıkarım yok.',
-  ready: 'Hazır',
-  supported: 'Doğrulandı',
-  waiting: 'Daha fazla kanıt gerekli',
-  result: 'Sonuç',
-  testDeduction: 'Değerlendir',
-  openEvidence: 'Kanıtı aç',
-  leads: 'Sıradaki adımlar',
-  openLead: 'Uygulamayı aç',
-  contactActions: 'Kişi araştırması',
-  contactActionsHint: 'Adli İnceleme bağlantısı',
-  contactActionReady: 'Araştır',
-  contactActionPending: 'Araştırılıyor',
-  contactActionCompleted: 'Kişilere eklendi',
+const LABELS: Readonly<Record<AppLocale, CasebookLabels>> = {
+  tr: {
+    title: 'Vaka Notları', eyebrow: 'Vaka Notları', notes: 'Notlar', deductions: 'Çıkarımlar',
+    emptyNotes: 'Henüz bir saha notu yok.', emptyDeductions: 'Henüz değerlendirilecek bir çıkarım yok.',
+    ready: 'Hazır', supported: 'Doğrulandı', waiting: 'Daha fazla kanıt gerekli', result: 'Sonuç',
+    testDeduction: 'Değerlendir', openEvidence: 'Kanıtı aç', leads: 'Sıradaki adımlar', openLead: 'Uygulamayı aç',
+    contactActions: 'Kişi araştırması', contactActionsHint: 'Adli İnceleme bağlantısı', contactActionReady: 'Araştır',
+    contactActionPending: 'Araştırılıyor', contactActionCompleted: 'Kişilere eklendi', calls: 'Aramalar', browser: 'Safari',
+    files: 'Finder', teamSpace: 'Ekip Alanı', casePlan: 'Vaka planı', openSteps: (count) => `${count} açık adım`,
+    leadHint: 'Bir adım seç. İlgili uygulama açılacak.',
+  },
+  en: {
+    title: 'Case Notes', eyebrow: 'Case Notes', notes: 'Notes', deductions: 'Deductions',
+    emptyNotes: 'No field notes yet.', emptyDeductions: 'No deductions to assess yet.',
+    ready: 'Ready', supported: 'Verified', waiting: 'More evidence needed', result: 'Result',
+    testDeduction: 'Assess', openEvidence: 'Open evidence', leads: 'Next steps', openLead: 'Open app',
+    contactActions: 'Contact research', contactActionsHint: 'Forensics connection', contactActionReady: 'Research',
+    contactActionPending: 'Researching', contactActionCompleted: 'Added to contacts', calls: 'Calls', browser: 'Safari',
+    files: 'Finder', teamSpace: 'Team Space', casePlan: 'Case plan',
+    openSteps: (count) => `${count} open ${count === 1 ? 'step' : 'steps'}`,
+    leadHint: 'Select a step to open the related app.',
+  },
 }
 
 export interface CasebookAppProps {
@@ -81,7 +91,7 @@ export function CasebookApp({
   busy = false,
 }: CasebookAppProps) {
   const deductionsTitleId = useId()
-  const labels = { ...DEFAULT_LABELS, ...labelOverrides }
+  const labels = { ...useUiCopy(LABELS), ...labelOverrides }
   const selectedEntry = model.entries.find(({ id }) => id === model.selectedEntryId) ?? model.entries[0]
   const statusLabel: Record<DeductionStatus, string> = {
     ready: labels.ready,
@@ -89,11 +99,11 @@ export function CasebookApp({
     waiting: labels.waiting,
   }
   const surfaceLabel = {
-    phone: 'Aramalar',
-    web: 'Safari',
-    files: 'Finder',
-    casebook: 'Vaka Notları',
-    inbox: 'Ekip Alanı',
+    phone: labels.calls,
+    web: labels.browser,
+    files: labels.files,
+    casebook: labels.title,
+    inbox: labels.teamSpace,
   } as const
 
   return (
@@ -244,17 +254,17 @@ export function CasebookApp({
           </article>
         </main>
 
-        <aside className="casebook-inspector" aria-label="Vaka planı">
+        <aside className="casebook-inspector" aria-label={labels.casePlan}>
           {model.leads.length > 0 ? (
             <section className="casebook-leads" aria-label={labels.leads}>
               <header>
                 <span className="casebook-leads__icon" aria-hidden="true"><img src={listTodoIcon} alt="" /></span>
                 <div>
                   <strong>{labels.leads}</strong>
-                  <small>{model.leads.length} açık adım</small>
+                  <small>{labels.openSteps(model.leads.length)}</small>
                 </div>
               </header>
-              <p>Bir adım seç. İlgili uygulama açılacak.</p>
+              <p>{labels.leadHint}</p>
               <ol>
                 {model.leads.map((lead, index) => (
                   <li key={lead.id}>

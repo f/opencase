@@ -3,6 +3,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -24,13 +25,58 @@ import './desktop-shell.css'
 
 const DEFAULT_AREA: DesktopSize = { width: 1_440, height: 820 }
 const DEFAULT_MINIMUM: DesktopSize = { width: 340, height: 220 }
-const RIGHT_DOCK_MINIMUM = 320
-const RIGHT_DOCK_MAXIMUM = 390
-const RIGHT_DOCK_FRACTION = 0.27
-const RIGHT_DOCK_GAP = 24
+const SETTINGS_EDGE_GAP = 10
+const SETTINGS_MENU_GAP = 8
 const RESIZE_DIRECTIONS: readonly ResizeDirection[] = [
   'n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw',
 ]
+
+const SHELL_COPY = {
+  tr: {
+    menuBar: 'menü çubuğu',
+    appMenuOpen: 'uygulama menüsünü aç',
+    appMenuClose: 'uygulama menüsünü kapat',
+    settings: 'Ayarlar',
+    closeSettings: 'Ayarları kapat',
+    moveSettings: 'Ok tuşlarıyla taşı',
+    openApp: 'uygulamasını aç',
+    closeApp: 'uygulamasını kapat',
+    showApp: 'uygulamasını göster',
+    window: 'penceresi',
+    windowControls: 'Pencere denetimleri',
+    closeWindow: 'penceresini kapat',
+    minimizeWindow: 'penceresini küçült',
+    maximizeWindow: 'penceresini büyüt',
+    restoreWindow: 'penceresini geri yükle',
+    applications: 'Uygulamalar',
+    openApplication: 'Uygulamayı aç',
+    deskReady: 'Masa hazır',
+    applicationMenu: 'uygulamaları',
+    dock: "Uygulama Dock'u",
+  },
+  en: {
+    menuBar: 'menu bar',
+    appMenuOpen: 'open application menu',
+    appMenuClose: 'close application menu',
+    settings: 'Settings',
+    closeSettings: 'Close Settings',
+    moveSettings: 'Move with the arrow keys',
+    openApp: 'open application',
+    closeApp: 'close application',
+    showApp: 'show application',
+    window: 'window',
+    windowControls: 'Window controls',
+    closeWindow: 'close window',
+    minimizeWindow: 'minimize window',
+    maximizeWindow: 'maximize window',
+    restoreWindow: 'restore window',
+    applications: 'Applications',
+    openApplication: 'Open application',
+    deskReady: 'Desk ready',
+    applicationMenu: 'applications',
+    dock: 'Application Dock',
+  },
+} as const
 
 interface PointerAction {
   appId: string
@@ -42,6 +88,18 @@ interface PointerAction {
   startBounds: DesktopBounds
 }
 
+interface SettingsPosition {
+  x: number
+  y: number
+}
+
+interface SettingsPointerAction {
+  pointerId: number
+  startX: number
+  startY: number
+  startPosition: SettingsPosition
+}
+
 const finite = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value)
 
@@ -51,15 +109,32 @@ const isRightDock = (app: ShellAppDefinition | undefined): boolean =>
 const canClose = (app: ShellAppDefinition | undefined): boolean =>
   Boolean(app) && (!isRightDock(app) || app?.closable === true)
 
-function floatingAreaSize(size: DesktopSize, reserveRightDock: boolean): DesktopSize {
-  if (!reserveRightDock) return size
-  const dockWidth = Math.min(
-    RIGHT_DOCK_MAXIMUM,
-    Math.max(RIGHT_DOCK_MINIMUM, size.width * RIGHT_DOCK_FRACTION),
-  )
+const clamp = (value: number, minimum: number, maximum: number): number =>
+  Math.min(Math.max(value, minimum), Math.max(minimum, maximum))
+
+function clampSettingsPosition(
+  position: SettingsPosition,
+  desktopRect: DOMRect,
+  panelRect: DOMRect,
+  workAreaRect: DOMRect,
+  usableWorkArea: DesktopSize,
+): SettingsPosition {
+  const workAreaLeft = workAreaRect.left - desktopRect.left
+  const workAreaTop = workAreaRect.top - desktopRect.top
+  const workAreaBottom = workAreaRect.bottom - desktopRect.top
+  const minimumX = workAreaLeft + SETTINGS_EDGE_GAP
+  const minimumY = workAreaTop + SETTINGS_MENU_GAP
   return {
-    width: Math.max(1, size.width - dockWidth - RIGHT_DOCK_GAP),
-    height: size.height,
+    x: clamp(
+      position.x,
+      minimumX,
+      workAreaLeft + usableWorkArea.width - panelRect.width - SETTINGS_EDGE_GAP,
+    ),
+    y: clamp(
+      position.y,
+      minimumY,
+      workAreaBottom - panelRect.height - SETTINGS_EDGE_GAP,
+    ),
   }
 }
 
@@ -197,13 +272,16 @@ export function DesktopShell({
   backgroundImage,
   brandIcon,
   settingsSlot,
+  settingsWindowActions,
   notificationSlot,
   startLabel = 'Desk',
+  locale = 'tr',
   layoutPersistence,
   onLayoutChange,
   onLayoutPersistenceError,
   className = '',
 }: DesktopShellProps) {
+  const copy = SHELL_COPY[locale]
   const appById = useMemo(
     () => new Map(apps.map((app) => [app.id, app])),
     [apps],
@@ -222,14 +300,18 @@ export function DesktopShell({
   const [selectedShortcut, setSelectedShortcut] = useState<string | null>(null)
   const [startOpen, setStartOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsPosition, setSettingsPosition] = useState<SettingsPosition | null>(null)
+  const [settingsDragging, setSettingsDragging] = useState(false)
   const [activeInteraction, setActiveInteraction] = useState<string | null>(null)
   const [workAreaSize, setWorkAreaSize] = useState(DEFAULT_AREA)
+  const desktopRef = useRef<HTMLElement>(null)
   const workAreaRef = useRef<HTMLDivElement>(null)
   const startMenuRef = useRef<HTMLDivElement>(null)
   const settingsPanelRef = useRef<HTMLDivElement>(null)
   const settingsButtonRef = useRef<HTMLButtonElement>(null)
   const dockButtonRefs = useRef(new Map<string, HTMLButtonElement>())
   const pointerAction = useRef<PointerAction | null>(null)
+  const settingsPointerAction = useRef<SettingsPointerAction | null>(null)
   const persistenceRef = useRef(layoutPersistence)
   const layoutChangeRef = useRef(onLayoutChange)
   const persistenceErrorRef = useRef(onLayoutPersistenceError)
@@ -258,8 +340,7 @@ export function DesktopShell({
     const update = () => {
       const rect = element.getBoundingClientRect()
       const fullSize = { width: Math.max(1, rect.width), height: Math.max(1, rect.height) }
-      const size = floatingAreaSize(fullSize, hasRightDock && !compact)
-      setWorkAreaSize(size)
+      setWorkAreaSize(fullSize)
       if (compact) return
       setLayout((current) => ({
         ...current,
@@ -268,7 +349,7 @@ export function DesktopShell({
           if (!app || window.mode !== 'normal') return [id, window]
           return [id, {
             ...window,
-            bounds: clampBounds(window.bounds, size, minimumSize(app)),
+            bounds: clampBounds(window.bounds, fullSize, minimumSize(app)),
           }]
         })),
       }))
@@ -277,7 +358,7 @@ export function DesktopShell({
     const observer = new ResizeObserver(update)
     observer.observe(element)
     return () => observer.disconnect()
-  }, [appById, compact, hasRightDock])
+  }, [appById, compact])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -311,12 +392,40 @@ export function DesktopShell({
   }, [settingsOpen])
 
   useEffect(() => {
+    if (settingsOpen) return
+    settingsPointerAction.current = null
+    setSettingsDragging(false)
+  }, [settingsOpen])
+
+  useLayoutEffect(() => {
+    if (!settingsOpen) return
+    const desktop = desktopRef.current
+    const panel = settingsPanelRef.current
+    const workArea = workAreaRef.current
+    if (!desktop || !panel || !workArea) return
+    const desktopRect = desktop.getBoundingClientRect()
+    const panelRect = panel.getBoundingClientRect()
+    const workAreaRect = workArea.getBoundingClientRect()
+    setSettingsPosition((current) => clampSettingsPosition(
+      current ?? {
+        x: workAreaRect.left - desktopRect.left
+          + (workAreaSize.width - panelRect.width) / 2,
+        y: workAreaRect.top - desktopRect.top
+          + (workAreaRect.height - panelRect.height) / 2,
+      },
+      desktopRect,
+      panelRect,
+      workAreaRect,
+      workAreaSize,
+    ))
+  }, [settingsOpen, workAreaSize.height, workAreaSize.width])
+
+  useEffect(() => {
     if (!focusRequest || !appById.has(focusRequest.appId)) return
     if (handledFocusRequestRef.current?.nonce === focusRequest.nonce) return
 
     handledFocusRequestRef.current = focusRequest
     setStartOpen(false)
-    setSettingsOpen(false)
     setLayout((current) => {
       const target = current.windows[focusRequest.appId]
       if (!target) return current
@@ -356,7 +465,6 @@ export function DesktopShell({
 
   const openApp = (appId: string) => {
     setStartOpen(false)
-    setSettingsOpen(false)
     setLayout((current) => {
       const target = current.windows[appId]
       if (!target) return current
@@ -506,6 +614,75 @@ export function DesktopShell({
     setActiveInteraction(null)
   }
 
+  const measureSettingsPosition = (position: SettingsPosition): SettingsPosition => {
+    const desktop = desktopRef.current
+    const panel = settingsPanelRef.current
+    const workArea = workAreaRef.current
+    if (!desktop || !panel || !workArea) return position
+    const desktopRect = desktop.getBoundingClientRect()
+    const panelRect = panel.getBoundingClientRect()
+    return clampSettingsPosition(
+      position,
+      desktopRect,
+      panelRect,
+      workArea.getBoundingClientRect(),
+      workAreaSize,
+    )
+  }
+
+  const beginSettingsDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    if (compact || event.button !== 0) return
+    if ((event.target as HTMLElement).closest('button')) return
+    const desktop = desktopRef.current
+    const panel = settingsPanelRef.current
+    if (!desktop || !panel) return
+    event.preventDefault()
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+    const desktopRect = desktop.getBoundingClientRect()
+    const panelRect = panel.getBoundingClientRect()
+    const current = settingsPosition ?? {
+      x: panelRect.left - desktopRect.left,
+      y: panelRect.top - desktopRect.top,
+    }
+    settingsPointerAction.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startPosition: current,
+    }
+    setSettingsDragging(true)
+  }
+
+  const continueSettingsDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    const action = settingsPointerAction.current
+    if (!action || action.pointerId !== event.pointerId) return
+    setSettingsPosition(measureSettingsPosition({
+      x: action.startPosition.x + event.clientX - action.startX,
+      y: action.startPosition.y + event.clientY - action.startY,
+    }))
+  }
+
+  const endSettingsDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    if (settingsPointerAction.current?.pointerId !== event.pointerId) return
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture?.(event.pointerId)
+    }
+    settingsPointerAction.current = null
+    setSettingsDragging(false)
+  }
+
+  const handleSettingsKeyboard = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (event.currentTarget !== event.target || compact) return
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return
+    event.preventDefault()
+    const step = event.shiftKey ? 32 : 12
+    const current = settingsPosition ?? { x: 0, y: 0 }
+    setSettingsPosition(measureSettingsPosition({
+      x: current.x + (event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0),
+      y: current.y + (event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0),
+    }))
+  }
+
   const handleTitleKeyboard = (
     event: ReactKeyboardEvent<HTMLElement>,
     app: ShellAppDefinition,
@@ -565,25 +742,24 @@ export function DesktopShell({
 
   return (
     <main
+      ref={desktopRef}
       className={`detective-desktop ${hasRightDock ? 'has-right-dock' : ''} ${className}`.trim()}
       aria-label={ariaLabel}
       style={wallpaperStyle}
       onPointerDown={() => {
         if (startOpen) setStartOpen(false)
-        if (settingsOpen) setSettingsOpen(false)
       }}
     >
-      <header className="detective-menubar" aria-label={`${brand} menü çubuğu`}>
+      <header className="detective-menubar" aria-label={`${brand} ${copy.menuBar}`}>
         <div className="detective-menubar__identity">
           <button
             className={`detective-menubar__launcher ${startOpen ? 'is-open' : ''}`}
             type="button"
-            aria-label={`${startLabel}: uygulama menüsünü ${startOpen ? 'kapat' : 'aç'}`}
+            aria-label={`${startLabel}: ${startOpen ? copy.appMenuClose : copy.appMenuOpen}`}
             aria-expanded={startOpen}
             aria-controls="detective-app-menu"
             onPointerDown={(event) => event.stopPropagation()}
             onClick={() => {
-              setSettingsOpen(false)
               setStartOpen((open) => !open)
             }}
           >
@@ -603,7 +779,7 @@ export function DesktopShell({
               className={`detective-menubar__settings ${settingsOpen ? 'is-open' : ''}`}
               ref={settingsButtonRef}
               type="button"
-              aria-label="Ayarlar"
+              aria-label={copy.settings}
               aria-haspopup="dialog"
               aria-expanded={settingsOpen}
               aria-controls="detective-settings-panel"
@@ -621,14 +797,14 @@ export function DesktopShell({
       {notificationSlot}
       <div className="detective-desktop__workarea" ref={workAreaRef}>
         <div className="detective-desktop__atmosphere" aria-hidden="true" />
-        <nav className="detective-desktop__shortcuts" aria-label="Masaüstü kısayolları">
+        <nav className="detective-desktop__shortcuts" aria-label={locale === 'tr' ? 'Masaüstü kısayolları' : 'Desktop shortcuts'}>
           {shortcutApps.map((app) => (
             <button
               className={`detective-desktop__shortcut ${selectedShortcut === app.id ? 'is-selected' : ''}`}
               data-app-id={app.id}
               key={app.id}
               type="button"
-              aria-label={`${app.title} uygulamasını aç`}
+              aria-label={`${app.title} ${copy.openApp}`}
               onClick={(event) => {
                 event.stopPropagation()
                 setSelectedShortcut(app.id)
@@ -659,14 +835,16 @@ export function DesktopShell({
           const maximized = window.mode === 'maximized'
           const active = layout.activeWindowId === app.id
           const titleId = `detective-window-title-${index}`
-          const style: CSSProperties = docked || maximized
-            ? { zIndex: window.zIndex }
-            : {
-                zIndex: window.zIndex,
-                width: window.bounds.width,
-                height: window.bounds.height,
-                transform: `translate3d(${window.bounds.x}px, ${window.bounds.y}px, 0)`,
-              }
+          const style: CSSProperties = docked
+            ? { zIndex: topZ(layout) + 1 }
+            : maximized
+              ? { zIndex: window.zIndex }
+              : {
+                  zIndex: window.zIndex,
+                  width: window.bounds.width,
+                  height: window.bounds.height,
+                  transform: `translate3d(${window.bounds.x}px, ${window.bounds.y}px, 0)`,
+                }
 
           return (
             <section
@@ -691,8 +869,8 @@ export function DesktopShell({
                 <button
                   className="detective-window__docked-close"
                   type="button"
-                  aria-label={`${app.title} uygulamasını kapat`}
-                  data-tooltip={`${app.title}’u kapat`}
+                  aria-label={`${app.title} ${copy.closeApp}`}
+                  data-tooltip={`${app.title} ${copy.closeApp}`}
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={(event) => {
                     event.stopPropagation()
@@ -706,7 +884,7 @@ export function DesktopShell({
                 <header
                   className="detective-window__titlebar"
                   tabIndex={0}
-                  aria-label={`${app.title} penceresi`}
+                  aria-label={`${app.title} ${copy.window}`}
                   onDoubleClick={(event) => {
                     if (event.target === event.currentTarget || (event.target as HTMLElement).closest('.detective-window__identity')) {
                       toggleMaximize(app.id)
@@ -721,14 +899,14 @@ export function DesktopShell({
                   onPointerUp={endPointerAction}
                   onPointerCancel={endPointerAction}
                 >
-                  <span className="detective-window__controls" aria-label="Pencere denetimleri">
-                    <button className="is-close" type="button" aria-label={`${app.title} penceresini kapat`} onClick={() => closeWindow(app.id)}>
+                  <span className="detective-window__controls" aria-label={copy.windowControls}>
+                    <button className="is-close" type="button" aria-label={`${app.title} ${copy.closeWindow}`} onClick={() => closeWindow(app.id)}>
                       <i className="control-close" aria-hidden="true" />
                     </button>
-                    <button className="is-minimize" type="button" aria-label={`${app.title} penceresini küçült`} onClick={() => minimizeWindow(app.id)}>
+                    <button className="is-minimize" type="button" aria-label={`${app.title} ${copy.minimizeWindow}`} onClick={() => minimizeWindow(app.id)}>
                       <i className="control-minimize" aria-hidden="true" />
                     </button>
-                    <button className="is-maximize" type="button" aria-label={`${app.title} penceresini ${maximized ? 'geri yükle' : 'büyüt'}`} onClick={() => toggleMaximize(app.id)}>
+                    <button className="is-maximize" type="button" aria-label={`${app.title} ${maximized ? copy.restoreWindow : copy.maximizeWindow}`} onClick={() => toggleMaximize(app.id)}>
                       <i className="control-maximize" aria-hidden="true" />
                     </button>
                   </span>
@@ -766,35 +944,39 @@ export function DesktopShell({
           className="detective-app-menu"
           ref={startMenuRef}
           role="menu"
-          aria-label={`${brand} uygulamaları`}
+          aria-label={`${brand} ${copy.applicationMenu}`}
           onPointerDown={(event) => event.stopPropagation()}
           onKeyDown={(event) => event.key === 'Escape' && setStartOpen(false)}
         >
           <header>
             <span>{brandIcon ? <ShellAppIcon icon={brandIcon} /> : <i aria-hidden="true" />}</span>
-            <div><strong>Uygulamalar</strong><small>{subtitle}</small></div>
+            <div><strong>{copy.applications}</strong><small>{subtitle}</small></div>
           </header>
           <div className="detective-app-menu__apps">
             {menuApps.map((app) => (
               <button key={app.id} type="button" role="menuitem" data-app-id={app.id} onClick={() => openApp(app.id)}>
                 <span><ShellAppIcon icon={app.icon} /></span>
-                <span><strong>{app.title}</strong><small>Uygulamayı aç</small></span>
+                <span><strong>{app.title}</strong><small>{copy.openApplication}</small></span>
                 {app.badge !== undefined && <b>{app.badge}</b>}
               </button>
             ))}
           </div>
-          <footer><span className="detective-app-menu__lamp" /> Masa hazır</footer>
+          <footer><span className="detective-app-menu__lamp" /> {copy.deskReady}</footer>
         </div>
       )}
 
       {settingsOpen && settingsSlot ? (
         <div
           id="detective-settings-panel"
-          className="detective-settings-panel"
+          className={`detective-settings-panel ${settingsDragging ? 'is-dragging' : ''}`}
           ref={settingsPanelRef}
           role="dialog"
           aria-modal="false"
           aria-labelledby="detective-settings-title"
+          style={settingsPosition ? {
+            left: settingsPosition.x,
+            top: settingsPosition.y,
+          } : undefined}
           onPointerDown={(event) => event.stopPropagation()}
           onKeyDown={(event) => {
             if (event.key !== 'Escape') return
@@ -803,31 +985,62 @@ export function DesktopShell({
             settingsButtonRef.current?.focus()
           }}
         >
-          <header className="detective-settings-panel__header">
-            <span className="detective-settings-panel__icon" aria-hidden="true">
-              <img src={settingsIcon} alt="" />
+          <header
+            className="detective-settings-panel__header"
+            tabIndex={0}
+            aria-label={`${copy.settings} ${copy.window}. ${copy.moveSettings}`}
+            aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown"
+            onKeyDown={handleSettingsKeyboard}
+            onPointerDown={beginSettingsDrag}
+            onPointerMove={continueSettingsDrag}
+            onPointerUp={endSettingsDrag}
+            onPointerCancel={endSettingsDrag}
+          >
+            <span className="detective-settings-panel__controls" aria-label={copy.windowControls}>
+              <button
+                className="is-close"
+                type="button"
+                aria-label={copy.closeSettings}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => {
+                  setSettingsOpen(false)
+                  settingsButtonRef.current?.focus()
+                }}
+              >
+                <i aria-hidden="true" />
+              </button>
+              {settingsWindowActions?.onMinimize ? (
+                <button
+                  className="is-minimize"
+                  type="button"
+                  aria-label={`${copy.settings} ${copy.minimizeWindow}`}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={settingsWindowActions.onMinimize}
+                >
+                  <i aria-hidden="true" />
+                </button>
+              ) : null}
+              {settingsWindowActions?.onMaximize ? (
+                <button
+                  className="is-maximize"
+                  type="button"
+                  aria-label={`${copy.settings} ${settingsWindowActions.maximized ? copy.restoreWindow : copy.maximizeWindow}`}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={settingsWindowActions.onMaximize}
+                >
+                  <i aria-hidden="true" />
+                </button>
+              ) : null}
             </span>
-            <div>
-              <small>{brand}</small>
-              <strong id="detective-settings-title">Ayarlar</strong>
-            </div>
-            <button
-              type="button"
-              aria-label="Ayarları kapat"
-              onClick={() => {
-                setSettingsOpen(false)
-                settingsButtonRef.current?.focus()
-              }}
-            >
-              <img src={xIcon} alt="" />
-            </button>
+            <strong id="detective-settings-title">{copy.settings}</strong>
+            <span className="detective-settings-panel__titlebar-balance" aria-hidden="true" />
           </header>
           <div className="detective-settings-panel__body">{settingsSlot}</div>
         </div>
       ) : null}
 
-      <nav className="detective-dock" aria-label="Uygulama Dock'u" onPointerDown={(event) => event.stopPropagation()}>
-        <div className="detective-dock__apps" role="toolbar" aria-label="Uygulamalar">
+      <nav className="detective-dock" aria-label={copy.dock} onPointerDown={(event) => event.stopPropagation()}>
+        <div className="detective-dock__apps" role="toolbar" aria-label={copy.applications}>
           {dockApps.map((app) => {
             const window = layout.windows[app.id]
             const active = window?.open && window.mode !== 'minimized' && layout.activeWindowId === app.id
@@ -841,7 +1054,7 @@ export function DesktopShell({
                   if (button) dockButtonRefs.current.set(app.id, button)
                   else dockButtonRefs.current.delete(app.id)
                 }}
-                aria-label={`${app.title} uygulamasını ${window?.open ? 'göster' : 'aç'}`}
+                aria-label={`${app.title} ${window?.open ? copy.showApp : copy.openApp}`}
                 aria-pressed={active}
                 onClick={() => handleDockApp(app.id)}
               >

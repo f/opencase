@@ -226,6 +226,51 @@ describe('trusted local demo session host', () => {
     expect(current.snapshot).toEqual(progressed.snapshot)
   })
 
+  it('isolates the same case save between player profile slots', async () => {
+    const storage = new MemoryStorage()
+    const service = createDemoSessionService({ registry, storage })
+    const firstProfile = { ...sessionRef, saveId: 'detective_alpha' }
+    const secondProfile = { ...sessionRef, saveId: 'detective_beta' }
+
+    const firstStarted = await service.start(firstProfile)
+    if (!firstStarted.snapshot) throw new Error('Expected a started snapshot.')
+    const firstProgressed = await service.command(
+      firstProfile,
+      firstOfferedAction(firstStarted.snapshot),
+    )
+    expect(firstProgressed.ok).toBe(true)
+
+    const secondStarted = await service.start(secondProfile)
+    expect(secondStarted).toMatchObject({
+      exists: true,
+      saveId: 'detective_beta',
+      snapshot: { revision: 1 },
+    })
+    expect(firstProgressed.snapshot.revision).toBeGreaterThan(1)
+    await expect(service.status(firstProfile)).resolves.toMatchObject({
+      saveId: 'detective_alpha',
+      snapshot: { revision: firstProgressed.snapshot.revision },
+    })
+
+    await service.restart(secondProfile)
+    await expect(service.status(secondProfile)).resolves.toMatchObject({ exists: false })
+    await expect(service.status(firstProfile)).resolves.toMatchObject({
+      exists: true,
+      snapshot: { revision: firstProgressed.snapshot.revision },
+    })
+  })
+
+  it('rejects unsafe profile save identifiers before storage lookup', async () => {
+    const service = createDemoSessionService({ registry, storage: new MemoryStorage() })
+    for (const saveId of ['../other-profile', 'profile:one', '', 'a'.repeat(65)]) {
+      await expect(service.status({ ...sessionRef, saveId })).rejects.toMatchObject({
+        name: 'DemoHostRequestError',
+        code: saveId === '' || saveId.length > 64 ? 'invalid-request' : 'invalid-save-id',
+        status: 400,
+      })
+    }
+  })
+
   it('deletes only the exact primary case/build slot and starts cleanly again', async () => {
     const storage = new MemoryStorage()
     const service = createDemoSessionService({ registry, storage })
@@ -373,7 +418,7 @@ describe('trusted local demo session host', () => {
   }, 60_000)
 
   it('releases the session queue during materialization and rejects a capture invalidated by restart', async () => {
-    const selected = registry.get('community.fka.yedi-dakika', '0.4.1')
+    const selected = registry.get('community.fka.yedi-dakika', '0.4.2')
     const ref: Required<DemoCaseSessionRef> = {
       caseId: selected.caseId,
       caseVersion: selected.caseVersion,

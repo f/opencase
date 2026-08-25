@@ -20,6 +20,13 @@ scenario:
             workspace_admin_log: available
             payment_ledger: available
 
+    - detective.act: {action: locate-contact, target: baran}
+      expect:
+        result: {status: accepted}
+        state:
+          contacts: {baran: listed}
+          affordances: {conclude_baran: offered}
+
     - detective.conclude: baran
       expect:
         result: {status: accepted}

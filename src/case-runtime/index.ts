@@ -1,6 +1,7 @@
 export * from './protocol'
 export * from './adapter'
 export * from './trusted-capabilities'
+export * from './decision-visibility'
 export * from './session'
 export * from './projection'
 export * from './controller'

@@ -14,6 +14,8 @@ const SOURCE_FILE = '/fixtures/directory_coverage_fixture.yml'
 const SCENARIO_ID = 'directory_coverage_fixture'
 const ACTOR_ID = 'directory_person'
 const AFFORDANCE_ID = 'find_directory_person'
+const REPORT_AFFORDANCE_ID = 'report_directory_person'
+const CONCLUSION_AFFORDANCE_ID = 'conclude_directory_person'
 
 type LookupContext =
   | { readonly kind: 'opening-call' }
@@ -40,6 +42,30 @@ function fixtureIr(context?: LookupContext): CompiledCaseIR {
         request: 'Find this person.',
         ...(context ? { context } : {}),
       },
+      once: true,
+    }, {
+      id: REPORT_AFFORDANCE_ID,
+      label: 'Report person',
+      risk: 'consequential',
+      surface: 'casebook',
+      initial: 'offered',
+      intent: {
+        kind: 'action',
+        action: { kind: 'action', verb: 'report-suspect', target: ACTOR_ID },
+      },
+      exclusive: true,
+      once: true,
+    }, {
+      id: CONCLUSION_AFFORDANCE_ID,
+      label: 'Conclude person',
+      risk: 'terminal',
+      surface: 'casebook',
+      initial: 'offered',
+      intent: {
+        kind: 'action',
+        action: { kind: 'action', verb: 'submit-conclusion', target: ACTOR_ID },
+      },
+      exclusive: true,
       once: true,
     }, {
       id: 'inspect_context_record',
@@ -98,7 +124,11 @@ function proofSteps(): DetectiveCaseTestStep[] {
       expect: {
         state: {
           contacts: { [ACTOR_ID]: 'hidden' },
-          affordances: { [AFFORDANCE_ID]: 'offered' },
+          affordances: {
+            [AFFORDANCE_ID]: 'offered',
+            [REPORT_AFFORDANCE_ID]: 'hidden',
+            [CONCLUSION_AFFORDANCE_ID]: 'hidden',
+          },
         },
       },
     },
@@ -165,6 +195,7 @@ describe('contact-discovery conformance coverage', () => {
         actorId: ACTOR_ID,
         ok: true,
         candidateAffordanceIds: [AFFORDANCE_ID],
+        decisionAffordanceIds: [CONCLUSION_AFFORDANCE_ID, REPORT_AFFORDANCE_ID],
         scenarioId: SCENARIO_ID,
         sourceFile: SOURCE_FILE,
         affordanceId: AFFORDANCE_ID,
@@ -204,6 +235,25 @@ describe('contact-discovery conformance coverage', () => {
       .toBe(false)
   })
 
+  it('requires the checkpoint to prove actor decisions are concealed before lookup', () => {
+    const steps = proofSteps()
+    steps[0] = {
+      operation: 'expect',
+      expect: {
+        state: {
+          contacts: { [ACTOR_ID]: 'hidden' },
+          affordances: {
+            [AFFORDANCE_ID]: 'offered',
+            [REPORT_AFFORDANCE_ID]: 'hidden',
+          },
+        },
+      },
+    }
+
+    expect(auditContactDiscoveryCoverage(fixtureIr(), [scenario(steps)], [result()]).ok)
+      .toBe(false)
+  })
+
   it('requires an evidence-anchored lookup to prove that evidence note is visible', () => {
     const ir = fixtureIr({ kind: 'evidence', ref: 'context_record' })
     expect(auditContactDiscoveryCoverage(ir, [scenario()], [result()]).ok).toBe(false)
@@ -214,7 +264,11 @@ describe('contact-discovery conformance coverage', () => {
       expect: {
         state: {
           contacts: { [ACTOR_ID]: 'hidden' },
-          affordances: { [AFFORDANCE_ID]: 'offered' },
+          affordances: {
+            [AFFORDANCE_ID]: 'offered',
+            [REPORT_AFFORDANCE_ID]: 'hidden',
+            [CONCLUSION_AFFORDANCE_ID]: 'hidden',
+          },
           evidence: { context_record: { status: 'available' } },
         },
       },
@@ -287,6 +341,7 @@ describe('contact-discovery conformance coverage', () => {
         actorId: ACTOR_ID,
         ok: false,
         candidateAffordanceIds: [AFFORDANCE_ID],
+        decisionAffordanceIds: [CONCLUSION_AFFORDANCE_ID, REPORT_AFFORDANCE_ID],
         message: 'missing explicit route',
       }],
     }

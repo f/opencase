@@ -41,6 +41,13 @@ export interface DesktopLayoutPersistence {
   clear?: () => void
 }
 
+/** Settings titlebar controls are rendered only when the host supplies a real action. */
+export interface DesktopSettingsWindowActions {
+  onMinimize?: () => void
+  onMaximize?: () => void
+  maximized?: boolean
+}
+
 export type ShellIcon =
   | { type: 'image'; src: string; alt?: string }
   | { type: 'glyph'; value: string }
@@ -83,11 +90,15 @@ export interface DesktopShellProps {
   ariaLabel?: string
   backgroundImage?: string
   brandIcon?: ShellIcon
-  /** Opaque application settings rendered inside the shell's settings popover. */
+  /** Opaque application settings rendered inside the shell's Settings window. */
   settingsSlot?: ReactNode
+  /** Optional functional Settings titlebar actions. Close is always provided by the shell. */
+  settingsWindowActions?: DesktopSettingsWindowActions
   /** Transient application feedback that must stay visible while settings are closed. */
   notificationSlot?: ReactNode
   startLabel?: string
+  /** Application-owned chrome locale. Case content stays in the case catalog. */
+  locale?: 'tr' | 'en'
   layoutPersistence?: DesktopLayoutPersistence
   onLayoutChange?: (layout: DesktopLayoutSnapshot) => void
   onLayoutPersistenceError?: (error: unknown) => void

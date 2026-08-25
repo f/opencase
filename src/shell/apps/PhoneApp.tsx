@@ -26,6 +26,7 @@ import wifiIcon from 'lucide-static/icons/wifi.svg'
 import SiriWave from 'siriwave'
 
 import dedektifPhoneWallpaper from '../../assets/shell/dedektif-phone-wallpaper.png'
+import { localeTag, useUiCopy, useUiLocale, type AppLocale } from '../../ui-locale'
 import './phone-realistic.css'
 import type {
   AffordanceViewModel,
@@ -75,48 +76,80 @@ export interface PhoneLabels {
   readonly voiceConnecting: string
   readonly voiceLive: string
   readonly voiceClosing: string
+  readonly networkConnected: string
+  readonly caseClock: (time: string) => string
+  readonly lineActions: string
+  readonly caseLine: string
+  readonly actionsReady: (count: number) => string
+  readonly secureAction: string
+  readonly homeDate: string
+  readonly now: string
+  readonly waitingAction: string
+  readonly quickContact: string
+  readonly apps: string
+  readonly calls: string
+  readonly messages: string
+  readonly newActions: (count: number) => string
+  readonly favoriteApps: string
+  readonly openCalls: string
+  readonly openContacts: string
+  readonly openMessages: string
+  readonly mute: string
+  readonly keypad: string
+  readonly speaker: string
+  readonly callNotes: string
+  readonly liveCallNotes: string
+  readonly homeScreen: string
+  readonly searchContacts: string
+  readonly search: string
+  readonly callFilter: string
+  readonly all: string
+  readonly openContact: string
+  readonly bottomNavigation: string
+  readonly returnHome: string
 }
 
-const DEFAULT_LABELS: PhoneLabels = {
-  title: 'Dedektif iPhone',
-  eyebrow: 'Saha hattı',
-  contacts: 'Kişiler',
-  recentCalls: 'Son Aramalar',
-  call: 'Ara',
-  message: 'Mesaj',
-  endCall: 'Aramayı bitir',
-  available: 'Ulaşılabilir',
-  unavailable: 'Şu an ulaşılamıyor',
-  noContacts: 'Kişi listesi boş.',
-  noCalls: 'Henüz arama yok.',
-  incoming: 'Gelen',
-  outgoing: 'Giden',
-  missed: 'Cevapsız',
-  incomingCall: 'Gelen vaka çağrısı',
-  connected: 'Güvenli hat bağlı',
-  answer: 'Yanıtla',
-  decline: 'Reddet',
-  returnCall: 'Geri ara',
-  beginCase: 'Vakayı kabul et',
-  briefing: 'Çağrı notu',
-  noActions: 'Şu anda yapılabilecek bir şey yok.',
-  phoneNumber: 'Telefon',
-  operator: 'Operatör',
-  source: 'Kaynak',
-  newlyAdded: 'Yeni eklendi',
-  dialing: 'Aranıyor…',
-  speaking: 'Görüşme sürüyor',
-  ending: 'Arama sonlandırılıyor',
-  callEnded: 'Arama sona erdi',
-  callResult: 'Görüşme notu',
-  closeResult: 'Tamam',
-  secureLine: 'Marmara · güvenli hat',
-  resultFallback: 'Görüşme tamamlandı. Yeni bilgiler vaka notlarına işlendi.',
-  detective: 'Dedektif',
-  autoComplete: 'Görüşme otomatik tamamlanacak',
-  voiceConnecting: 'Bağlantı kuruluyor',
-  voiceLive: 'Canlı ses',
-  voiceClosing: 'Hat kapanıyor',
+const LABELS: Readonly<Record<AppLocale, PhoneLabels>> = {
+  tr: {
+    title: 'Dedektif iPhone', eyebrow: 'Saha hattı', contacts: 'Kişiler', recentCalls: 'Son Aramalar', call: 'Ara',
+    message: 'Mesaj', endCall: 'Aramayı bitir', available: 'Ulaşılabilir', unavailable: 'Şu an ulaşılamıyor',
+    noContacts: 'Kişi listesi boş.', noCalls: 'Henüz arama yok.', incoming: 'Gelen', outgoing: 'Giden', missed: 'Cevapsız',
+    incomingCall: 'Gelen vaka çağrısı', connected: 'Güvenli hat bağlı', answer: 'Yanıtla', decline: 'Reddet',
+    returnCall: 'Geri ara', beginCase: 'Vakayı kabul et', briefing: 'Çağrı notu', noActions: 'Şu anda yapılabilecek bir şey yok.',
+    phoneNumber: 'Telefon', operator: 'Operatör', source: 'Kaynak', newlyAdded: 'Yeni eklendi', dialing: 'Aranıyor…',
+    speaking: 'Görüşme sürüyor', ending: 'Arama sonlandırılıyor', callEnded: 'Arama sona erdi', callResult: 'Görüşme notu',
+    closeResult: 'Tamam', secureLine: 'Marmara · güvenli hat', resultFallback: 'Görüşme tamamlandı. Yeni bilgiler vaka notlarına işlendi.',
+    detective: 'Dedektif', autoComplete: 'Görüşme otomatik tamamlanacak', voiceConnecting: 'Bağlantı kuruluyor',
+    voiceLive: 'Canlı ses', voiceClosing: 'Hat kapanıyor', networkConnected: 'Marmara mobil ağı bağlı',
+    caseClock: (time) => `Vaka saati ${time}`, lineActions: 'Hat işlemleri', caseLine: 'Vaka Hattı',
+    actionsReady: (count) => `${count} işlem hazır`, secureAction: 'Güvenli hat üzerinden', homeDate: '25 Ağustos, Salı',
+    now: 'şimdi', waitingAction: 'Yeni bir işlem sizi bekliyor', quickContact: 'HIZLI KİŞİ', apps: 'Uygulamalar',
+    calls: 'Aramalar', messages: 'Mesajlar', newActions: (count) => `${count} yeni işlem`, favoriteApps: 'Sık kullanılan uygulamalar',
+    openCalls: 'Aramaları aç', openContacts: 'Kişileri aç', openMessages: 'Mesajları aç', mute: 'Sessiz', keypad: 'Tuşlar',
+    speaker: 'Hoparlör', callNotes: 'Görüşme notları', liveCallNotes: 'Canlı görüşme notları', homeScreen: 'Ana Ekran',
+    searchContacts: 'Kişilerde ara', search: 'Ara', callFilter: 'Arama filtresi', all: 'Tümü', openContact: 'Kişiyi aç.',
+    bottomNavigation: 'Alt gezinme', returnHome: 'Ana ekrana dön',
+  },
+  en: {
+    title: 'Detective iPhone', eyebrow: 'Field line', contacts: 'Contacts', recentCalls: 'Recents', call: 'Call',
+    message: 'Message', endCall: 'End call', available: 'Available', unavailable: 'Unavailable now',
+    noContacts: 'No contacts yet.', noCalls: 'No calls yet.', incoming: 'Incoming', outgoing: 'Outgoing', missed: 'Missed',
+    incomingCall: 'Incoming case call', connected: 'Secure line connected', answer: 'Answer', decline: 'Decline',
+    returnCall: 'Call back', beginCase: 'Accept case', briefing: 'Call note', noActions: 'There is nothing to do right now.',
+    phoneNumber: 'Phone', operator: 'Operator', source: 'Source', newlyAdded: 'Newly added', dialing: 'Calling…',
+    speaking: 'Call in progress', ending: 'Ending call', callEnded: 'Call ended', callResult: 'Call notes', closeResult: 'Done',
+    secureLine: 'Marmara · secure line', resultFallback: 'Call completed. New information was added to the case notes.',
+    detective: 'Detective', autoComplete: 'Call will finish automatically', voiceConnecting: 'Connecting', voiceLive: 'Live audio',
+    voiceClosing: 'Closing line', networkConnected: 'Connected to Marmara mobile network', caseClock: (time) => `Case time ${time}`,
+    lineActions: 'Line actions', caseLine: 'Case Line', actionsReady: (count) => `${count} ${count === 1 ? 'action' : 'actions'} ready`,
+    secureAction: 'Over the secure line', homeDate: 'Tuesday, August 25', now: 'now', waitingAction: 'A new action is waiting for you',
+    quickContact: 'QUICK CONTACT', apps: 'Apps', calls: 'Calls', messages: 'Messages',
+    newActions: (count) => `${count} new ${count === 1 ? 'action' : 'actions'}`, favoriteApps: 'Favorite apps',
+    openCalls: 'Open calls', openContacts: 'Open contacts', openMessages: 'Open messages', mute: 'Mute', keypad: 'Keypad',
+    speaker: 'Speaker', callNotes: 'Call notes', liveCallNotes: 'Live call notes', homeScreen: 'Home Screen',
+    searchContacts: 'Search contacts', search: 'Search', callFilter: 'Call filter', all: 'All', openContact: 'Open contact.',
+    bottomNavigation: 'Bottom navigation', returnHome: 'Return to Home Screen',
+  },
 }
 
 export interface PhoneAppProps {
@@ -187,13 +220,14 @@ function TranscriptReply({ line }: { readonly line: string }) {
   )
 }
 
-function StatusBar({ timeLabel, light = false }: {
+function StatusBar({ timeLabel, labels, light = false }: {
   readonly timeLabel: string
+  readonly labels: PhoneLabels
   readonly light?: boolean
 }) {
   return (
-    <div className={`iphone-status ${light ? 'iphone-status--light' : ''}`} aria-label="Marmara mobil ağı bağlı">
-      <time dateTime={timeLabel} aria-label={`Vaka saati ${timeLabel}`}>{timeLabel}</time>
+    <div className={`iphone-status ${light ? 'iphone-status--light' : ''}`} aria-label={labels.networkConnected}>
+      <time dateTime={timeLabel} aria-label={labels.caseClock(timeLabel)}>{timeLabel}</time>
       <div className="iphone-dynamic-island" aria-hidden="true">
         <i />
       </div>
@@ -219,9 +253,10 @@ function ContactAvatar({ contact, large = false }: {
   readonly contact: Pick<PhoneContactViewModel, 'name' | 'initials'>
   readonly large?: boolean
 }) {
+  const locale = useUiLocale()
   return (
     <span className={`iphone-avatar ${large ? 'iphone-avatar--large' : ''}`} aria-hidden="true">
-      {contact.initials ?? contact.name.slice(0, 2).toLocaleUpperCase('tr')}
+      {contact.initials ?? contact.name.slice(0, 2).toLocaleUpperCase(localeTag(locale))}
     </span>
   )
 }
@@ -235,18 +270,19 @@ function BackButton({ label, onClick }: { readonly label: string; readonly onCli
   )
 }
 
-function ActionList({ actions, busy, onAction }: {
+function ActionList({ actions, labels, busy, onAction }: {
   readonly actions: readonly AffordanceViewModel[]
+  readonly labels: PhoneLabels
   readonly busy: boolean
   readonly onAction?: (affordanceId: string) => void
 }) {
   if (actions.length === 0) return null
 
   return (
-    <section className="iphone-suggestions" aria-label="Hat işlemleri" aria-busy={busy || undefined}>
+    <section className="iphone-suggestions" aria-label={labels.lineActions} aria-busy={busy || undefined}>
       <header>
-        <span>Vaka hattı</span>
-        <small>{actions.length} işlem hazır</small>
+        <span>{labels.caseLine}</span>
+        <small>{labels.actionsReady(actions.length)}</small>
       </header>
       <ul>
         {actions.map((action) => (
@@ -260,7 +296,7 @@ function ActionList({ actions, busy, onAction }: {
               <span className="iphone-suggestions__mark"><Icon src={arrowRightIcon} /></span>
               <span>
                 <strong>{action.label}</strong>
-                <small>{action.costLabel ?? 'Güvenli hat üzerinden'}</small>
+                <small>{action.costLabel ?? labels.secureAction}</small>
               </span>
               <Icon className="iphone-chevron" src={chevronRightIcon} />
             </button>
@@ -271,9 +307,10 @@ function ActionList({ actions, busy, onAction }: {
   )
 }
 
-function HomeScreen({ actions, contact, busy, onAction, onNavigate, onOpenContact }: {
+function HomeScreen({ actions, contact, labels, busy, onAction, onNavigate, onOpenContact }: {
   readonly actions: readonly AffordanceViewModel[]
   readonly contact?: PhoneContactViewModel
+  readonly labels: PhoneLabels
   readonly busy: boolean
   readonly onAction?: (affordanceId: string) => void
   readonly onNavigate: (screen: PhoneScreen) => void
@@ -284,7 +321,7 @@ function HomeScreen({ actions, contact, busy, onAction, onNavigate, onOpenContac
   return (
     <main className="iphone-home" style={{ '--iphone-wallpaper': `url(${dedektifPhoneWallpaper})` } as CSSProperties}>
       <header className="iphone-home__date">
-        <span>25 Ağustos, Salı</span>
+        <span>{labels.homeDate}</span>
         <strong>dedektif</strong>
       </header>
 
@@ -298,9 +335,9 @@ function HomeScreen({ actions, contact, busy, onAction, onNavigate, onOpenContac
           >
             <span className="iphone-notification__icon"><AppGlyph kind="case" /></span>
             <span>
-              <small>VAKA HATTI · şimdi</small>
+              <small>{labels.caseLine.toLocaleUpperCase()} · {labels.now}</small>
               <strong>{firstAction.label}</strong>
-              <em>{firstAction.costLabel ?? 'Yeni bir işlem sizi bekliyor'}</em>
+              <em>{firstAction.costLabel ?? labels.waitingAction}</em>
             </span>
           </button>
         ) : null}
@@ -308,7 +345,7 @@ function HomeScreen({ actions, contact, busy, onAction, onNavigate, onOpenContac
           <button type="button" className="iphone-contact-widget" onClick={() => onOpenContact(contact.id)}>
             <ContactAvatar contact={contact} />
             <span>
-              <small>HIZLI KİŞİ</small>
+              <small>{labels.quickContact}</small>
               <strong>{contact.name}</strong>
               <em>{contact.roleLabel}</em>
             </span>
@@ -317,30 +354,30 @@ function HomeScreen({ actions, contact, busy, onAction, onNavigate, onOpenContac
         ) : null}
       </div>
 
-      <nav className="iphone-app-grid" aria-label="Uygulamalar">
+      <nav className="iphone-app-grid" aria-label={labels.apps}>
         <button type="button" onClick={() => onNavigate('recents')}>
           <AppGlyph kind="calls" />
-          <span>Aramalar</span>
-          {actions.length > 0 ? <b className="iphone-app-badge" aria-label={`${actions.length} yeni işlem`}>{actions.length}</b> : null}
+          <span>{labels.calls}</span>
+          {actions.length > 0 ? <b className="iphone-app-badge" aria-label={labels.newActions(actions.length)}>{actions.length}</b> : null}
         </button>
         <button type="button" onClick={() => onNavigate('contacts')}>
           <AppGlyph kind="contacts" />
-          <span>Kişiler</span>
+          <span>{labels.contacts}</span>
         </button>
         <button type="button" onClick={() => onNavigate('contacts')}>
           <AppGlyph kind="messages" />
-          <span>Mesajlar</span>
+          <span>{labels.messages}</span>
         </button>
         <button type="button" onClick={() => onNavigate('recents')}>
           <AppGlyph kind="case" />
-          <span>Vaka Hattı</span>
+          <span>{labels.caseLine}</span>
         </button>
       </nav>
 
-      <nav className="iphone-home-dock" aria-label="Sık kullanılan uygulamalar">
-        <button type="button" aria-label="Aramaları aç" onClick={() => onNavigate('recents')}><AppGlyph kind="calls" /></button>
-        <button type="button" aria-label="Kişileri aç" onClick={() => onNavigate('contacts')}><AppGlyph kind="contacts" /></button>
-        <button type="button" aria-label="Mesajları aç" onClick={() => onNavigate('contacts')}><AppGlyph kind="messages" /></button>
+      <nav className="iphone-home-dock" aria-label={labels.favoriteApps}>
+        <button type="button" aria-label={labels.openCalls} onClick={() => onNavigate('recents')}><AppGlyph kind="calls" /></button>
+        <button type="button" aria-label={labels.openContacts} onClick={() => onNavigate('contacts')}><AppGlyph kind="contacts" /></button>
+        <button type="button" aria-label={labels.openMessages} onClick={() => onNavigate('contacts')}><AppGlyph kind="messages" /></button>
       </nav>
     </main>
   )
@@ -549,6 +586,7 @@ export function PhoneApp({
   openContactRequest,
   busy = false,
 }: PhoneAppProps) {
+  const locale = useUiLocale()
   const contactsTitleId = useId()
   const recentsTitleId = useId()
   const contactHeadingRef = useRef<HTMLHeadingElement>(null)
@@ -559,13 +597,13 @@ export function PhoneApp({
   const [openedContactId, setOpenedContactId] = useState<string>()
   const [contactQuery, setContactQuery] = useState('')
   const [recentFilter, setRecentFilter] = useState<RecentFilter>('all')
-  const labels = { ...DEFAULT_LABELS, ...labelOverrides }
+  const labels = { ...useUiCopy(LABELS), ...labelOverrides }
   const selectedContact = model.contacts.find(({ id }) => id === openedContactId)
     ?? model.contacts.find(({ id }) => id === model.selectedContactId)
     ?? model.contacts[0]
   const contacts = model.contacts.filter((contact) => (
-    `${contact.name} ${contact.roleLabel ?? ''}`.toLocaleLowerCase('tr')
-      .includes(contactQuery.trim().toLocaleLowerCase('tr'))
+    `${contact.name} ${contact.roleLabel ?? ''}`.toLocaleLowerCase(localeTag(locale))
+      .includes(contactQuery.trim().toLocaleLowerCase(localeTag(locale)))
   ))
   const recentCalls = recentFilter === 'missed'
     ? model.recentCalls.filter(({ direction }) => direction === 'missed')
@@ -629,7 +667,7 @@ export function PhoneApp({
 
   return (
     <section className={`phone-realistic ${inCall ? 'phone-realistic--in-call' : ''}`} aria-label={labels.title}>
-      <StatusBar timeLabel={model.clockLabel} light={inCall || screen === 'home'} />
+      <StatusBar timeLabel={model.clockLabel} labels={labels} light={inCall || screen === 'home'} />
 
       {model.outgoingCall ? (
         <OutgoingCallScreen
@@ -712,14 +750,14 @@ export function PhoneApp({
           <time>{model.activeCall.elapsedLabel}</time>
 
           <div className="iphone-live-controls" aria-hidden="true">
-            <span><i><Icon src={micOffIcon} /></i><small>Sessiz</small></span>
-            <span><i><Icon src={gridIcon} /></i><small>Tuşlar</small></span>
-            <span><i><Icon src={volumeIcon} /></i><small>Hoparlör</small></span>
+            <span><i><Icon src={micOffIcon} /></i><small>{labels.mute}</small></span>
+            <span><i><Icon src={gridIcon} /></i><small>{labels.keypad}</small></span>
+            <span><i><Icon src={volumeIcon} /></i><small>{labels.speaker}</small></span>
           </div>
 
           {model.activeCall.transcript && model.activeCall.transcript.length > 0 ? (
-            <section className="iphone-transcript" aria-label="Görüşme notları">
-              <header><span aria-hidden="true" /><strong>Canlı görüşme notları</strong></header>
+            <section className="iphone-transcript" aria-label={labels.callNotes}>
+              <header><span aria-hidden="true" /><strong>{labels.liveCallNotes}</strong></header>
               <div>
                 {model.activeCall.transcript.map((line, index) => (
                   <TranscriptReply key={`${index}:${line}`} line={line} />
@@ -742,6 +780,7 @@ export function PhoneApp({
         <HomeScreen
           actions={model.affordances ?? []}
           contact={selectedContact}
+          labels={labels}
           busy={busy}
           onAction={onAffordance}
           onNavigate={setScreen}
@@ -750,15 +789,15 @@ export function PhoneApp({
       ) : screen === 'contacts' ? (
         <main className="iphone-app-screen iphone-contacts-screen">
           <header className="iphone-navigation-title">
-            <BackButton label="Ana Ekran" onClick={() => setScreen('home')} />
+            <BackButton label={labels.homeScreen} onClick={() => setScreen('home')} />
             <h2 id={contactsTitleId}>{labels.contacts}</h2>
             <label className="iphone-search">
               <Icon className="iphone-search__icon" src={searchIcon} />
-              <span className="detective-sr-only">Kişilerde ara</span>
+              <span className="detective-sr-only">{labels.searchContacts}</span>
               <input
                 type="search"
                 value={contactQuery}
-                placeholder="Ara"
+                placeholder={labels.search}
                 onChange={(event) => setContactQuery(event.target.value)}
               />
             </label>
@@ -851,16 +890,16 @@ export function PhoneApp({
       ) : (
         <main className="iphone-app-screen iphone-recents-screen">
           <header className="iphone-navigation-title">
-            <BackButton label="Ana Ekran" onClick={() => setScreen('home')} />
+            <BackButton label={labels.homeScreen} onClick={() => setScreen('home')} />
             <h2 id={recentsTitleId}>{labels.recentCalls}</h2>
-            <div className="iphone-segmented" aria-label="Arama filtresi">
+            <div className="iphone-segmented" aria-label={labels.callFilter}>
               <button
                 type="button"
                 className={recentFilter === 'all' ? 'is-active' : ''}
                 aria-pressed={recentFilter === 'all'}
                 onClick={() => setRecentFilter('all')}
               >
-                Tümü
+                {labels.all}
               </button>
               <button
                 type="button"
@@ -873,7 +912,7 @@ export function PhoneApp({
             </div>
           </header>
 
-          <ActionList actions={model.affordances ?? []} busy={busy} onAction={onAffordance} />
+          <ActionList actions={model.affordances ?? []} labels={labels} busy={busy} onAction={onAffordance} />
 
           <section className="iphone-list iphone-call-list" aria-labelledby={recentsTitleId}>
             {recentCalls.length === 0 ? (
@@ -888,7 +927,7 @@ export function PhoneApp({
                         directionLabels[call.direction],
                         call.detailLabel,
                         call.durationLabel,
-                      ].filter(Boolean).join(' · ')}. ${call.timestampLabel}. Kişiyi aç.`}
+                      ].filter(Boolean).join(' · ')}. ${call.timestampLabel}. ${labels.openContact}`}
                       onClick={() => openContact(call.contactId)}
                     >
                       <span className={`iphone-call-direction iphone-call-direction--${call.direction}`}>
@@ -914,7 +953,7 @@ export function PhoneApp({
       )}
 
       {!inCall && screen !== 'home' ? (
-        <nav className="iphone-tab-bar" aria-label="Alt gezinme">
+        <nav className="iphone-tab-bar" aria-label={labels.bottomNavigation}>
           <button type="button" className={screen === 'recents' ? 'is-active' : ''} onClick={() => setScreen('recents')}>
             <span className="iphone-tab-glyph"><Icon src={clockIcon} /></span>
             {labels.recentCalls}
@@ -927,7 +966,7 @@ export function PhoneApp({
       ) : null}
 
       {!inCall ? (
-        <button type="button" className="iphone-home-indicator" aria-label="Ana ekrana dön" onClick={() => setScreen('home')} />
+        <button type="button" className="iphone-home-indicator" aria-label={labels.returnHome} onClick={() => setScreen('home')} />
       ) : <span className="iphone-home-indicator" aria-hidden="true" />}
     </section>
   )

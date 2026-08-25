@@ -22,6 +22,7 @@ import sendIcon from 'lucide-static/icons/send-horizontal.svg'
 import smileIcon from 'lucide-static/icons/smile.svg'
 import usersIcon from 'lucide-static/icons/users.svg'
 
+import { localeTag, useUiCopy, useUiLocale, type AppLocale } from '../../ui-locale'
 import { AssetPreview } from './shared'
 import './inbox-realistic.css'
 import type {
@@ -47,42 +48,76 @@ export interface InboxLabels {
   readonly quickPromptsHint: string
   readonly ask: string
   readonly waiting: string
+  readonly searchWorkspace: string
+  readonly searchIn: (workspace: string) => string
+  readonly mainMenu: string
+  readonly home: string
+  readonly activity: string
+  readonly mentions: string
+  readonly files: string
+  readonly detectiveOnline: string
+  readonly investigationDesk: string
+  readonly inbox: string
+  readonly channels: string
+  readonly privateChannel: string
+  readonly directMessages: string
+  readonly messages: string
+  readonly forensicsTeam: string
+  readonly secureWorkspace: (name: string) => string
+  readonly typing: (name: string) => string
+  readonly forensicsPlaceholder: string
 }
 
-const DEFAULT_LABELS: InboxLabels = {
-  title: 'Dedektif Ekibi',
-  eyebrow: 'Güvenli ekip alanı',
-  threads: 'Kanallar ve mesajlar',
-  unread: 'Okunmamış',
-  noThreads: 'Gelen kutusu boş.',
-  noThreadSelected: 'Okumak için bir yazışma seçin.',
-  replyPlaceholder: 'Yanıtınızı yazın…',
-  reply: 'Gönder',
-  sending: 'Gönderiliyor…',
-  openAttachment: 'Eki aç',
-  imageAttachmentMeta: 'Görsel eki · İnceleme kaydı',
-  quickPrompts: 'Ekibe sor',
-  quickPromptsHint: 'Vakadaki açık araştırmalar',
-  ask: 'Sor',
-  waiting: 'Yanıt bekleniyor',
+const LABELS: Readonly<Record<AppLocale, InboxLabels>> = {
+  tr: {
+    title: 'Dedektif Ekibi', eyebrow: 'Güvenli ekip alanı', threads: 'Kanallar ve mesajlar', unread: 'Okunmamış',
+    noThreads: 'Gelen kutusu boş.', noThreadSelected: 'Okumak için bir yazışma seçin.', replyPlaceholder: 'Yanıtınızı yazın…',
+    reply: 'Gönder', sending: 'Gönderiliyor…', openAttachment: 'Eki aç', imageAttachmentMeta: 'Görsel eki · İnceleme kaydı',
+    quickPrompts: 'Ekibe sor', quickPromptsHint: 'Vakadaki açık araştırmalar', ask: 'Sor', waiting: 'Yanıt bekleniyor',
+    searchWorkspace: 'Çalışma alanında ara', searchIn: (workspace) => `${workspace} içinde ara`, mainMenu: 'Ana menü',
+    home: 'Ana Sayfa', activity: 'Aktivite', mentions: 'Bahsetmeler', files: 'Dosyalar', detectiveOnline: 'Dedektif çevrimiçi',
+    investigationDesk: 'Soruşturma masası', inbox: 'Gelen Kutusu', channels: 'Kanallar', privateChannel: 'özel kanal',
+    directMessages: 'Doğrudan mesajlar', messages: 'Mesajlar', forensicsTeam: 'Adli inceleme ekibi',
+    secureWorkspace: (name) => `${name} ile güvenli çalışma alanı.`, typing: () => 'yazıyor',
+    forensicsPlaceholder: '#forensics kanalına mesaj gönder',
+  },
+  en: {
+    title: 'Detective Team', eyebrow: 'Secure team space', threads: 'Channels and messages', unread: 'Unread',
+    noThreads: 'The inbox is empty.', noThreadSelected: 'Select a conversation to read it.', replyPlaceholder: 'Write a reply…',
+    reply: 'Send', sending: 'Sending…', openAttachment: 'Open attachment', imageAttachmentMeta: 'Image attachment · Review record',
+    quickPrompts: 'Ask the team', quickPromptsHint: 'Open research tasks in this case', ask: 'Ask', waiting: 'Waiting for reply',
+    searchWorkspace: 'Search workspace', searchIn: (workspace) => `Search in ${workspace}`, mainMenu: 'Main menu',
+    home: 'Home', activity: 'Activity', mentions: 'Mentions', files: 'Files', detectiveOnline: 'Detective online',
+    investigationDesk: 'Investigation desk', inbox: 'Inbox', channels: 'Channels', privateChannel: 'private channel',
+    directMessages: 'Direct messages', messages: 'Messages', forensicsTeam: 'Forensics team',
+    secureWorkspace: (name) => `Secure workspace with ${name}.`, typing: () => 'is typing',
+    forensicsPlaceholder: 'Send a message to #forensics',
+  },
 }
 
-const DEFAULT_CHANNELS: readonly InboxChannelViewModel[] = [
-  { id: 'case-desk', label: 'vaka-merkezi', topic: 'Aktif vakalar ve saha notları' },
-  { id: 'forensics', label: 'forensics', topic: 'Dijital ve fiziksel delil incelemeleri' },
-  { id: 'closed-work', label: 'kapananlar', topic: 'Tamamlanan ekip işleri' },
-]
+const DEFAULT_CHANNELS: Readonly<Record<AppLocale, readonly InboxChannelViewModel[]>> = {
+  tr: [
+    { id: 'case-desk', label: 'vaka-merkezi', topic: 'Aktif vakalar ve saha notları' },
+    { id: 'forensics', label: 'forensics', topic: 'Dijital ve fiziksel delil incelemeleri' },
+    { id: 'closed-work', label: 'kapananlar', topic: 'Tamamlanan ekip işleri' },
+  ],
+  en: [
+    { id: 'case-desk', label: 'case-desk', topic: 'Active cases and field notes' },
+    { id: 'forensics', label: 'forensics', topic: 'Digital and physical evidence reviews' },
+    { id: 'closed-work', label: 'closed-work', topic: 'Completed team work' },
+  ],
+}
 
 function Icon({ src, className = '' }: { readonly src: string; readonly className?: string }) {
   return <img className={className} src={src} alt="" aria-hidden="true" draggable={false} />
 }
 
-function initialsFor(name: string) {
+function initialsFor(name: string, locale: AppLocale) {
   const initials = name
     .split(/\s+/u)
     .filter(Boolean)
     .slice(0, 2)
-    .map((part) => part[0]?.toLocaleUpperCase('tr-TR') ?? '')
+    .map((part) => part[0]?.toLocaleUpperCase(localeTag(locale)) ?? '')
     .join('')
   return initials || 'D'
 }
@@ -115,12 +150,13 @@ function StreamingText({ body }: { readonly body: string }) {
 }
 
 function MessageAvatar({ message }: { readonly message: InboxMessageViewModel }) {
+  const locale = useUiLocale()
   if (message.direction === 'outgoing') {
     return <span className="workspace-avatar workspace-avatar--detective" aria-hidden="true">D</span>
   }
   return (
     <span className="workspace-avatar workspace-avatar--forensics" aria-hidden="true">
-      {message.avatarLabel?.trim() || initialsFor(message.author)}
+      {message.avatarLabel?.trim() || initialsFor(message.author, locale)}
       <i />
     </span>
   )
@@ -216,13 +252,15 @@ export function InboxApp({
 }: InboxAppProps) {
   const replyId = useId()
   const messagesRef = useRef<HTMLOListElement>(null)
-  const labels = { ...DEFAULT_LABELS, ...labelOverrides }
+  const locale = useUiLocale()
+  const labels = { ...useUiCopy(LABELS), ...labelOverrides }
   const selectedThread = model.threads.find(({ id }) => id === model.selectedThreadId)
   const unreadCount = model.threads.filter(({ unread }) => unread).length
-  const channels = model.channels?.length ? model.channels : DEFAULT_CHANNELS
+  const defaultChannels = useUiCopy(DEFAULT_CHANNELS)
+  const channels = model.channels?.length ? model.channels : defaultChannels
   const selectedChannelId = model.selectedChannelId ?? selectedThread?.channelId ?? 'inbox'
   const selectedChannel = channels.find(({ id }) => id === selectedChannelId)
-  const isForensics = selectedChannel?.id === 'forensics' || selectedChannel?.label.toLocaleLowerCase('tr-TR') === 'forensics'
+  const isForensics = selectedChannel?.id === 'forensics' || selectedChannel?.label.toLocaleLowerCase(localeTag(locale)) === 'forensics'
   const channelLead = model.channelLead
   const hasStreamingMessage = model.messages.some(({ streaming }) => streaming)
   const quickPrompts = (model.quickPrompts ?? []).filter(({ channelId }) => (
@@ -247,28 +285,28 @@ export function InboxApp({
         <div className="workspace-topbar__history" aria-hidden="true">
           <Icon src={historyIcon} />
         </div>
-        <div className="workspace-search" role="search" aria-label="Çalışma alanında ara">
+        <div className="workspace-search" role="search" aria-label={labels.searchWorkspace}>
           <Icon src={searchIcon} />
-          <span>{model.workspaceLabel ?? labels.title} içinde ara</span>
+          <span>{labels.searchIn(model.workspaceLabel ?? labels.title)}</span>
         </div>
         <Icon className="workspace-topbar__help" src={helpIcon} />
       </header>
 
       <div className="workspace-shell">
-        <nav className="workspace-rail" aria-label="Ana menü">
+        <nav className="workspace-rail" aria-label={labels.mainMenu}>
           <span className="workspace-mark" aria-hidden="true">D</span>
-          <span className="workspace-rail__item is-active"><Icon src={homeIcon} /><small>Ana Sayfa</small></span>
-          <span className="workspace-rail__item"><Icon src={bellIcon} /><small>Aktivite</small></span>
-          <span className="workspace-rail__item"><Icon src={atSignIcon} /><small>Bahsetmeler</small></span>
-          <span className="workspace-rail__item"><Icon src={fileTextIcon} /><small>Dosyalar</small></span>
-          <span className="workspace-user-avatar" aria-label="Dedektif çevrimiçi">D<i /></span>
+          <span className="workspace-rail__item is-active"><Icon src={homeIcon} /><small>{labels.home}</small></span>
+          <span className="workspace-rail__item"><Icon src={bellIcon} /><small>{labels.activity}</small></span>
+          <span className="workspace-rail__item"><Icon src={atSignIcon} /><small>{labels.mentions}</small></span>
+          <span className="workspace-rail__item"><Icon src={fileTextIcon} /><small>{labels.files}</small></span>
+          <span className="workspace-user-avatar" aria-label={labels.detectiveOnline}>D<i /></span>
         </nav>
 
         <aside className="workspace-sidebar">
           <header className="workspace-sidebar__header">
             <div>
               <strong>{model.workspaceLabel ?? labels.title}</strong>
-              <span><i /> Soruşturma masası</span>
+              <span><i /> {labels.investigationDesk}</span>
             </div>
             <Icon src={chevronDownIcon} />
           </header>
@@ -277,18 +315,18 @@ export function InboxApp({
             <div className="workspace-nav-section">
               <span className={`workspace-nav-row ${selectedChannelId === 'inbox' ? 'is-active' : ''}`.trim()}>
                 <Icon src={inboxIcon} />
-                <strong>Gelen Kutusu</strong>
+                <strong>{labels.inbox}</strong>
                 {unreadCount > 0 ? <b aria-label={`${labels.unread}: ${unreadCount}`}>{unreadCount}</b> : null}
               </span>
             </div>
 
-            <section className="workspace-channel-group" aria-label="Kanallar">
-              <header><Icon src={chevronDownIcon} /><strong>Kanallar</strong><Icon src={plusIcon} /></header>
+            <section className="workspace-channel-group" aria-label={labels.channels}>
+              <header><Icon src={chevronDownIcon} /><strong>{labels.channels}</strong><Icon src={plusIcon} /></header>
               <ol>
                 {channels.map((channel) => {
                   const selected = channel.id === selectedChannelId
                   const channelAriaLabel = channel.private
-                    ? `${channel.label}, özel kanal`
+                    ? `${channel.label}, ${labels.privateChannel}`
                     : channel.label
                   const channelThread = channel.threadId
                     ? model.threads.find(({ id }) => id === channel.threadId)
@@ -328,8 +366,8 @@ export function InboxApp({
               </ol>
             </section>
 
-            <section className="workspace-channel-group workspace-channel-group--messages" aria-label="Doğrudan mesajlar">
-              <header><Icon src={chevronDownIcon} /><strong>Mesajlar</strong><Icon src={plusIcon} /></header>
+            <section className="workspace-channel-group workspace-channel-group--messages" aria-label={labels.directMessages}>
+              <header><Icon src={chevronDownIcon} /><strong>{labels.messages}</strong><Icon src={plusIcon} /></header>
               {model.threads.length === 0 ? (
                 <p>{labels.noThreads}</p>
               ) : (
@@ -344,7 +382,7 @@ export function InboxApp({
                           aria-current={selected ? 'page' : undefined}
                           onClick={() => onSelectThread?.(thread.id)}
                         >
-                          <span className="workspace-mini-avatar" aria-hidden="true">{initialsFor(thread.sender)}</span>
+                          <span className="workspace-mini-avatar" aria-hidden="true">{initialsFor(thread.sender, locale)}</span>
                           <span>{thread.sender}</span>
                           {thread.badgeLabel ? <b>{thread.badgeLabel}</b> : null}
                         </button>
@@ -372,7 +410,7 @@ export function InboxApp({
                   {isForensics && channelLead ? (
                     <span className="workspace-lead">
                       <span className="workspace-mini-avatar workspace-mini-avatar--lead" aria-hidden="true">
-                        {channelLead.avatarLabel?.trim() || initialsFor(channelLead.name)}<i />
+                        {channelLead.avatarLabel?.trim() || initialsFor(channelLead.name, locale)}<i />
                       </span>
                       <span><strong>{channelLead.name}</strong><small>{channelLead.roleLabel}</small></span>
                     </span>
@@ -391,7 +429,7 @@ export function InboxApp({
                   <span><Icon src={isForensics ? activityIcon : hashIcon} /></span>
                   <div>
                     <h3>{selectedChannel ? `# ${selectedChannel.label}` : selectedThread.subject}</h3>
-                    <p>{isForensics ? `${channelLead?.name ?? 'Adli inceleme ekibi'} ile güvenli çalışma alanı.` : selectedThread.preview}</p>
+                    <p>{isForensics ? labels.secureWorkspace(channelLead?.name ?? labels.forensicsTeam) : selectedThread.preview}</p>
                   </div>
                 </li>
                 {model.messages.map((message) => (
@@ -450,8 +488,8 @@ export function InboxApp({
                 ))}
                 {model.typingAuthor ? (
                   <li className="workspace-typing" role="status">
-                    <span className="workspace-avatar workspace-avatar--forensics" aria-hidden="true">{initialsFor(model.typingAuthor)}<i /></span>
-                    <p><strong>{model.typingAuthor}</strong> yazıyor<span aria-hidden="true"><i /><i /><i /></span></p>
+                    <span className="workspace-avatar workspace-avatar--forensics" aria-hidden="true">{initialsFor(model.typingAuthor, locale)}<i /></span>
+                    <p><strong>{model.typingAuthor}</strong> {labels.typing(model.typingAuthor)}<span aria-hidden="true"><i /><i /><i /></span></p>
                   </li>
                 ) : null}
               </ol>
@@ -508,7 +546,7 @@ export function InboxApp({
                       id={replyId}
                       value={model.replyDraft}
                       onChange={(event) => onReplyDraftChange?.(event.currentTarget.value)}
-                      placeholder={isForensics ? '#forensics kanalına mesaj gönder' : labels.replyPlaceholder}
+                      placeholder={isForensics ? labels.forensicsPlaceholder : labels.replyPlaceholder}
                       rows={2}
                     />
                     <div className="workspace-composer__tools" aria-hidden="true">

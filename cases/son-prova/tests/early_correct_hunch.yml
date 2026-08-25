@@ -5,16 +5,36 @@ case: {id: official.son-prova, version: 0.4.2}
 scenario:
   id: early_correct_hunch
   perspective: detective
-  description: Name the right person immediately, end the case, and receive accuracy credit without proof credit.
+  description: Reveal the person, name the right person immediately, and receive accuracy credit without proof credit.
   steps:
     - expect:
         state:
           status: active
           clocks: {case-time: 0s}
           affordances:
+            conclude_selin: hidden
+            conclude_baran: hidden
+            conclude_leyla: hidden
+
+    - detective.conclude: selin
+      expect:
+        result: {status: denied, code: affordance-unavailable}
+        state:
+          status: active
+          clocks: {case-time: 0s}
+          contacts: {selin: hidden}
+
+    - detective.act: {action: locate-contact, target: selin}
+      expect:
+        result: {status: accepted}
+        state:
+          status: active
+          clocks: {case-time: 0s}
+          contacts: {selin: listed, baran: hidden, leyla: hidden}
+          affordances:
             conclude_selin: offered
-            conclude_baran: offered
-            conclude_leyla: offered
+            conclude_baran: hidden
+            conclude_leyla: hidden
 
     - detective.conclude: selin
       expect:

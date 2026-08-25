@@ -23,6 +23,11 @@ scenario:
             interview_baran_location: hidden
             interview_selin_alibi: hidden
             interview_leyla: hidden
+            conclude_baran: hidden
+            conclude_selin: hidden
+            conclude_leyla: hidden
+            accuse_baran: hidden
+            accuse_leyla: hidden
 
     - detective.act: {action: interview, actor: baran, topic: location}
       expect:
@@ -40,13 +45,18 @@ scenario:
           affordances:
             locate_baran_contact: hidden
             interview_baran_location: offered
+            conclude_baran: offered
+            conclude_selin: hidden
+            conclude_leyla: hidden
     - detective.act: {action: interview, actor: baran, topic: location}
       expect:
         result: {status: accepted}
         state:
           clocks: {case-time: 4m}
           contacts: {baran: listed, selin: hidden}
-          affordances: {locate_selin_contact: offered}
+          affordances:
+            locate_selin_contact: offered
+            conclude_selin: hidden
           evidence: {cafe_video: available}
 
     - detective.act: {action: locate-contact, target: selin}
@@ -58,13 +68,18 @@ scenario:
           affordances:
             locate_selin_contact: hidden
             interview_selin_alibi: offered
+            conclude_selin: offered
+            conclude_leyla: hidden
     - detective.act: {action: interview, actor: selin, topic: alibi}
       expect:
         result: {status: accepted}
         state:
           clocks: {case-time: 8m}
           contacts: {selin: listed, leyla: hidden}
-          affordances: {locate_leyla_contact: offered}
+          affordances:
+            locate_leyla_contact: offered
+            conclude_leyla: hidden
+            accuse_leyla: hidden
           evidence: {livestream: available}
 
     - detective.act: {action: locate-contact, target: leyla}
@@ -76,6 +91,7 @@ scenario:
           affordances:
             locate_leyla_contact: hidden
             interview_leyla: offered
+            conclude_leyla: offered
     - detective.act: {action: interview, actor: leyla}
       expect:
         result: {status: accepted}

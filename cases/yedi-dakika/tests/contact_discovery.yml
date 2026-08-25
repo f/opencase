@@ -1,5 +1,5 @@
 schema: case-test/v0.1
-case: {id: community.fka.yedi-dakika, version: 0.4.1}
+case: {id: community.fka.yedi-dakika, version: 0.4.2}
 
 scenario:
   id: contact_discovery
@@ -20,6 +20,7 @@ scenario:
             interview_leyla: offered
             interview_mert_location: hidden
             interview_nihan: hidden
+            accuse_mert: hidden
 
     - detective.act: {action: interview, actor: mert, topic: location}
       expect:
@@ -48,6 +49,7 @@ scenario:
           affordances:
             locate_mert_contact: offered
             interview_mert_location: hidden
+            accuse_mert: hidden
 
     - detective.act: {action: locate-contact, target: mert}
       expect:
@@ -59,6 +61,7 @@ scenario:
             locate_mert_contact: hidden
             locate_nihan_contact: offered
             interview_mert_location: offered
+            accuse_mert: offered
 
     - detective.act: {action: locate-contact, target: nihan}
       expect:

@@ -1,5 +1,6 @@
 import { useId } from 'react'
 
+import { useUiCopy, type AppLocale } from '../../ui-locale'
 import { AssetGlyph, CountBadge, EmptyState } from './shared'
 import type { EvidenceQuestionsViewModel } from './types'
 
@@ -14,15 +15,27 @@ export interface EvidenceQuestionsLabels {
   readonly noQuestions: string
 }
 
-const DEFAULT_LABELS: EvidenceQuestionsLabels = {
-  evidence: 'Kanıt',
-  questions: 'Sorular',
-  observed: 'İncelendi',
-  available: 'Yeni',
-  open: 'Açık',
-  answered: 'Yanıtlandı',
-  noEvidence: 'Henüz kanıt yok.',
-  noQuestions: 'Açık soru yok.',
+const LABELS: Readonly<Record<AppLocale, EvidenceQuestionsLabels>> = {
+  tr: {
+    evidence: 'Kanıt',
+    questions: 'Sorular',
+    observed: 'İncelendi',
+    available: 'Yeni',
+    open: 'Açık',
+    answered: 'Yanıtlandı',
+    noEvidence: 'Henüz kanıt yok.',
+    noQuestions: 'Açık soru yok.',
+  },
+  en: {
+    evidence: 'Evidence',
+    questions: 'Questions',
+    observed: 'Reviewed',
+    available: 'New',
+    open: 'Open',
+    answered: 'Answered',
+    noEvidence: 'No evidence yet.',
+    noQuestions: 'No open questions.',
+  },
 }
 
 export interface EvidenceQuestionsRailProps {
@@ -40,7 +53,7 @@ export function EvidenceQuestionsRail({
 }: EvidenceQuestionsRailProps) {
   const evidenceTitleId = useId()
   const questionsTitleId = useId()
-  const labels = { ...DEFAULT_LABELS, ...labelOverrides }
+  const labels = { ...useUiCopy(LABELS), ...labelOverrides }
   const openQuestions = model.questions.filter(({ status }) => status === 'open').length
 
   return (

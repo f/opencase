@@ -27,6 +27,7 @@ export type {
   DesktopLayoutPersistence,
   DesktopLayoutSnapshot,
   DesktopShellProps,
+  DesktopSettingsWindowActions,
   DesktopSize,
   DesktopWindowLayout,
   DesktopWindowMode,

@@ -18,6 +18,7 @@ import {
   type RuntimeAssessmentDefinition,
   type RuntimeObjectiveCondition,
 } from './protocol'
+import { isActorDecisionTargetListed } from './decision-visibility'
 
 const CATALOG_KEY = 'investigation@1'
 
@@ -398,20 +399,7 @@ export function projectCaseState(
         }
         if (definition.intent.kind !== 'action') return true
         const action = definition.intent.action
-        const referencedActorIds = [action.actor, action.target, action.from].filter(
-          (candidate): candidate is string => (
-            candidate !== undefined && Object.hasOwn(privateCatalog.actors, candidate)
-          ),
-        )
-        const referencesUnavailableActor = referencedActorIds.some((id) => (
-          !listedActorIds.has(id)
-        ))
-        const isPublicRevealInteraction = (
-          definition.surface === 'inbox'
-          && definition.interaction?.kind === 'async-message'
-          && referencedActorIds.every((id) => privateCatalog.actors[id]?.public === true)
-        )
-        if (referencesUnavailableActor && !isPublicRevealInteraction) return false
+        if (!isActorDecisionTargetListed(privateCatalog, actorSlots, action)) return false
         const prerequisite = action.evidence ?? (
           action.ref && privateCatalog.evidence[action.ref] ? action.ref : undefined
         )

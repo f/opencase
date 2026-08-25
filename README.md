@@ -15,11 +15,13 @@ evaluated only against the sanitized player projection.
 This repository remains **engine-first**, but now includes a working
 macOS-inspired detective desktop: draggable and resizable application
 windows, menu bar, Dock, casebook, case board, inbox, phone, files, research, and
-case-scoped layout persistence. The static browser build consumes sanitized
-public manifests only. A trusted host connects those presentation components
-to `CaseSessionController` for authoritative commands and `kernel-save@1`
-persistence. Case semantics still live in YAML and fixed engine capabilities,
-not in case-specific React or TypeScript code.
+case-scoped layout persistence. Local player profiles keep separate progress
+and language preferences, while the trusted host can install complete GitHub
+case folders or small direct YAML cases. The browser consumes sanitized public
+manifests and runtime projections only. A trusted host connects those
+presentation components to `CaseSessionController` for authoritative commands
+and `kernel-save@1` persistence. Case semantics still live in YAML and fixed
+engine capabilities, not in case-specific React or TypeScript code.
 
 ## Start here
 
@@ -51,6 +53,9 @@ If you want to author a case rather than study the engine, continue with:
   invoking, or adapting the included `$write-detective-case` workflow;
 - [engine contract](docs/engine-contract.md) for the normative kernel and
   trust-boundary rules;
+- [local profiles and case library](docs/player-profiles-and-case-library.md)
+  for language switching, per-profile saves, URL imports, safety limits, and
+  verification labels;
 - [desktop shell contract](src/shell/README.md) for window behavior and the
   strict split between engine saves and UI layout persistence.
 
@@ -118,10 +123,12 @@ cases/
         └── deadline-failure.yml
 ```
 
-The real `assets/`, `i18n/`, and `tests/` directories are required. `assets/` may be
-empty; `tests/` must contain at least one `<scenario-id>.yml`. The folder can
-travel as one unit, be validated in CI, and be compiled and tested without
-case-specific source code.
+The real `assets/`, `i18n/`, and `tests/` directories are required. `assets/` may
+be empty; a normal authored or GitHub package's `tests/` must contain at least
+one `<scenario-id>.yml`. The direct-YAML importer is the deliberate exception:
+it creates an empty wrapper package and reports the weaker compiler-and-smoke
+verification level. A complete folder can travel as one unit, be validated in
+CI, and be compiled and tested without case-specific source code.
 
 The current source schema is `case-source/v0.1`. At a high level, a case can
 declare:
@@ -145,6 +152,25 @@ See the [YAML case reference](docs/case-yaml-reference.md) for exact keys,
 shorthand forms, validation rules, and examples.
 See [case localization](docs/case-i18n.md) for `$text` references, strict
 catalogs, locale fallback, public manifests, and save-compatible digests.
+
+## Local players and installed cases
+
+Settings manages browser-local detective profiles. Each profile stores only a
+display name, Turkish or English preference, and selected case. The profile ID
+is passed to the trusted host as an opaque save slot, so progress and shell
+sidecars remain separate for every profile and exact case build. Profiles are
+not accounts: there is no password, cloud sync, or automatic recovery.
+
+The local case library accepts either a complete public GitHub package or one
+public direct YAML file. GitHub imports support `assets/`, `i18n/`, and authored
+`tests/`; the host pins the commit, compiles the package, and runs its scenarios.
+Direct YAML imports must be self-contained, use literal text, and declare no
+assets; they receive compiler and runtime-smoke verification only. Both paths
+fail closed before installation and cannot add executable engine code.
+
+See [Local player profiles and case library](docs/player-profiles-and-case-library.md)
+for the player flow, accepted URL forms, storage model, network limits, and the
+meaning of each verification level.
 
 ## Compilation pipeline
 
@@ -569,7 +595,8 @@ This boundary deliberately assigns different state to different owners:
 | Owner | State |
 | --- | --- |
 | Engine controller | Case clocks, observations, deductions, actor conversation states, schedules, conclusion, private capability state, event log |
-| Application host | Save location, autosave policy, encryption or account sync |
+| Application host | Save location, autosave policy, profile-to-save-slot mapping, import/verification, encryption or account sync |
+| Profile application | Local display name, preferred interface locale, selected case |
 | Detective shell | Open windows, bounds, focus order, minimized state, active tool, selected locale, case-board card positions and player-drawn links |
 
 Moving, minimizing, or reopening a desktop window must therefore never create
@@ -646,6 +673,7 @@ corresponding gate without adding its slug to TypeScript or `package.json`.
 | `npm run dev` | Generate public manifests and start the local detective desktop. |
 | `npm test` | Run compiler, kernel, runtime, persistence, simulator, and package tests. |
 | `npm run test:watch` | Run Vitest in watch mode. |
+| `npm run test:host` | Run the trusted local host, persistence, asset-delivery, and case-library API tests. |
 | `npm run cases:test` | Discover packages below `cases/` and execute all private detective scenarios. |
 | `npm run cases:compile` | Discover and compile every package below `cases/`. |
 | `npm run examples:test` | Discover teaching packages and execute every detective scenario. |
@@ -688,7 +716,11 @@ src/persistence/          Checksummed event-log saves and strict restore
 src/simulator/            External detective-test loader, runner, and replay checks
 src/case-package/         Package/asset validation, public build, asset gateway
 src/shell/                Generic desktop/window manager and sanitized detective apps
+src/settings/             Profile, language, case-library, and storage workspace
+src/player-profiles.ts    Browser-local profile store; no engine or case imports
 src/assets/shell/         ImageGen-created application icon assets
+server/case-library/      Trusted remote import, verification, and immutable library
+server/demo-host/         Local session/save, asset, and case-library HTTP host
 src/App.tsx               Public-manifest desktop composition and case selector
 ```
 
@@ -706,11 +738,15 @@ The completion gate covers both the generic engine and the presentation shell:
 - private case data and private asset locators stay outside public output;
 - traversal, tampering, stale schedules, invalid saves, and unsafe media fail
   closed;
+- profile IDs partition exact save and presentation slots without becoming an
+  engine concept;
+- imported packages compile and pass either full authored conformance or the
+  explicitly weaker direct-YAML runtime smoke before they enter the library;
 - shell layout state contains only geometry, focus, open/minimized state, and
   z-order, while gameplay state remains in the engine event log;
-- the static demo intentionally disables commands that require a trusted
-  private runtime; a hosted game connects the same callbacks to
-  `CaseSessionController` rather than duplicating state in React.
+- the local game keeps its controller, private packages, saves, imports, and
+  asset authorization in the trusted host rather than duplicating state in
+  React.
 
 The next gameplay UI should be a replaceable adapter over public manifests,
 runtime projections, commands, and authorized asset delivery. It should not add

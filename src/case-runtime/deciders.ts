@@ -22,6 +22,10 @@ import {
   type RuntimeProofAlternative,
   type RuntimeProofCheck,
 } from './protocol'
+import {
+  isActorDecisionAction,
+  isActorDecisionTargetListed,
+} from './decision-visibility'
 
 const CATALOG_KEY = 'investigation@1'
 
@@ -265,7 +269,7 @@ const performAction: CommandDecider = ({ state, command }) => {
     if (!catalog.allowedActions.includes(action)) {
       return reject('unsupported-action', `Action ${action} is not available in this case.`)
     }
-    const normalized: Record<string, string> = { action }
+    const normalized: Record<string, string> & { action: string } = { action }
     for (const field of ['target', 'actor', 'from', 'topic', 'evidence', 'tone', 'query', 'ref'] as const) {
       const value = command.payload[field]
       if (value !== undefined) normalized[field] = nonEmptyString(value, field)
@@ -278,14 +282,49 @@ const performAction: CommandDecider = ({ state, command }) => {
     const matchingAffordance = actionAffordances.find(({action: authored}) => (
       Object.entries(authored).every(([field, value]) => normalized[field] === value)
     ))
-    if (matchingAffordance) {
-      if (stableStringify(matchingAffordance.action) !== stableStringify(normalized)) {
+    const exactMatchingAffordance = matchingAffordance && (
+      stableStringify(matchingAffordance.action) === stableStringify(normalized)
+    )
+      ? matchingAffordance
+      : undefined
+    const affordanceSlots = object(slotObject(state).affordances, 'case runtime affordances')
+    const actorSlots = object(slotObject(state).actors, 'case runtime actors')
+    if (isActorDecisionAction(normalized)) {
+      const hasAuthoredFamily = actionAffordances.some(({action: authored}) => (
+        authored.action === action
+      ))
+      const exactAuthoredDecisionIsOffered = Boolean(
+        exactMatchingAffordance &&
+        affordanceSlots[exactMatchingAffordance.id] === 'offered',
+      )
+      const legacyFinalTargetIsAllowed = (
+        action === 'submit-conclusion' &&
+        !hasAuthoredFamily &&
+        Object.keys(normalized).length === 2 &&
+        typeof normalized.target === 'string' &&
+        catalog.allowedFinalTargets.includes(normalized.target)
+      )
+      const decisionIsAvailable = (
+        (hasAuthoredFamily ? exactAuthoredDecisionIsOffered : legacyFinalTargetIsAllowed) &&
+        isActorDecisionTargetListed(catalog, actorSlots, normalized) &&
+        (action !== 'submit-conclusion' || (
+          typeof normalized.target === 'string' &&
+          catalog.allowedFinalTargets.includes(normalized.target)
+        ))
+      )
+      if (!decisionIsAvailable) {
+        return reject(
+          'affordance-unavailable',
+          'That investigation action is not currently available.',
+        )
+      }
+    } else if (matchingAffordance) {
+      if (!exactMatchingAffordance) {
         return reject(
           'affordance-command-mismatch',
           'The investigation action does not match its authored public command.',
         )
       }
-      const affordanceSlots = object(slotObject(state).affordances, 'case runtime affordances')
       if (affordanceSlots[matchingAffordance.id] !== 'offered') {
         return reject('affordance-unavailable', 'That investigation action is not currently offered.')
       }
@@ -296,27 +335,6 @@ const performAction: CommandDecider = ({ state, command }) => {
         'affordance-command-mismatch',
         'The investigation action does not match its authored public command.',
       )
-    }
-    const referencedActorIds = ['actor', 'target', 'from'].flatMap((field) => {
-      const candidate = normalized[field]
-      return candidate && Object.hasOwn(catalog.actors, candidate) ? [candidate] : []
-    })
-    if (referencedActorIds.length > 0) {
-      const actorSlots = object(slotObject(state).actors, 'case runtime actors')
-      const referencesUnavailableActor = referencedActorIds.some((actorId) => {
-        const definition = catalog.actors[actorId]!
-        if (!definition.public) return true
-        const actorState = object(actorSlots[actorId], `actor state ${actorId}`)
-        return (actorState.contact ?? definition.contactInitial) !== 'listed'
-      })
-      const isPublicRevealInteraction = (
-        matchingAffordance?.definition.surface === 'inbox'
-        && matchingAffordance.definition.interaction?.kind === 'async-message'
-        && referencedActorIds.every((actorId) => catalog.actors[actorId]?.public === true)
-      )
-      if (referencesUnavailableActor && !isPublicRevealInteraction) {
-        return reject('actor-unavailable', 'That actor is not available for this action.')
-      }
     }
     const regulatedActors = Object.entries(catalog.actors).filter(([, definition]) =>
       Object.hasOwn(definition.channels, action),
@@ -340,7 +358,6 @@ const performAction: CommandDecider = ({ state, command }) => {
         return reject('actor-unavailable', 'That actor is not available for this action.')
       }
       const [actorId, definition] = candidate
-      const actorSlots = object(slotObject(state).actors, 'case runtime actors')
       const actorState = object(actorSlots[actorId], `actor state ${actorId}`)
       const contact = actorState.contact ?? definition.contactInitial
       if (contact !== 'listed') {

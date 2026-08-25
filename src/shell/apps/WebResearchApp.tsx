@@ -23,6 +23,7 @@ import xIcon from 'lucide-static/icons/x.svg'
 
 import './safari-realistic.css'
 
+import { useUiCopy, type AppLocale } from '../../ui-locale'
 import type { WebResearchViewModel } from './types'
 
 export interface WebResearchLabels {
@@ -47,38 +48,49 @@ export interface WebResearchLabels {
   readonly forward: string
   readonly newTab: string
   readonly secureConnection: string
+  readonly toolbar: string
+  readonly resultCount: (count: number) => string
 }
 
-const DEFAULT_LABELS: WebResearchLabels = {
-  title: 'Safari',
-  eyebrow: 'Araştırma önerileri',
-  searchPlaceholder: 'Ara veya web sitesi adı gir',
-  search: 'Ara',
-  searching: 'Aranıyor…',
-  results: 'Arama sonuçları',
-  noResults: 'Bu arama için sonuç bulunamadı.',
-  noPage: 'Aramak için bir konu yazın.',
-  backToResults: 'Sonuçlara dön',
-  save: 'Yer imlerine ekle',
-  saved: 'Yer imlerinden çıkar',
-  openResult: 'Sonucu aç',
-  startPage: 'Başlangıç Sayfası',
-  favorites: 'Sık Kullanılanlar',
-  suggestedSearches: 'Önerilen Aramalar',
-  privacyReport: 'Gizlilik Raporu',
-  privacyMessage: 'Bu özel araştırma oturumunda siteler arası takip kapalı.',
-  sidebar: 'Kenar çubuğu',
-  forward: 'İleri',
-  newTab: 'Yeni sekme',
-  secureConnection: 'Güvenli bağlantı',
+const LABELS: Readonly<Record<AppLocale, WebResearchLabels>> = {
+  tr: {
+    title: 'Safari', eyebrow: 'Araştırma önerileri', searchPlaceholder: 'Ara veya web sitesi adı gir',
+    search: 'Ara', searching: 'Aranıyor…', results: 'Arama sonuçları', noResults: 'Bu arama için sonuç bulunamadı.',
+    noPage: 'Aramak için bir konu yazın.', backToResults: 'Sonuçlara dön', save: 'Yer imlerine ekle',
+    saved: 'Yer imlerinden çıkar', openResult: 'Sonucu aç', startPage: 'Başlangıç Sayfası',
+    favorites: 'Sık Kullanılanlar', suggestedSearches: 'Önerilen Aramalar', privacyReport: 'Gizlilik Raporu',
+    privacyMessage: 'Bu özel araştırma oturumunda siteler arası takip kapalı.', sidebar: 'Kenar çubuğu',
+    forward: 'İleri', newTab: 'Yeni sekme', secureConnection: 'Güvenli bağlantı', toolbar: 'araç çubuğu',
+    resultCount: (count) => `${count} sonuç`,
+  },
+  en: {
+    title: 'Safari', eyebrow: 'Research suggestions', searchPlaceholder: 'Search or enter website name',
+    search: 'Search', searching: 'Searching…', results: 'Search results', noResults: 'No results found for this search.',
+    noPage: 'Enter a topic to search.', backToResults: 'Back to results', save: 'Add bookmark',
+    saved: 'Remove bookmark', openResult: 'Open result', startPage: 'Start Page',
+    favorites: 'Favorites', suggestedSearches: 'Suggested Searches', privacyReport: 'Privacy Report',
+    privacyMessage: 'Cross-site tracking is disabled in this private research session.', sidebar: 'Sidebar',
+    forward: 'Forward', newTab: 'New tab', secureConnection: 'Secure connection', toolbar: 'toolbar',
+    resultCount: (count) => `${count} ${count === 1 ? 'result' : 'results'}`,
+  },
 }
 
-const START_FAVORITES = [
-  { icon: landmarkIcon, title: 'Kamu Kayıtları', detail: 'Resmî arşivler' },
-  { icon: newspaperIcon, title: 'Haber Arşivi', detail: 'Yerel kaynaklar' },
-  { icon: mapIcon, title: 'Haritalar', detail: 'Adres ve konum' },
-  { icon: buildingIcon, title: 'Şirket Sicili', detail: 'Ticaret kayıtları' },
-] as const
+const START_FAVORITES = {
+  tr: [
+    { icon: landmarkIcon, title: 'Kamu Kayıtları', detail: 'Resmî arşivler' },
+    { icon: newspaperIcon, title: 'Haber Arşivi', detail: 'Yerel kaynaklar' },
+    { icon: mapIcon, title: 'Haritalar', detail: 'Adres ve konum' },
+    { icon: buildingIcon, title: 'Şirket Sicili', detail: 'Ticaret kayıtları' },
+  ],
+  en: [
+    { icon: landmarkIcon, title: 'Public Records', detail: 'Official archives' },
+    { icon: newspaperIcon, title: 'News Archive', detail: 'Local sources' },
+    { icon: mapIcon, title: 'Maps', detail: 'Addresses and locations' },
+    { icon: buildingIcon, title: 'Company Registry', detail: 'Business records' },
+  ],
+} as const satisfies Readonly<Record<AppLocale, readonly { icon: string; title: string; detail: string }[]>>
+
+type StartFavorite = { readonly icon: string; readonly title: string; readonly detail: string }
 
 function SafariIcon({ src, className = '' }: { readonly src: string; readonly className?: string }) {
   return (
@@ -119,7 +131,8 @@ export function WebResearchApp({
   const resultsTitleId = useId()
   const [editingAddress, setEditingAddress] = useState(false)
   const [addressDraft, setAddressDraft] = useState('')
-  const labels = { ...DEFAULT_LABELS, ...labelOverrides }
+  const labels = { ...useUiCopy(LABELS), ...labelOverrides }
+  const startFavorites = useUiCopy<readonly StartFavorite[]>(START_FAVORITES)
   const isStartPage = !model.activePage && !model.query.trim() && model.results.length === 0
   const displayedAddress = model.activePage?.displayUrl ?? model.query
   const addressValue = editingAddress ? addressDraft : displayedAddress
@@ -151,7 +164,7 @@ export function WebResearchApp({
           </button>
         </div>
 
-        <nav className="safari-toolbar" aria-label={`${labels.title} araç çubuğu`}>
+        <nav className="safari-toolbar" aria-label={`${labels.title} ${labels.toolbar}`}>
           <div className="safari-history-controls">
             <button
               type="button"
@@ -289,7 +302,7 @@ export function WebResearchApp({
             <section className="safari-start-section" aria-labelledby={`${resultsTitleId}-favorites`}>
               <h2 id={`${resultsTitleId}-favorites`}>{labels.favorites}</h2>
               <ul className="safari-favorites">
-                {START_FAVORITES.map((favorite) => (
+                {startFavorites.map((favorite) => (
                   <li key={favorite.title}>
                     <span aria-hidden="true"><SafariIcon src={favorite.icon} /></span>
                     <strong>{favorite.title}</strong>
@@ -315,7 +328,7 @@ export function WebResearchApp({
                 <p>{labels.results}</p>
                 <h1 id={resultsTitleId}>{model.query}</h1>
               </div>
-              {model.results.length > 0 ? <small>{model.results.length} sonuç</small> : null}
+              {model.results.length > 0 ? <small>{labels.resultCount(model.results.length)}</small> : null}
             </header>
 
             <section className="safari-results" aria-labelledby={resultsTitleId} aria-live="polite">

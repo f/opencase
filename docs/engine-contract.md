@@ -120,6 +120,19 @@ the actor ID, current state ID, `canTalk`, sorted channel verbs, and the current
 state's optional `reason` or `reasonKey`. Protected/hidden actors are omitted,
 so guessing one through a command does not reveal whether that actor exists.
 
+Official person decisions use the same public boundary. An actor-targeted
+`report-suspect` or `submit-conclusion` affordance is omitted until that actor's
+contact is `listed`, even if the private affordance slot is already offered.
+The command decider applies the same rule, so guessing an actor ID cannot bypass
+the projection. Hidden, unknown, malformed, withdrawn, and guessed person
+decisions all return the same unavailable result without an event. Decision
+actions route only through `target`; the compiler rejects `actor`/`from`
+variants, and `report-suspect` requires an exact offered affordance. This is
+capability-level behavior: it contains no case IDs or character names, does not
+depend on `canTalk`, and does not affect conclusions whose targets are objects,
+places, or abstract procedures. A finalized legacy save remains terminal even
+if its old event history did not list the selected actor first.
+
 ## Public affordance contract
 
 Player prompts are explicit case data, never inferred from private unlock
@@ -220,6 +233,35 @@ that opaque string—not a projection or hand-maintained gameplay state. Hosted
 builds that protect hidden information keep the controller, private IR, and
 save adapter outside the browser bundle and expose projections plus command
 callbacks to the desktop shell.
+
+### Profiles, locale, and installed packages
+
+A player profile is application state. The current local profile record contains
+an opaque ID, display name, preferred interface locale, and selected case ID.
+The application may pass the profile ID as `saveId`, but the controller treats
+that value only as an opaque storage partition. The engine does not create,
+rename, delete, authenticate, or synchronize profiles.
+
+Switching profiles therefore selects another exact save slot; it is not a case
+command and does not mutate either session. Deleting the browser profile record
+also does not imply deletion of host-side saves. Data erasure requires an
+explicit host policy over the relevant exact save keys.
+
+Language selection follows the same boundary. Interface copy belongs to the
+application, while authored case copy comes from the case presentation catalog.
+Neither is written into events or `kernel-save@1`. A host may re-project the
+same state with another available catalog without changing gameplay.
+
+Remote case installation is trusted-host infrastructure. A GitHub or direct
+YAML adapter may download, stage, validate, test, and immutably register a
+package. Only then does the normal compiler lower that package to the same
+generic kernel IR used by built-in cases. Import URLs, commits, verification
+labels, installation metadata, and filesystem paths never enter the engine or
+the player projection. Imported data cannot register executable capabilities;
+unknown capability vocabulary still fails compilation.
+
+See [Local player profiles and case library](player-profiles-and-case-library.md)
+for the current local host behavior and verification levels.
 
 ### Pre-session onboarding and true restart
 

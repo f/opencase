@@ -436,9 +436,11 @@ state:
 Accepted values are `listed` and `hidden`. A hidden contact has no public actor
 card, name, role, number, operator, contact source, or conversation state. A
 contact-discovery scenario must assert `hidden` and the matching Inbox
-affordance as `offered` in a stable checkpoint, dispatch that affordance's
-exact `locate-contact` action with an explicit accepted result, then assert
-`listed` on the action or the next checkpoint. `cases:test` automatically
+affordance as `offered` in a stable checkpoint. If the case has
+`report-suspect` or `submit-conclusion` affordances targeting that actor, the
+same checkpoint must assert each one as `hidden`. The scenario then dispatches
+the lookup's exact `locate-contact` action with an explicit accepted result and
+asserts `listed` on the action or the next checkpoint. `cases:test` automatically
 requires at least one passing scenario with that complete proof for every
 public conversation actor whose initial contact state is `hidden`. Protected
 or otherwise non-public actors are outside this public-directory audit. This

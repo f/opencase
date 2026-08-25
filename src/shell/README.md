@@ -23,6 +23,14 @@ There are three independent save concerns:
 3. A shell app may keep detective-authored cosmetic work, such as the Vaka
    Panosu card positions and red-string links, in its own schema-tagged sidecar.
 
+Player profiles sit outside all three. The application owns the local profile
+record and uses its opaque ID to scope the authoritative save plus presentation
+sidecars. Switching profiles mounts another case/save context; the shell does
+not copy state, dispatch a command, or interpret the profile. Preferred
+interface language and installed-case selection are application settings, not
+window-manager or kernel state. See
+[Local player profiles and case library](../../docs/player-profiles-and-case-library.md).
+
 The shell snapshot is explicitly named `detective-desktop-layout/v1`. It cannot
 load a runtime save and contains no slot for gameplay data. The host can scope
 the optional storage key to a case/session without coupling either system:
@@ -53,6 +61,21 @@ const layoutPersistence = createLocalStorageLayoutPersistence(
   apps={apps}
   backgroundImage="/shell/wallpaper.png"
   layoutPersistence={layoutPersistence}
+/>
+```
+
+Settings shows only its close traffic light by default. A host may opt into
+additional controls only by supplying working callbacks:
+
+```tsx
+<DesktopShell
+  apps={apps}
+  settingsSlot={<Settings />}
+  settingsWindowActions={{
+    onMinimize: minimizeSettings,
+    onMaximize: toggleMaximizedSettings,
+    maximized: settingsMaximized,
+  }}
 />
 ```
 

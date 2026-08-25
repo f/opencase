@@ -33,9 +33,9 @@ scenario:
             interview_selin_alibi: hidden
             interview_leyla: hidden
             search_remote_pairing: hidden
-            conclude_selin: offered
-            conclude_baran: offered
-            conclude_leyla: offered
+            conclude_selin: hidden
+            conclude_baran: hidden
+            conclude_leyla: hidden
 
     - detective.observe: safety_report
       expect:
@@ -69,7 +69,7 @@ scenario:
         state:
           affordances:
             present_pin_to_leyla: offered
-            accuse_leyla: offered
+            accuse_leyla: hidden
 
     - detective.act: {action: request, from: ekin, topic: automation-export}
       expect:
@@ -83,4 +83,4 @@ scenario:
           affordances:
             request_security_export: offered
             search_remote_pairing: offered
-            accuse_baran: offered
+            accuse_baran: hidden

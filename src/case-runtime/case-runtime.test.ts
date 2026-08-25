@@ -9,6 +9,7 @@ import {
 } from '../kernel'
 
 import {
+  CASE_EVENTS,
   advanceCaseTime,
   attemptDeduction,
   compileToKernelIR,
@@ -300,6 +301,22 @@ affordances:
       channel: forensics
       request: {$text: affordances.find_witness.request}
       context: {kind: opening-call}
+  save_witness_mention:
+    label: Save the witness mention
+    surface: casebook
+    initial: offered
+    action: {action: preserve, target: witness}
+  report_witness:
+    label: Report Hidden Witness
+    surface: casebook
+    initial: offered
+    action: {action: report-suspect, target: witness}
+  conclude_witness:
+    label: Close on Hidden Witness
+    risk: terminal
+    surface: casebook
+    initial: offered
+    action: {action: submit-conclusion, target: witness}
   interview_witness:
     label: Call the witness
     surface: phone
@@ -1060,6 +1077,17 @@ cast:`,
     const lookup = opening.affordances.find(({id}) => id === 'find_witness')
 
     expect(opening.actors).toEqual([])
+    expect(opening.affordances.map(({id}) => id)).toEqual(expect.arrayContaining([
+      'find_witness',
+      'save_witness_mention',
+      'test_lead',
+    ]))
+    expect(opening.affordances.map(({id}) => id)).not.toEqual(expect.arrayContaining([
+      'report_witness',
+      'conclude_witness',
+    ]))
+    expect(JSON.stringify(opening)).not.toContain('Report Hidden Witness')
+    expect(JSON.stringify(opening)).not.toContain('Close on Hidden Witness')
     expect(lookup).toMatchObject({
       id: 'find_witness',
       surface: 'inbox',
@@ -1071,6 +1099,24 @@ cast:`,
       },
     })
     expect(JSON.stringify(lookup)).not.toContain('directory lead returned')
+
+    for (const action of [
+      {action: 'report-suspect', target: 'witness'},
+      {action: 'submit-conclusion', target: 'witness'},
+      {action: 'report-suspect', target: 'invented-person'},
+      {action: 'submit-conclusion', target: 'invented-person'},
+      {action: 'report-suspect', actor: 'witness'},
+      {action: 'submit-conclusion', from: 'witness'},
+      {action: 'report-suspect', target: 'witness', topic: 'guessed-detail'},
+    ]) {
+      const before = JSON.stringify(h.session)
+      const hiddenDecision = performAction(h.runtime, h.session, action)
+      expect(hiddenDecision.ok).toBe(false)
+      if (hiddenDecision.ok) throw new Error('Expected hidden-decision rejection')
+      expect(hiddenDecision.error.code).toBe('affordance-unavailable')
+      expect(hiddenDecision.events).toEqual([])
+      expect(JSON.stringify(hiddenDecision.session)).toBe(before)
+    }
 
     const hiddenConversation = performAction(h.runtime, h.session, {
       action: 'present',
@@ -1087,7 +1133,11 @@ cast:`,
     }))
 
     const listed = projectCaseState(h.session, CONTACT_PRESENTATION)
-    expect(listed.affordances.map(({id}) => id)).toContain('interview_witness')
+    expect(listed.affordances.map(({id}) => id)).toEqual(expect.arrayContaining([
+      'interview_witness',
+      'report_witness',
+      'conclude_witness',
+    ]))
     expect(listed.completedAffordances).toContainEqual(expect.objectContaining({
       id: 'find_witness',
       result: 'The directory lead returned the witness contact.',
@@ -1115,6 +1165,15 @@ cast:`,
     }])
 
     h.apply(performAction(h.runtime, h.session, {
+      action: 'report-suspect',
+      target: 'witness',
+    }))
+    h.apply(performAction(h.runtime, h.session, {
+      action: 'submit-conclusion',
+      target: 'witness',
+    }))
+
+    h.apply(performAction(h.runtime, h.session, {
       action: 'present',
       target: 'witness',
     }))
@@ -1130,6 +1189,40 @@ cast:`,
     )
     expect(projectCaseState(replayed, CONTACT_PRESENTATION).actors.map(({id}) => id))
       .toContain('witness')
+  })
+
+  it('keeps a pre-fix hidden-actor conclusion terminal instead of soft-locking the save', () => {
+    const h = harness(contactSource())
+    h.apply(observeEvidence(h.runtime, h.session, 'seed'))
+    h.apply(attemptDeduction(h.runtime, h.session, 'lead'))
+    h.apply(performAction(h.runtime, h.session, {
+      action: 'locate-contact',
+      target: 'witness',
+    }))
+    h.apply(performAction(h.runtime, h.session, {
+      action: 'submit-conclusion',
+      target: 'witness',
+    }))
+
+    const contactEvent = h.session.eventLog.find((event) => (
+      event.type === CASE_EVENTS.contactChanged && event.payload.actorId === 'witness'
+    ))
+    expect(contactEvent).toBeDefined()
+    const legacyEvents = h.session.eventLog
+      .filter((event) => event.meta.commandId !== contactEvent?.meta.commandId)
+      .map((event, index) => ({
+        ...event,
+        meta: {...event.meta, sequence: index + 1},
+      }))
+    const restored = replayCase(h.runtime, legacyEvents)
+    const projected = projectCaseState(restored, CONTACT_PRESENTATION)
+
+    expect(projected.actors).toEqual([])
+    expect(projected).toMatchObject({
+      status: 'ended',
+      finalConclusion: {target: 'witness'},
+      outcome: {id: 'resolved'},
+    })
   })
 
   it('delivers a generic deadline through the public outcome projection', () => {

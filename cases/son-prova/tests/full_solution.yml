@@ -32,7 +32,7 @@ scenario:
           affordances:
             request_security_export: offered
             search_remote_pairing: offered
-            accuse_baran: offered
+            accuse_baran: hidden
     - detective.observe: tablet_inventory
       expect:
         state:
@@ -174,7 +174,7 @@ scenario:
           affordances:
             conclude_selin: offered
             conclude_baran: offered
-            conclude_leyla: offered
+            conclude_leyla: hidden
     - detective.conclude: selin
       expect:
         result: {status: accepted}

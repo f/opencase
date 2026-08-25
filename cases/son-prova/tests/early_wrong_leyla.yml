@@ -5,8 +5,27 @@ case: {id: official.son-prova, version: 0.4.2}
 scenario:
   id: early_wrong_leyla
   perspective: detective
-  description: Close the case on Leyla immediately and receive a terminal wrong-conclusion report.
+  description: Reveal Leyla, close the case on her immediately, and receive a terminal wrong-conclusion report.
   steps:
+    - detective.conclude: leyla
+      expect:
+        result: {status: denied, code: affordance-unavailable}
+        state:
+          status: active
+          clocks: {case-time: 0s}
+          contacts: {leyla: hidden}
+
+    - detective.act: {action: locate-contact, target: leyla}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 0s}
+          contacts: {leyla: listed, selin: hidden, baran: hidden}
+          affordances:
+            conclude_leyla: offered
+            conclude_selin: hidden
+            conclude_baran: hidden
+
     - detective.conclude: leyla
       expect:
         result: {status: accepted}

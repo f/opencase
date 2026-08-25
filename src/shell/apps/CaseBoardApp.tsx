@@ -14,6 +14,7 @@ import linkIcon from 'lucide-static/icons/link-2.svg'
 import unlinkIcon from 'lucide-static/icons/unlink.svg'
 import usersIcon from 'lucide-static/icons/users.svg'
 
+import { localeTag, useUiCopy, useUiLocale, type AppLocale } from '../../ui-locale'
 import {
   emptyCaseBoardState,
   reconcileCaseBoardState,
@@ -57,28 +58,37 @@ export interface CaseBoardLabels {
   readonly connectionRemoved: string
   readonly connectionRemovedDirectly: string
   readonly moveHint: string
+  readonly personCard: string
+  readonly boardSummary: string
+  readonly chooseSecondPin: (pin: string) => string
+  readonly removeConnection: (from: string, to: string) => string
 }
 
-const DEFAULT_LABELS: CaseBoardLabels = {
-  appName: 'Vaka Panosu',
-  eyebrow: 'Çalışma alanı',
-  description: 'Kişileri ve görsel kanıtları kendi bağlantılarınla düzenle.',
-  instructions: 'Kartları sürükle. Kırmızı ip çekmek için iki raptiyeye sırayla tıkla.',
-  people: 'Kişi',
-  evidence: 'Görsel',
-  connections: 'Bağlantı',
-  emptyTitle: 'Pano henüz boş',
-  emptyBody: 'Yeni kişiler ve görsel kanıtlar ortaya çıktıkça burada görünecek.',
-  connectPin: 'Bağlantı için raptiyeyi seç',
-  selectedPin: 'Seçili raptiye',
-  cancelSelection: 'Seçimi bırak',
-  clearConnections: 'Tüm bağlantıları kaldır',
-  openEvidence: 'Kanıtı büyüt',
-  unavailableImage: 'Görsel önizlemesi yok',
-  connectionAdded: 'Kırmızı ip eklendi.',
-  connectionRemoved: 'Kırmızı ip kaldırıldı.',
-  connectionRemovedDirectly: 'Bağlantı panodan kaldırıldı.',
-  moveHint: 'Kartı ok tuşlarıyla da taşıyabilirsin.',
+const LABELS: Readonly<Record<AppLocale, CaseBoardLabels>> = {
+  tr: {
+    appName: 'Vaka Panosu', eyebrow: 'Çalışma alanı', description: 'Kişileri ve görsel kanıtları kendi bağlantılarınla düzenle.',
+    instructions: 'Kartları sürükle. Kırmızı ip çekmek için iki raptiyeye sırayla tıkla.', people: 'Kişi', evidence: 'Görsel',
+    connections: 'Bağlantı', emptyTitle: 'Pano henüz boş', emptyBody: 'Yeni kişiler ve görsel kanıtlar ortaya çıktıkça burada görünecek.',
+    connectPin: 'Bağlantı için raptiyeyi seç', selectedPin: 'Seçili raptiye', cancelSelection: 'Seçimi bırak',
+    clearConnections: 'Tüm bağlantıları kaldır', openEvidence: 'Kanıtı büyüt', unavailableImage: 'Görsel önizlemesi yok',
+    connectionAdded: 'Kırmızı ip eklendi.', connectionRemoved: 'Kırmızı ip kaldırıldı.',
+    connectionRemovedDirectly: 'Bağlantı panodan kaldırıldı.', moveHint: 'Kartı ok tuşlarıyla da taşıyabilirsin.',
+    personCard: 'KİŞİ KARTI', boardSummary: 'Pano özeti',
+    chooseSecondPin: (pin) => `${pin} seçildi. İkinci raptiyeyi seç.`,
+    removeConnection: (from, to) => `${from} ile ${to} arasındaki bağlantıyı kaldır`,
+  },
+  en: {
+    appName: 'Case Board', eyebrow: 'Workspace', description: 'Arrange people and visual evidence with your own connections.',
+    instructions: 'Drag the cards. Select two pins in order to draw a red thread.', people: 'People', evidence: 'Images',
+    connections: 'Connections', emptyTitle: 'The board is empty', emptyBody: 'New people and visual evidence will appear here as you discover them.',
+    connectPin: 'Select pin to connect', selectedPin: 'Selected pin', cancelSelection: 'Clear selection',
+    clearConnections: 'Remove all connections', openEvidence: 'Enlarge evidence', unavailableImage: 'No image preview',
+    connectionAdded: 'Red thread added.', connectionRemoved: 'Red thread removed.',
+    connectionRemovedDirectly: 'Connection removed from the board.', moveHint: 'You can also move the card with the arrow keys.',
+    personCard: 'PERSON CARD', boardSummary: 'Board summary',
+    chooseSecondPin: (pin) => `${pin} selected. Select the second pin.`,
+    removeConnection: (from, to) => `Remove the connection between ${from} and ${to}`,
+  },
 }
 
 export interface CaseBoardAppProps {
@@ -100,12 +110,12 @@ function clamp(value: number, minimum: number, maximum: number): number {
   return Math.round(Math.min(maximum, Math.max(minimum, value)) * 1_000) / 1_000
 }
 
-function initials(name: string): string {
+function initials(name: string, locale: AppLocale): string {
   return name
     .trim()
     .split(/\s+/)
     .slice(0, 2)
-    .map((part) => part.charAt(0).toLocaleUpperCase('tr'))
+    .map((part) => part.charAt(0).toLocaleUpperCase(localeTag(locale)))
     .join('') || '•'
 }
 
@@ -199,14 +209,18 @@ function EvidenceCard({
   )
 }
 
-function PersonCard({ pin }: { readonly pin: Extract<CaseBoardPinViewModel, { kind: 'person' }> }) {
+function PersonCard({ pin, labels, locale }: {
+  readonly pin: Extract<CaseBoardPinViewModel, { kind: 'person' }>
+  readonly labels: CaseBoardLabels
+  readonly locale: AppLocale
+}) {
   return (
     <div className="case-board-person">
       <span className="case-board-person__portrait" aria-hidden="true">
-        {pin.initials ?? initials(pin.name)}
+        {pin.initials ?? initials(pin.name, locale)}
       </span>
       <span className="case-board-person__copy">
-        <small>KİŞİ KARTI</small>
+        <small>{labels.personCard}</small>
         <strong>{pin.name}</strong>
         {pin.roleLabel ? <span>{pin.roleLabel}</span> : null}
       </span>
@@ -220,7 +234,8 @@ export function CaseBoardApp({
   persistence,
   onOpenAsset,
 }: CaseBoardAppProps) {
-  const labels = { ...DEFAULT_LABELS, ...labelOverrides }
+  const locale = useUiLocale()
+  const labels = { ...useUiCopy(LABELS), ...labelOverrides }
   const instructionsId = useId()
   const liveRegionId = useId()
   const boardRef = useRef<HTMLDivElement>(null)
@@ -288,7 +303,7 @@ export function CaseBoardApp({
   const choosePin = (pinId: string) => {
     if (!selectedPinId) {
       setSelectedPinId(pinId)
-      setAnnouncement(`${pinTitle(pinById.get(pinId)!)} seçildi. İkinci raptiyeyi seç.`)
+      setAnnouncement(labels.chooseSecondPin(pinTitle(pinById.get(pinId)!)))
       return
     }
     if (selectedPinId === pinId) {
@@ -377,7 +392,7 @@ export function CaseBoardApp({
           </span>
         </div>
         <p>{labels.description}</p>
-        <div className="case-board-toolbar__counts" aria-label="Pano özeti">
+        <div className="case-board-toolbar__counts" aria-label={labels.boardSummary}>
           <span><img src={usersIcon} alt="" aria-hidden="true" /> {personPins.length} {labels.people}</span>
           <span><img src={imageIcon} alt="" aria-hidden="true" /> {evidencePins.length} {labels.evidence}</span>
           <span className={visibleConnections.length > 0 ? 'has-connections' : ''}>
@@ -438,7 +453,7 @@ export function CaseBoardApp({
                 const toPin = pinById.get(connection.to)
                 if (!from || !to || !fromPin || !toPin) return null
                 const path = threadPath(from, to)
-                const removeLabel = `${pinTitle(fromPin)} ile ${pinTitle(toPin)} arasındaki bağlantıyı kaldır`
+                const removeLabel = labels.removeConnection(pinTitle(fromPin), pinTitle(toPin))
                 return (
                   <g
                     key={`${connection.from}:${connection.to}`}
@@ -493,7 +508,7 @@ export function CaseBoardApp({
                   {pin.kind === 'evidence' ? (
                     <EvidenceCard pin={pin} labels={labels} onOpenAsset={onOpenAsset} />
                   ) : (
-                    <PersonCard pin={pin} />
+                    <PersonCard pin={pin} labels={labels} locale={locale} />
                   )}
                 </article>
               )

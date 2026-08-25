@@ -631,4 +631,103 @@ describe('manifest workspace projection adapter', () => {
     expect(JSON.stringify(models.files)).not.toContain('/cases/')
     expect(JSON.stringify(models.files)).not.toContain('https://')
   })
+
+  it('localizes application fallbacks in English without changing authored case copy', () => {
+    const fallbackManifest: ShellPublicCaseManifest = {
+      ...manifest,
+      case: {
+        id: manifest.case.id,
+        version: manifest.case.version,
+        title: manifest.case.title,
+        durationMinutes: manifest.case.durationMinutes,
+        synopsis: manifest.case.synopsis,
+      },
+      cast: {},
+      opening: {
+        call: {},
+        evidence: [{ id: 'fallback-record', tool: 'document', assets: [] }],
+      },
+    }
+    const fallbackRuntime: PublicCaseRuntimeState = {
+      ...runtime,
+      affordances: [{
+        id: 'fallback-search',
+        surface: 'web',
+        risk: 'normal',
+        intent: { kind: 'action', action: { action: 'search', query: 'fixture' } },
+        cost: { clock: 'case-time', milliseconds: 30_000 },
+      }],
+      completedAffordances: [{
+        id: 'completed-search',
+        surface: 'web',
+        risk: 'normal',
+        intent: { kind: 'action', action: { action: 'search', query: 'fixture' } },
+        result: 'Authored search result stays unchanged.',
+        completedAtMs: 30_000,
+      }],
+      supportedDeductions: [{ id: 'fallback-deduction' }],
+      actors: [{
+        id: 'fallback-person',
+        conversation: {
+          state: 'available',
+          canTalk: true,
+          channels: [{ action: 'interview', actorField: 'actor', available: true }],
+        },
+      }],
+      evidence: [{
+        id: 'fallback-record',
+        tool: 'document',
+        observed: true,
+        findings: [],
+        assets: [],
+      }],
+    }
+
+    const models = createManifestWorkspaceModels(
+      fallbackManifest,
+      { query: '', replyDraft: '' },
+      fallbackRuntime,
+      undefined,
+      'en',
+    )
+
+    expect(models.casebook).toMatchObject({
+      heading: 'Shell Fixture',
+      synopsis: 'A presentation-only fixture.',
+      phaseLabel: 'ACTIVE CASE',
+    })
+    expect(models.casebook.entries.slice(0, 3)).toMatchObject([
+      { eyebrow: 'Case summary', title: 'Opening briefing', body: 'A presentation-only fixture.', timestampLabel: 'Now' },
+      { eyebrow: 'Incoming call', title: 'Case officer', body: 'A presentation-only fixture.', timestampLabel: 'Now' },
+      { eyebrow: 'Reviewed evidence', title: 'Evidence 1', body: 'Record reviewed.' },
+    ])
+    expect(models.files.records[0]).toMatchObject({
+      title: 'Evidence 1',
+      sourceLabel: 'Document',
+      receivedLabel: 'Now',
+      summary: 'Review complete.',
+      metadata: [
+        { label: 'Type', value: 'Document' },
+        { label: 'Status', value: 'Reviewed' },
+      ],
+    })
+    expect(models.phone.contacts[0]).toMatchObject({
+      name: 'Person 1',
+      roleLabel: 'Case contact',
+      detail: 'Available for an interview.',
+      actions: [{ action: 'interview', label: 'Interview' }],
+    })
+    expect(models.web).toMatchObject({
+      affordances: [{ label: 'Research 1', costLabel: '+30 sec' }],
+      results: [{
+        title: 'Research result 1',
+        excerpt: 'Authored search result stays unchanged.',
+        sourceLabel: 'EKİP · Forensic records search',
+      }],
+    })
+    expect(models.rail.questions).toContainEqual(expect.objectContaining({
+      text: 'Verified deduction 1',
+      detail: 'Verified by evidence.',
+    }))
+  })
 })

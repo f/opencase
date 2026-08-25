@@ -139,7 +139,7 @@ function jsonResponse(value: unknown): Response {
 }
 
 async function flushMicrotasks(): Promise<void> {
-  for (let index = 0; index < 8; index += 1) await Promise.resolve()
+  for (let index = 0; index < 20; index += 1) await Promise.resolve()
 }
 
 function memoryStorage(): Storage {
@@ -208,14 +208,20 @@ describe('App wall-clock session recovery', () => {
       await flushMicrotasks()
     })
 
-    expect(host.textContent).toContain('Vakayı baştan başlat')
+    const settingsSlot = host.querySelector<HTMLElement>('[data-testid="settings-slot"]')!
+    await act(async () => {
+      Array.from(settingsSlot.querySelectorAll<HTMLButtonElement>('button')).find((button) => (
+        button.textContent?.trim() === 'Depolama'
+      ))!.click()
+      await flushMicrotasks()
+    })
+    expect(settingsSlot.textContent).toContain('Aktif vakayı baştan başlat')
     expect(host.textContent).not.toContain('Gelen vaka çağrısı')
     expect(host.querySelector('.workspace-status__timer')).toBeNull()
-    expect(host.querySelector('[data-testid="settings-slot"]')?.textContent).toContain('Kaydedildi')
-    expect(host.querySelector('.workspace-settings__detail.is-deadline')).not.toBeNull()
-    expect(host.querySelector('[data-testid="settings-slot"]')?.textContent).toContain('Teslim süresi')
-    expect(host.querySelector<HTMLSelectElement>('[aria-label="Aktif vaka"]')?.value)
-      .toBe(manifest.case.id)
+    expect(settingsSlot.textContent).toContain('Kaydedildi')
+    expect(host.querySelector('.settings-stat.is-deadline')).not.toBeNull()
+    expect(settingsSlot.textContent).toContain('Teslim süresi')
+    expect(settingsSlot.textContent).toContain('Polling Recovery')
     expect(host.querySelector('[data-app-id="phone"] .iphone-status time')?.textContent).toBe('21:02')
 
     await act(async () => {
@@ -224,14 +230,52 @@ describe('App wall-clock session recovery', () => {
     })
 
     expect(hostMocks.status).toHaveBeenCalledTimes(2)
-    expect(host.textContent).not.toContain('Vakayı baştan başlat')
+    expect(host.textContent).not.toContain('Aktif vakayı baştan başlat')
     expect(host.textContent).toContain('Gelen vaka çağrısı')
     expect(host.textContent).toContain('Yanıtla')
-    expect(host.querySelector<HTMLSelectElement>('[aria-label="Gelen vaka"]')?.value)
-      .toBe(manifest.case.id)
     expect(host.textContent).not.toContain('VAKA SAATİ DURUYOR')
     expect(host.querySelector('[data-app-id="incoming-phone"] .iphone-status time')?.textContent)
       .toBe('21:00')
+  })
+
+  it('changes application language without reloading the case session or desktop', async () => {
+    hostMocks.status.mockReset().mockResolvedValue({
+      schema: 'detective-demo-session/v1',
+      caseId: manifest.case.id,
+      caseVersion: manifest.case.version,
+      locale: 'tr',
+      saveId: 'primary',
+      exists: true,
+      assetSessionId: 'asset-session-language',
+      snapshot: activeSnapshot,
+    })
+
+    await act(async () => {
+      root.render(<App />)
+      await flushMicrotasks()
+    })
+
+    const settingsSlot = host.querySelector<HTMLElement>('[data-testid="settings-slot"]')!
+    await act(async () => {
+      Array.from(settingsSlot.querySelectorAll<HTMLButtonElement>('button')).find((button) => (
+        button.textContent?.trim() === 'Dil'
+      ))!.click()
+    })
+
+    const english = settingsSlot.querySelector<HTMLInputElement>(
+      'input[name$="interface-locale"][value="en"]',
+    )!
+    await act(async () => {
+      english.click()
+      await flushMicrotasks()
+    })
+
+    expect(hostMocks.status).toHaveBeenCalledTimes(1)
+    expect(host.querySelector('.settings-workspace')?.getAttribute('data-locale')).toBe('en')
+    expect(host.querySelector('.settings-workspace')?.getAttribute('lang')).toBe('en')
+    expect(settingsSlot.textContent).toContain('Application language')
+    expect(document.documentElement.lang).toBe('en-US')
+    expect(host.querySelector('[data-testid="desktop-shell"]')).not.toBeNull()
   })
 })
 

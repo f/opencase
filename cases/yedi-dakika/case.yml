@@ -3,7 +3,7 @@ schema: case-source/v0.1
 
 case:
   id: community.fka.yedi-dakika
-  version: 0.4.1
+  version: 0.4.2
   title: {$text: case.title}
   locale: tr
   duration: 40m
@@ -157,7 +157,9 @@ affordances:
     risk: consequential
     confirmation: {$text: affordances.accuse_mert.confirmation}
     surface: casebook
-    initial: withdrawn
+    # The runtime withholds person decisions until the contact is public. Once
+    # Mert is listed, the detective may act on instinct before reviewing proof.
+    initial: offered
     action: {action: report-suspect, target: mert}
     cost: {clock: case-time, by: 6m}
     once: true
@@ -665,7 +667,7 @@ reactions:
   - id: lobby-video-observed
     on: {observed: lobby_video.screen_exit_at}
     once: true
-    do: [{offer: request_camera_sync}, {offer: accuse_mert}]
+    do: [{offer: request_camera_sync}]
 
   - id: camera-sync-observed
     on: {observed: camera_sync_notice.clock_offset}

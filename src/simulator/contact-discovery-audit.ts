@@ -1,4 +1,4 @@
-import type { CaseAction } from '../case-runtime'
+import { isActorDecisionAction, type CaseAction } from '../case-runtime'
 import type { CompiledAction, CompiledAffordance, CompiledCaseIR } from '../compiler'
 
 import type { DetectiveCaseTestResult } from './detective-runner'
@@ -25,6 +25,7 @@ export interface ContactDiscoveryCoverageItem {
   readonly actorId: string
   readonly ok: boolean
   readonly candidateAffordanceIds: readonly string[]
+  readonly decisionAffordanceIds: readonly string[]
   readonly scenarioId?: string
   readonly sourceFile?: string
   readonly affordanceId?: string
@@ -69,6 +70,20 @@ function lookupAffordances(
   return result.sort((left, right) => left.id.localeCompare(right.id))
 }
 
+function actorDecisionAffordanceIds(
+  ir: CompiledCaseIR,
+  actorId: string,
+): string[] {
+  return ir.affordances
+    .filter((affordance) => (
+      affordance.intent.kind === 'action' &&
+      affordance.intent.action.target === actorId &&
+      isActorDecisionAction({action: affordance.intent.action.verb})
+    ))
+    .map(({id}) => id)
+    .sort((left, right) => left.localeCompare(right))
+}
+
 function explicitlyPreservesState(step: DetectiveCaseTestStep): boolean {
   if (step.operation === 'expect') return true
   return step.expect?.result?.status === 'denied'
@@ -79,13 +94,15 @@ function hasStablePrecondition(
   actionIndex: number,
   actorId: string,
   affordanceId: string,
+  decisionAffordanceIds: readonly string[],
 ): number | undefined {
   for (let index = actionIndex - 1; index >= 0; index -= 1) {
     const step = scenario.steps[index]!
     const state = step.expect?.state
     if (
       state?.contacts?.[actorId] === 'hidden' &&
-      state.affordances?.[affordanceId] === 'offered'
+      state.affordances?.[affordanceId] === 'offered' &&
+      decisionAffordanceIds.every((id) => state.affordances?.[id] === 'hidden')
     ) {
       return scenario.steps
         .slice(index + 1, actionIndex)
@@ -165,9 +182,13 @@ function findCoverage(
   ir: CompiledCaseIR,
   actorId: string,
   candidates: readonly ContactLookupAffordance[],
+  decisionAffordanceIds: readonly string[],
   scenarios: readonly DetectiveCaseTestScenario[],
   resultsByScenario: ReadonlyMap<string, DetectiveCaseTestResult>,
-): Omit<ContactDiscoveryCoverageItem, 'actorId' | 'candidateAffordanceIds'> | undefined {
+): Omit<
+  ContactDiscoveryCoverageItem,
+  'actorId' | 'candidateAffordanceIds' | 'decisionAffordanceIds'
+> | undefined {
   for (const scenario of scenarios) {
     const result = resultsByScenario.get(resultKey(scenario.sourceFile, scenario.id))
     if (!result?.ok) continue
@@ -188,6 +209,7 @@ function findCoverage(
           actionIndex,
           actorId,
           candidate.id,
+          decisionAffordanceIds,
         )
         if (checkpointIndex === undefined) continue
         if (!contextIsProvenAvailable(ir, scenario, result, checkpointIndex, candidate)) continue
@@ -206,7 +228,8 @@ function findCoverage(
 
 /**
  * Requires public, initially hidden contacts to have one passing detective
- * scenario that explicitly demonstrates the complete projected lookup route.
+ * scenario that explicitly demonstrates the complete projected lookup route
+ * and proves person-targeted file decisions stay concealed until discovery.
  * This is a suite-coverage audit; it neither plans commands nor reads runtime
  * slots, truth, flags, or case-specific identifiers.
  */
@@ -223,10 +246,12 @@ export function auditContactDiscoveryCoverage(
     .map((conversation): ContactDiscoveryCoverageItem => {
       const candidates = lookupAffordances(ir, conversation.actorId)
       const candidateAffordanceIds = candidates.map(({ id }) => id)
+      const decisionAffordanceIds = actorDecisionAffordanceIds(ir, conversation.actorId)
       const coverage = findCoverage(
         ir,
         conversation.actorId,
         candidates,
+        decisionAffordanceIds,
         scenarios,
         resultsByScenario,
       )
@@ -234,16 +259,18 @@ export function auditContactDiscoveryCoverage(
         return {
           actorId: conversation.actorId,
           candidateAffordanceIds,
+          decisionAffordanceIds,
           ...coverage,
         }
       }
       return {
         actorId: conversation.actorId,
         candidateAffordanceIds,
+        decisionAffordanceIds,
         ok: false,
         message: candidates.length === 0
           ? 'no matching inbox async-message locate-contact affordance exists'
-          : 'no passing scenario explicitly proves a visible context note with hidden and offered before the accepted exact lookup action, then listed immediately after it',
+          : 'no passing scenario explicitly proves a visible context note with the contact and all actor decisions hidden before the accepted exact lookup action, then listed immediately after it',
       }
     })
     .sort((left, right) => left.actorId.localeCompare(right.actorId))

@@ -10,6 +10,58 @@ import type {
   WebResearchViewModel,
 } from './apps'
 import type { PublicCaseRuntimeState } from '../case-runtime/protocol'
+import { localeTag, type AppLocale } from '../ui-locale'
+
+const WORKSPACE_COPY = {
+  tr: {
+    now: 'Şimdi', caller: 'Vaka görevlisi', action: 'İşlem', move: 'Hamle',
+    interview: 'Görüş', apologize: 'Özür dile', present: 'Kanıt sun', request: 'Talep et',
+    image: 'Görsel', audio: 'Ses kaydı', video: 'Video', document: 'Belge', file: 'Dosya',
+    evidence: 'Kanıt', person: 'Kişi', researchResult: 'Araştırma sonucu', findPerson: 'Kişiyi bul',
+    foundPerson: 'Bulunan kişi', question: 'Soru', reviewComplete: 'İnceleme tamamlandı.',
+    evidencePending: 'Bu kanıt henüz incelenmedi.', type: 'Tür', status: 'Durum', reviewed: 'İncelendi',
+    fresh: 'Yeni', casePerson: 'Vaka kişisi', reachable: 'Görüşme için ulaşılabilir.',
+    unavailable: 'Bu kişi şu anda görüşmeye açık değil.', activeCase: 'AKTİF VAKA',
+    caseSummary: 'Vaka özeti', openingBrief: 'Açılış brifingi', incomingCall: 'Gelen çağrı',
+    reviewedEvidence: 'İncelenen kanıt', recordReviewed: 'Kayıt incelendi.',
+    phoneOperation: 'Görüşme / işlem', investigationOperation: 'Soruşturma işlemi',
+    completedOperation: 'Tamamlanan işlem', deduction: 'Çıkarım', verifiedDeduction: 'Doğrulanan çıkarım',
+    verifiedByEvidence: 'Kanıtlarla doğrulandı', assignedOnSubmit: 'Gönderimde atanacak',
+    investigationOffice: 'Olay ve soruşturma işlemleri', readyToSubmit: 'işlem gönderime hazır',
+    fileClosed: 'Dosya kapatıldı', filePreparing: 'Dosya hazırlanıyor',
+    routeOnApproval: 'Onay sırasında belirlenecek', lastUpdate: 'Son güncelleme', incidentSummary: 'Olay özeti',
+    officialAction: 'Resmî işlem', openingNotice: 'Vaka açılış bildirimi', openingCall: 'Vaka açılış çağrısı',
+    research: 'Araştırma', policeQuery: 'EKİP · Adli evrak sorgusu', readyInNotes: "Vaka Notları'nda değerlendirilmeye hazır.",
+    apps: { phone: 'Aramalar', web: 'Safari', files: 'Finder', casebook: 'Vaka Notları', inbox: 'Ekip Alanı' },
+    inApplicationPrefix: '', inApplication: 'uygulamasında.', minute: 'dk', second: 'sn',
+    readyToSubmitPlural: 'işlem gönderime hazır',
+  },
+  en: {
+    now: 'Now', caller: 'Case officer', action: 'Action', move: 'Move',
+    interview: 'Interview', apologize: 'Apologize', present: 'Present evidence', request: 'Request',
+    image: 'Image', audio: 'Audio', video: 'Video', document: 'Document', file: 'File',
+    evidence: 'Evidence', person: 'Person', researchResult: 'Research result', findPerson: 'Find person',
+    foundPerson: 'Located person', question: 'Question', reviewComplete: 'Review complete.',
+    evidencePending: 'This evidence has not been reviewed yet.', type: 'Type', status: 'Status', reviewed: 'Reviewed',
+    fresh: 'New', casePerson: 'Case contact', reachable: 'Available for an interview.',
+    unavailable: 'This person is not available right now.', activeCase: 'ACTIVE CASE',
+    caseSummary: 'Case summary', openingBrief: 'Opening briefing', incomingCall: 'Incoming call',
+    reviewedEvidence: 'Reviewed evidence', recordReviewed: 'Record reviewed.',
+    phoneOperation: 'Call / action', investigationOperation: 'Investigation action',
+    completedOperation: 'Completed action', deduction: 'Deduction', verifiedDeduction: 'Verified deduction',
+    verifiedByEvidence: 'Verified by evidence', assignedOnSubmit: 'Assigned on submission',
+    investigationOffice: 'Incident and investigation desk', readyToSubmit: 'action ready to submit',
+    fileClosed: 'Case closed', filePreparing: 'Case file in progress',
+    routeOnApproval: 'Set during approval', lastUpdate: 'Last update', incidentSummary: 'Incident summary',
+    officialAction: 'Official action', openingNotice: 'Case opening notice', openingCall: 'Opening case call',
+    research: 'Research', policeQuery: 'EKİP · Forensic records search', readyInNotes: 'Ready to review in Case Notes.',
+    apps: { phone: 'Calls', web: 'Safari', files: 'Finder', casebook: 'Case Notes', inbox: 'Team Space' },
+    inApplicationPrefix: 'In the ', inApplication: 'app.', minute: 'min', second: 'sec',
+    readyToSubmitPlural: 'actions ready to submit',
+  },
+} as const
+
+type WorkspaceCopy = typeof WORKSPACE_COPY[AppLocale]
 
 export interface ShellPublicAssetHandle {
   readonly id: string
@@ -113,8 +165,8 @@ function assetKind(tool: string, declared?: string): AssetKind {
   return 'file'
 }
 
-function startLabel(manifest: ShellPublicCaseManifest): string {
-  return manifest.case.time?.startsAt ?? 'Şimdi'
+function startLabel(manifest: ShellPublicCaseManifest, copy: WorkspaceCopy): string {
+  return manifest.case.time?.startsAt ?? copy.now
 }
 
 export function caseClockLabel(manifest: ShellPublicCaseManifest, milliseconds: number): string {
@@ -156,14 +208,14 @@ function investigationRecordUrl(
   return `ekip.polnet/adli-evrak/sorgu/${caseDate}-${elapsedSeconds}-${sequence}`
 }
 
-function actionLabel(action: string, index: number): string {
+function actionLabel(action: string, index: number, copy: WorkspaceCopy): string {
   const labels: Record<string, string> = {
-    interview: 'Görüş',
-    apologize: 'Özür dile',
-    present: 'Kanıt sun',
-    request: 'Talep et',
+    interview: copy.interview,
+    apologize: copy.apologize,
+    present: copy.present,
+    request: copy.request,
   }
-  return labels[action] ?? `İşlem ${index + 1}`
+  return labels[action] ?? `${copy.action} ${index + 1}`
 }
 
 function affordanceLabel(
@@ -173,52 +225,60 @@ function affordanceLabel(
   return affordance.label?.trim() || fallback
 }
 
-function assetKindLabel(kind: AssetKind): string {
+function assetKindLabel(kind: AssetKind, copy: WorkspaceCopy): string {
   const labels: Record<AssetKind, string> = {
-    image: 'Görsel',
-    audio: 'Ses kaydı',
-    video: 'Video',
-    document: 'Belge',
-    file: 'Dosya',
+    image: copy.image,
+    audio: copy.audio,
+    video: copy.video,
+    document: copy.document,
+    file: copy.file,
   }
   return labels[kind]
 }
 
-function evidenceFallbackLabel(index: number): string {
-  return `Kanıt ${index + 1}`
+function evidenceFallbackLabel(index: number, copy: WorkspaceCopy): string {
+  return `${copy.evidence} ${index + 1}`
 }
 
-function actorFallbackLabel(index: number): string {
-  return `Kişi ${index + 1}`
+function actorFallbackLabel(index: number, copy: WorkspaceCopy): string {
+  return `${copy.person} ${index + 1}`
 }
 
 function affordanceCostLabel(
   affordance: PublicCaseRuntimeState['affordances'][number],
+  locale: AppLocale,
+  copy: WorkspaceCopy,
 ): string | undefined {
   const milliseconds = affordance.cost?.milliseconds
   if (milliseconds === undefined || milliseconds <= 0) return undefined
-  if (milliseconds % 60_000 === 0) return `+${milliseconds / 60_000} dk`
+  if (milliseconds % 60_000 === 0) return `+${milliseconds / 60_000} ${copy.minute}`
   if (milliseconds >= 60_000) {
-    return `+${(milliseconds / 60_000).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} dk`
+    return `+${(milliseconds / 60_000).toLocaleString(localeTag(locale), { maximumFractionDigits: 1 })} ${copy.minute}`
   }
-  return `+${Math.ceil(milliseconds / 1_000)} sn`
+  return `+${Math.ceil(milliseconds / 1_000)} ${copy.second}`
 }
 
-function callDurationLabel(milliseconds: number | undefined): string | undefined {
+function callDurationLabel(
+  milliseconds: number | undefined,
+  locale: AppLocale,
+  copy: WorkspaceCopy,
+): string | undefined {
   if (milliseconds === undefined || milliseconds <= 0) return undefined
-  if (milliseconds % 60_000 === 0) return `${milliseconds / 60_000} dk`
+  if (milliseconds % 60_000 === 0) return `${milliseconds / 60_000} ${copy.minute}`
   if (milliseconds >= 60_000) {
-    return `${(milliseconds / 60_000).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} dk`
+    return `${(milliseconds / 60_000).toLocaleString(localeTag(locale), { maximumFractionDigits: 1 })} ${copy.minute}`
   }
-  return `${Math.ceil(milliseconds / 1_000)} sn`
+  return `${Math.ceil(milliseconds / 1_000)} ${copy.second}`
 }
 
 function affordanceViewModel(
   affordance: PublicCaseRuntimeState['affordances'][number],
   index: number,
-  fallbackNoun = 'Hamle',
+  locale: AppLocale,
+  copy: WorkspaceCopy,
+  fallbackNoun: string = copy.move,
 ): AffordanceViewModel {
-  const costLabel = affordanceCostLabel(affordance)
+  const costLabel = affordanceCostLabel(affordance, locale, copy)
   const consequence = affordance.confirmation?.trim()
   return {
     id: affordance.id,
@@ -232,8 +292,9 @@ function affordanceViewModel(
 function evidenceTitle(
   evidence: PublicCaseRuntimeState['evidence'][number],
   index: number,
+  copy: WorkspaceCopy,
 ): string {
-  return evidence.title?.trim() || evidenceFallbackLabel(index)
+  return evidence.title?.trim() || evidenceFallbackLabel(index, copy)
 }
 
 function evidenceFindings(
@@ -251,9 +312,11 @@ export function createManifestWorkspaceModels(
   selection: ManifestWorkspaceSelection,
   runtime?: PublicCaseRuntimeState,
   assetDeliveryUrl?: ShellAssetDeliveryUrl,
+  interfaceLocale: AppLocale = 'tr',
 ): ManifestWorkspaceModels {
+  const copy = WORKSPACE_COPY[interfaceLocale]
   const callerId = manifest.opening.call?.from ?? 'case-desk'
-  const callerName = castText(manifest, callerId, 'name') ?? 'Vaka görevlisi'
+  const callerName = castText(manifest, callerId, 'name') ?? copy.caller
   const openingText = manifest.opening.call?.text ?? manifest.case.synopsis
   const runtimeEvidence: PublicCaseRuntimeState['evidence'] = runtime?.evidence
     ?? manifest.opening.evidence.map((evidence, index) => ({
@@ -265,7 +328,7 @@ export function createManifestWorkspaceModels(
         mimeType: asset.mimeType,
       })),
       observed: false,
-      title: evidenceFallbackLabel(index),
+      title: evidenceFallbackLabel(index, copy),
       findings: [],
     }))
   const offeredAffordances = runtime?.affordances ?? []
@@ -332,13 +395,13 @@ export function createManifestWorkspaceModels(
       && affordance.surface !== 'inbox'
     ))
     .map((affordance, index) => ({
-      ...affordanceViewModel(affordance, index),
+      ...affordanceViewModel(affordance, index, interfaceLocale, copy),
       surface: affordance.surface,
     }))
     .sort((left, right) => {
       const leftRisk = left.risk === 'normal' || left.risk === undefined ? 0 : 1
       const rightRisk = right.risk === 'normal' || right.risk === undefined ? 0 : 1
-      return leftRisk - rightRisk || left.label.localeCompare(right.label, manifest.case.locale ?? 'tr')
+      return leftRisk - rightRisk || left.label.localeCompare(right.label, localeTag(interfaceLocale))
     })
   let webResultIndex = 0
   const completedWebResults = completedAffordances.flatMap((completed, completedIndex) => {
@@ -348,7 +411,7 @@ export function createManifestWorkspaceModels(
     webResultIndex += 1
     return [{
       id: `research-${completed.id}-${completed.completedAtMs}-${completedIndex}`,
-      title: completed.label?.trim() || `Araştırma sonucu ${resultIndex + 1}`,
+      title: completed.label?.trim() || `${copy.researchResult} ${resultIndex + 1}`,
       displayUrl: investigationRecordUrl(manifest, completed.completedAtMs, resultIndex),
       result,
     }]
@@ -398,7 +461,7 @@ export function createManifestWorkspaceModels(
       )
       return [{
         affordanceId: affordance.id,
-        label: affordanceLabel(affordance, `Kişiyi bul ${index + 1}`),
+        label: affordanceLabel(affordance, `${copy.findPerson} ${index + 1}`),
         ...(affordance.interaction.request?.trim()
           ? { description: affordance.interaction.request.trim() }
           : {}),
@@ -412,7 +475,7 @@ export function createManifestWorkspaceModels(
       }
       return [{
         affordanceId: affordance.id,
-        label: affordance.label?.trim() || `Bulunan kişi ${index + 1}`,
+        label: affordance.label?.trim() || `${copy.foundPerson} ${index + 1}`,
         ...(affordance.interaction.request?.trim()
           ? { description: affordance.interaction.request.trim() }
           : {}),
@@ -431,7 +494,7 @@ export function createManifestWorkspaceModels(
       return [{
         affordanceId: affordance.id,
         channelId: interaction.channel,
-        label: affordanceLabel(affordance, `Soru ${index + 1}`),
+        label: affordanceLabel(affordance, `${copy.question} ${index + 1}`),
         request,
         status: selection.contactActionStatuses?.[affordance.id] === 'pending'
           ? 'pending' as const
@@ -443,21 +506,21 @@ export function createManifestWorkspaceModels(
   const files: FilesViewModel = {
     selectedRecordId: selection.selectedRecordId ?? runtimeEvidence[0]?.id,
     affordances: affordancesFor('files').map((affordance, index) => (
-      affordanceViewModel(affordance, index, 'İşlem')
+      affordanceViewModel(affordance, index, interfaceLocale, copy, copy.action)
     )),
     records: runtimeEvidence.map((evidence, evidenceIndex) => {
       const recordKind = assetKind(evidence.tool, evidence.assets[0]?.kind)
-      const recordTitle = evidenceTitle(evidence, evidenceIndex)
+      const recordTitle = evidenceTitle(evidence, evidenceIndex, copy)
       const findings = evidenceFindings(evidence)
       return {
         id: evidence.id,
         title: recordTitle,
-        sourceLabel: assetKindLabel(recordKind),
-        receivedLabel: startLabel(manifest),
+        sourceLabel: assetKindLabel(recordKind, copy),
+        receivedLabel: startLabel(manifest, copy),
         summary: evidence.description?.trim() || (
           evidence.observed
-            ? 'İnceleme tamamlandı.'
-            : 'Bu kanıt henüz incelenmedi.'
+            ? copy.reviewComplete
+            : copy.evidencePending
         ),
         ...(findings.length > 0 ? { findings } : {}),
         status: evidence.observed ? 'observed' : 'new',
@@ -467,13 +530,13 @@ export function createManifestWorkspaceModels(
           return {
             id: asset.id,
             kind,
-            label: `${assetKindLabel(kind)} ${assetIndex + 1}`,
+            label: `${assetKindLabel(kind, copy)} ${assetIndex + 1}`,
             ...(deliveryUrl ? { deliveryUrl } : {}),
           }
         }),
         metadata: [
-          { label: 'Tür', value: assetKindLabel(recordKind) },
-          { label: 'Durum', value: evidence.observed ? 'İncelendi' : 'Yeni' },
+          { label: copy.type, value: assetKindLabel(recordKind, copy) },
+          { label: copy.status, value: evidence.observed ? copy.reviewed : copy.fresh },
         ],
       }
     }),
@@ -491,14 +554,14 @@ export function createManifestWorkspaceModels(
       name: actor.displayName?.trim()
         || actor.name?.trim()
         || castText(manifest, actor.id, 'name')
-        || actorFallbackLabel(actorIndex),
+        || actorFallbackLabel(actorIndex, copy),
       roleLabel: actor.role?.trim()
         || castRole(manifest, actor.id)
-        || 'Vaka kişisi',
+        || copy.casePerson,
       detail: actor.conversation.reason ?? (
         actor.conversation.canTalk
-          ? 'Görüşme için ulaşılabilir.'
-          : 'Bu kişi şu anda görüşmeye açık değil.'
+          ? copy.reachable
+          : copy.unavailable
       ),
       ...(actor.phone?.trim() ? { phoneNumber: actor.phone.trim() } : {}),
       ...('operator' in actor && typeof actor.operator === 'string' && actor.operator.trim()
@@ -512,10 +575,10 @@ export function createManifestWorkspaceModels(
       actions: [
         ...exactAffordances.map((affordance, index) => {
           if (affordance.intent.kind !== 'action') throw new Error('Unreachable affordance kind.')
-          const costLabel = affordanceCostLabel(affordance)
+          const costLabel = affordanceCostLabel(affordance, interfaceLocale, copy)
           return {
             action: affordance.intent.action.action,
-            label: affordanceLabel(affordance, `İşlem ${index + 1}`),
+            label: affordanceLabel(affordance, `${copy.action} ${index + 1}`),
             affordanceId: affordance.id,
             available: actorAffordanceAvailable(affordance, actor),
             ...(costLabel ? { costLabel } : {}),
@@ -525,7 +588,7 @@ export function createManifestWorkspaceModels(
           .filter((channel) => !exactActions.has(channel.action))
           .map((channel, index) => ({
             ...channel,
-            label: actionLabel(channel.action, index),
+            label: actionLabel(channel.action, index, copy),
           })),
       ],
     }
@@ -540,14 +603,14 @@ export function createManifestWorkspaceModels(
       const contact = phoneContactsById.get(contactId)
       if (!contact) return []
       const durationMs = completed.cost?.milliseconds
-      const durationLabel = callDurationLabel(durationMs)
+      const durationLabel = callDurationLabel(durationMs, interfaceLocale, copy)
       const startedAtMs = Math.max(0, completed.completedAtMs - (durationMs ?? 0))
       return [{
         id: `outgoing-${completed.id}-${completed.completedAtMs}-${completedIndex}`,
         contactId,
         contactName: contact.name,
         timestampLabel: caseTimeLabel(manifest, startedAtMs),
-        detailLabel: completed.label?.trim() || actionLabel(action.action, completedIndex),
+        detailLabel: completed.label?.trim() || actionLabel(action.action, completedIndex, copy),
         ...(durationLabel ? { durationLabel } : {}),
         direction: 'outgoing' as const,
       }]
@@ -558,34 +621,34 @@ export function createManifestWorkspaceModels(
     casebook: {
       heading: manifest.case.title,
       synopsis: manifest.case.synopsis,
-      phaseLabel: 'AKTİF VAKA',
+      phaseLabel: copy.activeCase,
       selectedEntryId: selectedCasebookEntryId,
       leads: currentLeads,
       ...(contactActions.length > 0 ? { contactActions } : {}),
       entries: [
         {
           id: briefingId,
-          eyebrow: 'Vaka özeti',
-          title: 'Açılış brifingi',
+          eyebrow: copy.caseSummary,
+          title: copy.openingBrief,
           body: manifest.case.synopsis,
-          timestampLabel: startLabel(manifest),
+          timestampLabel: startLabel(manifest, copy),
         },
         {
           id: callId,
-          eyebrow: 'Gelen çağrı',
+          eyebrow: copy.incomingCall,
           title: callerName,
           body: openingText,
-          timestampLabel: startLabel(manifest),
+          timestampLabel: startLabel(manifest, copy),
         },
         ...runtimeEvidence.flatMap((evidence, evidenceIndex) => {
           if (!evidence.observed) return []
-          const label = evidenceTitle(evidence, evidenceIndex)
+          const label = evidenceTitle(evidence, evidenceIndex, copy)
           const findings = evidenceFindings(evidence)
           return [{
             id: `evidence-note-${evidence.id}`,
-            eyebrow: 'İncelenen kanıt',
+            eyebrow: copy.reviewedEvidence,
             title: label,
-            body: evidence.description?.trim() || 'Kayıt incelendi.',
+            body: evidence.description?.trim() || copy.recordReviewed,
             ...(findings.length > 0 ? { findings } : {}),
             evidence: [{ id: evidence.id, label }],
           }]
@@ -595,8 +658,8 @@ export function createManifestWorkspaceModels(
           if (!result) return []
           return [{
             id: completedEntryId(completed, index),
-            eyebrow: completed.surface === 'phone' ? 'Görüşme / işlem' : 'Soruşturma işlemi',
-            title: completed.label?.trim() || `Tamamlanan işlem ${index + 1}`,
+            eyebrow: completed.surface === 'phone' ? copy.phoneOperation : copy.investigationOperation,
+            title: completed.label?.trim() || `${copy.completedOperation} ${index + 1}`,
             body: result,
             timestampLabel: caseTimeLabel(manifest, completed.completedAtMs),
           }]
@@ -605,10 +668,10 @@ export function createManifestWorkspaceModels(
       deductions: [
         ...readyDeductions.map((affordance, index) => {
           if (affordance.intent.kind !== 'deduce') throw new Error('Unreachable affordance kind.')
-          const costLabel = affordanceCostLabel(affordance)
+          const costLabel = affordanceCostLabel(affordance, interfaceLocale, copy)
           return {
             id: affordance.intent.deductionId,
-            title: affordanceLabel(affordance, `Çıkarım ${index + 1}`),
+            title: affordanceLabel(affordance, `${copy.deduction} ${index + 1}`),
             status: 'ready' as const,
             ...(costLabel ? { costLabel } : {}),
           }
@@ -618,12 +681,12 @@ export function createManifestWorkspaceModels(
             ? []
             : [{
                 id: deduction.id,
-                title: deduction.label?.trim() || `Doğrulanan çıkarım ${index + 1}`,
+                title: deduction.label?.trim() || `${copy.verifiedDeduction} ${index + 1}`,
                 status: 'supported' as const,
                 ...(completedDeductionResults.has(deduction.id)
                   ? { result: completedDeductionResults.get(deduction.id) }
                   : {}),
-                supportLabel: 'Kanıtlarla doğrulandı',
+                supportLabel: copy.verifiedByEvidence,
               }]
         )),
       ],
@@ -635,16 +698,16 @@ export function createManifestWorkspaceModels(
         : filingAffordances.length > 0
           ? 'pending'
           : 'draft',
-      caseNumberLabel: 'Gönderimde atanacak',
-      officeLabel: 'Olay ve soruşturma işlemleri',
+      caseNumberLabel: copy.assignedOnSubmit,
+      officeLabel: copy.investigationOffice,
       statusLabel: filingAffordances.length > 0
-        ? `${filingAffordances.length} işlem gönderime hazır`
+        ? `${filingAffordances.length} ${filingAffordances.length === 1 ? copy.readyToSubmit : copy.readyToSubmitPlural}`
         : runtime?.status === 'ended'
-          ? 'Dosya kapatıldı'
-          : 'Dosya hazırlanıyor',
-      routeLabel: 'Onay sırasında belirlenecek',
-      updatedLabel: `Son güncelleme ${caseTimeLabel(manifest, runtime?.clocks.caseTimeMs ?? 0)}`,
-      summaryTitle: 'Olay özeti',
+          ? copy.fileClosed
+          : copy.filePreparing,
+      routeLabel: copy.routeOnApproval,
+      updatedLabel: `${copy.lastUpdate} ${caseTimeLabel(manifest, runtime?.clocks.caseTimeMs ?? 0)}`,
+      summaryTitle: copy.incidentSummary,
       summary: manifest.case.synopsis,
       evidence: {
         total: runtimeEvidence.length,
@@ -654,15 +717,15 @@ export function createManifestWorkspaceModels(
           evidence.observed
             ? [{
                 id: evidence.id,
-                label: evidenceTitle(evidence, index),
-                sourceLabel: assetKindLabel(assetKind(evidence.tool, evidence.assets[0]?.kind)),
-                statusLabel: 'İncelendi',
+                label: evidenceTitle(evidence, index, copy),
+                sourceLabel: assetKindLabel(assetKind(evidence.tool, evidence.assets[0]?.kind), copy),
+                statusLabel: copy.reviewed,
               }]
             : []
         )),
       },
       affordances: filingAffordances.map((affordance, index) => (
-        affordanceViewModel(affordance, index, 'Resmî işlem')
+        affordanceViewModel(affordance, index, interfaceLocale, copy, copy.officialAction)
       )),
     },
     inbox: {
@@ -672,16 +735,16 @@ export function createManifestWorkspaceModels(
       threads: [{
         id: callId,
         sender: callerName,
-        subject: 'Vaka açılış bildirimi',
+        subject: copy.openingNotice,
         preview: openingText,
-        timestampLabel: startLabel(manifest),
+        timestampLabel: startLabel(manifest, copy),
         unread: true,
       }],
       messages: [{
         id: `${callId}-message`,
         author: callerName,
         body: openingText,
-        timestampLabel: startLabel(manifest),
+        timestampLabel: startLabel(manifest, copy),
         direction: 'incoming',
       }],
     },
@@ -689,7 +752,7 @@ export function createManifestWorkspaceModels(
       clockLabel: caseClockLabel(manifest, runtime?.clocks.caseTimeMs ?? 0),
       selectedContactId: selection.selectedContactId ?? callerId,
       affordances: unassignedPhoneAffordances.map((affordance, index) => (
-        affordanceViewModel(affordance, index, 'İşlem')
+        affordanceViewModel(affordance, index, interfaceLocale, copy, copy.action)
       )),
       contacts: phoneContacts,
       recentCalls: [
@@ -698,8 +761,8 @@ export function createManifestWorkspaceModels(
           id: `opening-${callerId}`,
           contactId: callerId,
           contactName: callerName,
-          timestampLabel: startLabel(manifest),
-          detailLabel: 'Vaka açılış çağrısı',
+          timestampLabel: startLabel(manifest, copy),
+          detailLabel: copy.openingCall,
           direction: 'incoming',
         },
       ],
@@ -711,7 +774,7 @@ export function createManifestWorkspaceModels(
             return actor?.displayName?.trim()
               || actor?.name?.trim()
               || castText(manifest, selection.activeCallContactId, 'name')
-              || 'Vaka kişisi'
+              || copy.casePerson
           })(),
           elapsedLabel: '00:00',
           transcript: completedAffordances.flatMap((completed) => {
@@ -729,14 +792,14 @@ export function createManifestWorkspaceModels(
     web: {
       query: selection.query,
       affordances: affordancesFor('web').map((affordance, index) => (
-        affordanceViewModel(affordance, index, 'Araştırma')
+        affordanceViewModel(affordance, index, interfaceLocale, copy, copy.research)
       )),
       results: completedWebResults.map((result) => ({
           id: result.id,
           title: result.title,
           displayUrl: result.displayUrl,
           excerpt: result.result,
-          sourceLabel: 'EKİP · Adli evrak sorgusu',
+          sourceLabel: copy.policeQuery,
         })),
       ...(activeResearchResult ? {
         activePage: {
@@ -752,29 +815,29 @@ export function createManifestWorkspaceModels(
       selectedQuestionId: selection.selectedQuestionId,
       evidence: runtimeEvidence.map((evidence, index) => ({
         id: evidence.id,
-        label: evidenceTitle(evidence, index),
-        sourceLabel: assetKindLabel(assetKind(evidence.tool, evidence.assets[0]?.kind)),
+        label: evidenceTitle(evidence, index, copy),
+        sourceLabel: assetKindLabel(assetKind(evidence.tool, evidence.assets[0]?.kind), copy),
         observed: evidence.observed,
         assetKind: assetKind(evidence.tool, evidence.assets[0]?.kind),
       })),
       questions: [
         ...readyDeductions.map((affordance, index) => ({
           id: `deduction-${affordance.id}`,
-          text: affordanceLabel(affordance, `Çıkarım ${index + 1}`),
+          text: affordanceLabel(affordance, `${copy.deduction} ${index + 1}`),
           status: 'open' as const,
-          detail: 'Vaka Notları\'nda değerlendirilmeye hazır.',
+          detail: copy.readyInNotes,
         })),
         ...(runtime?.supportedDeductions ?? []).map((deduction, index) => ({
           id: `supported-${deduction.id}`,
-          text: deduction.label?.trim() || `Doğrulanan çıkarım ${index + 1}`,
+          text: deduction.label?.trim() || `${copy.verifiedDeduction} ${index + 1}`,
           status: 'answered' as const,
-          detail: 'Kanıtlarla doğrulandı.',
+          detail: `${copy.verifiedByEvidence}.`,
         })),
         ...currentLeads.slice(0, 5).map((lead) => ({
           id: `lead-${lead.id}`,
           text: lead.label,
           status: 'open' as const,
-          detail: `${{ phone: 'Aramalar', web: 'Safari', files: 'Finder', casebook: 'Vaka Notları', inbox: 'Ekip Alanı' }[lead.surface]} uygulamasında.`,
+          detail: `${copy.inApplicationPrefix}${copy.apps[lead.surface]} ${copy.inApplication}`,
         })),
       ],
     },

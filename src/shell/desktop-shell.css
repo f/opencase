@@ -1,6 +1,8 @@
 .detective-desktop {
   --desk-menu-height: 38px;
   --desk-dock-clearance: 88px;
+  --desk-window-title-height: 36px;
+  --desk-settings-title-height: 40px;
   --desk-right-dock-width: clamp(320px, 27vw, 390px);
   --desk-ink: #071418;
   --desk-ink-soft: rgba(10, 27, 31, 0.78);
@@ -9,6 +11,11 @@
   --desk-paper: #eee9dd;
   --desk-brass: #caa85f;
   --desk-brass-bright: #ead39a;
+  --desk-system-accent: #0a84ff;
+  --desk-window-edge: rgba(255, 255, 255, 0.16);
+  --desk-window-edge-active: rgba(255, 255, 255, 0.29);
+  --desk-window-title-top: rgba(65, 67, 70, 0.96);
+  --desk-window-title-bottom: rgba(40, 42, 45, 0.96);
   position: relative;
   width: 100vw;
   height: 100dvh;
@@ -58,8 +65,9 @@
 }
 
 .detective-desktop button:focus-visible,
-.detective-window__titlebar:focus-visible {
-  outline: 2px solid var(--desk-brass-bright);
+.detective-window__titlebar:focus-visible,
+.detective-settings-panel__header:focus-visible {
+  outline: 2px solid var(--desk-system-accent);
   outline-offset: 3px;
 }
 
@@ -217,22 +225,31 @@
 .detective-settings-panel {
   position: absolute;
   z-index: 12000;
-  top: calc(var(--desk-menu-height) + 8px);
-  right: 10px;
-  width: min(338px, calc(100vw - 20px));
+  top: calc(var(--desk-menu-height) + 18px);
+  left: max(10px, calc((100vw - min(960px, calc(100vw - 20px))) / 2));
+  display: grid;
+  width: min(960px, calc(100vw - 20px));
+  height: min(600px, calc(100dvh - var(--desk-menu-height) - var(--desk-dock-clearance) - 20px));
+  min-height: min(360px, calc(100dvh - var(--desk-menu-height) - var(--desk-dock-clearance) - 20px));
   overflow: hidden;
-  border: 1px solid rgba(229, 219, 190, 0.2);
-  border-radius: 15px;
-  background:
-    linear-gradient(180deg, rgba(20, 34, 37, 0.97), rgba(7, 21, 25, 0.98));
+  grid-template-rows: var(--desk-settings-title-height) minmax(0, 1fr);
+  border: 1px solid rgba(21, 29, 29, 0.38);
+  border-radius: 13px;
+  background: #e7e7e3;
   box-shadow:
-    0 24px 70px rgba(0, 7, 10, 0.52),
-    0 2px 8px rgba(0, 6, 8, 0.34),
-    inset 0 1px rgba(255, 255, 255, 0.06);
-  color: #f3eee1;
-  backdrop-filter: blur(28px) saturate(1.18);
-  -webkit-backdrop-filter: blur(28px) saturate(1.18);
+    0 32px 90px rgba(0, 5, 7, 0.58),
+    0 10px 28px rgba(0, 6, 8, 0.34),
+    0 1px 2px rgba(0, 0, 0, 0.42),
+    inset 0 1px rgba(255, 255, 255, 0.78);
+  color: #202322;
+  transform-origin: 50% 18%;
+  backdrop-filter: blur(36px) saturate(1.15);
+  -webkit-backdrop-filter: blur(36px) saturate(1.15);
   animation: detective-settings-arrive 160ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.detective-settings-panel.is-dragging {
+  user-select: none;
 }
 
 @keyframes detective-settings-arrive {
@@ -242,76 +259,131 @@
 
 .detective-settings-panel__header {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 28px;
-  min-height: 60px;
+  grid-template-columns: 78px minmax(0, 1fr) 78px;
+  min-height: var(--desk-settings-title-height);
   align-items: center;
-  gap: 10px;
-  padding: 11px 12px 10px 13px;
-  border-bottom: 1px solid rgba(225, 216, 190, 0.12);
-  background: rgba(255, 255, 255, 0.025);
+  padding: 0 15px;
+  border-bottom: 1px solid rgba(31, 40, 39, 0.2);
+  outline: 0;
+  background:
+    linear-gradient(180deg, rgba(250, 250, 248, 0.98), rgba(220, 221, 218, 0.98));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.8);
+  cursor: grab;
+  touch-action: none;
 }
 
-.detective-settings-panel__icon {
+.detective-settings-panel__header:active,
+.detective-settings-panel.is-dragging .detective-settings-panel__header {
+  cursor: grabbing;
+}
+
+.detective-settings-panel__header > strong {
+  overflow: hidden;
+  color: rgba(24, 29, 28, 0.86);
+  font-size: 13px;
+  font-weight: 630;
+  letter-spacing: -0.01em;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detective-settings-panel__controls {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-left: -5px;
+}
+
+.detective-settings-panel__controls > button {
+  position: relative;
   display: grid;
-  width: 34px;
-  height: 34px;
-  border: 1px solid rgba(229, 207, 150, 0.24);
-  border-radius: 10px;
-  background: linear-gradient(145deg, rgba(202, 168, 95, 0.19), rgba(18, 49, 49, 0.62));
-  place-items: center;
-}
-
-.detective-settings-panel__icon img {
-  width: 17px;
-  height: 17px;
-  filter: brightness(0) saturate(100%) invert(89%) sepia(24%) saturate(601%) hue-rotate(357deg) brightness(93%);
-}
-
-.detective-settings-panel__header > div {
-  display: grid;
-  min-width: 0;
-  gap: 1px;
-}
-
-.detective-settings-panel__header small {
-  color: rgba(224, 217, 198, 0.48);
-  font-size: 9px;
-  font-weight: 650;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.detective-settings-panel__header strong {
-  font-size: 15px;
-  font-weight: 650;
-  letter-spacing: -0.015em;
-}
-
-.detective-settings-panel__header > button {
-  display: grid;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
+  flex: none;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 50%;
   background: transparent;
-  cursor: pointer;
   place-items: center;
+  box-shadow: none;
 }
 
-.detective-settings-panel__header > button:hover {
-  background: rgba(255, 255, 255, 0.08);
+.detective-settings-panel__controls > button::before {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.32), 0 1px rgba(255, 255, 255, 0.62);
+  content: "";
 }
 
-.detective-settings-panel__header > button img {
-  width: 15px;
-  height: 15px;
-  filter: brightness(0) invert(1);
-  opacity: 0.56;
+.detective-settings-panel__controls .is-close {
+  cursor: default;
+}
+
+.detective-settings-panel__controls .is-close::before { background: #ff5f57; }
+.detective-settings-panel__controls .is-minimize::before { background: #d7ad55; }
+.detective-settings-panel__controls .is-maximize::before { background: #72a77d; }
+
+.detective-settings-panel__controls i,
+.detective-settings-panel__controls i::before,
+.detective-settings-panel__controls i::after {
+  position: absolute;
+  display: block;
+  content: "";
+}
+
+.detective-settings-panel__controls i {
+  width: 13px;
+  height: 13px;
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+
+.detective-settings-panel__controls button:hover i,
+.detective-settings-panel__controls button:focus-visible i {
+  opacity: 0.68;
+}
+
+.detective-settings-panel__controls .is-close i::before,
+.detective-settings-panel__controls .is-close i::after {
+  top: 6px;
+  left: 3px;
+  width: 7px;
+  height: 1px;
+  background: #650a06;
+}
+
+.detective-settings-panel__controls .is-close i::before { transform: rotate(45deg); }
+.detective-settings-panel__controls .is-close i::after { transform: rotate(-45deg); }
+
+.detective-settings-panel__controls .is-minimize i::before {
+  top: 6px;
+  left: 3px;
+  width: 7px;
+  height: 1px;
+  background: #704400;
+}
+
+.detective-settings-panel__controls .is-maximize i::before {
+  inset: 3px;
+  border: 1px solid #075b19;
+  border-radius: 1px;
 }
 
 .detective-settings-panel__body {
-  padding: 12px;
+  min-height: 0;
+  overflow: hidden;
+  background: #e7e7e3;
+  container: settings-panel / inline-size;
+}
+
+.detective-settings-panel__body > .settings-workspace {
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .detective-desktop .workspace-status__notice {
@@ -502,16 +574,17 @@
   top: 0;
   left: 0;
   display: grid;
-  grid-template-rows: 42px minmax(0, 1fr);
+  grid-template-rows: var(--desk-window-title-height) minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid rgba(230, 220, 194, 0.25);
-  border-radius: 15px;
-  background: rgba(20, 36, 38, 0.72);
+  border: 1px solid var(--desk-window-edge);
+  border-radius: 13px;
+  background: rgba(31, 32, 34, 0.88);
   box-shadow:
-    0 28px 65px rgba(0, 5, 7, 0.48),
-    0 6px 19px rgba(0, 7, 9, 0.42),
+    0 30px 72px rgba(0, 0, 0, 0.52),
+    0 7px 20px rgba(0, 0, 0, 0.38),
+    0 0 0 0.5px rgba(0, 0, 0, 0.5),
     inset 0 1px rgba(255, 255, 255, 0.12);
   transform-origin: center;
   backdrop-filter: blur(22px) saturate(1.12);
@@ -520,12 +593,12 @@
 }
 
 .detective-window.is-active {
-  border-color: rgba(219, 190, 121, 0.56);
+  border-color: var(--desk-window-edge-active);
   box-shadow:
-    0 34px 86px rgba(0, 4, 6, 0.6),
-    0 8px 23px rgba(0, 7, 9, 0.44),
-    0 0 0 1px rgba(213, 181, 108, 0.13),
-    inset 0 1px rgba(255, 255, 255, 0.16);
+    0 36px 88px rgba(0, 0, 0, 0.62),
+    0 8px 24px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(0, 0, 0, 0.3),
+    inset 0 1px rgba(255, 255, 255, 0.18);
 }
 
 .detective-window.is-interacting {
@@ -541,21 +614,23 @@
   transform: none !important;
 }
 
-.detective-desktop.has-right-dock .detective-window.is-maximized:not(.is-docked-right) {
-  right: calc(var(--desk-right-dock-width) + 24px);
-}
-
 .detective-window__titlebar {
   position: relative;
   display: flex;
   min-width: 0;
   align-items: center;
   padding: 0 13px;
-  border-bottom: 1px solid rgba(229, 219, 193, 0.17);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.38);
   outline: 0;
-  background: linear-gradient(180deg, rgba(37, 53, 54, 0.82), rgba(17, 34, 36, 0.82));
-  color: rgba(244, 240, 229, 0.88);
+  background: linear-gradient(180deg, var(--desk-window-title-top), var(--desk-window-title-bottom));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.88);
   cursor: grab;
+}
+
+.detective-window:not(.is-active) .detective-window__titlebar {
+  background: linear-gradient(180deg, rgba(55, 57, 60, 0.93), rgba(37, 39, 42, 0.93));
+  color: rgba(255, 255, 255, 0.62);
 }
 
 .detective-window__titlebar:active {
@@ -591,8 +666,8 @@
   flex: none;
   place-items: center;
   border-radius: 5px;
-  background: rgba(7, 22, 25, 0.58);
-  box-shadow: inset 0 0 0 1px rgba(239, 220, 170, 0.17);
+  background: rgba(20, 21, 23, 0.58);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
   font-size: 11px;
 }
 
@@ -601,27 +676,37 @@
   z-index: 2;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
+  margin-left: -5px;
 }
 
 .detective-window__controls button {
   position: relative;
   display: grid;
-  width: 13px;
-  height: 13px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: 0;
   border-radius: 50%;
+  background: transparent;
   cursor: default;
   place-items: center;
-  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.34), 0 1px rgba(255, 255, 255, 0.09);
+  box-shadow: none;
 }
 
-.detective-window__controls button.is-close { background: #ff5f57; }
-.detective-window__controls button.is-minimize { background: #febc2e; }
-.detective-window__controls button.is-maximize { background: #28c840; }
+.detective-window__controls button::before {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.34), 0 1px rgba(255, 255, 255, 0.12);
+  content: "";
+}
 
-.detective-window:not(.is-active) .detective-window__controls button {
+.detective-window__controls button.is-close::before { background: #ff5f57; }
+.detective-window__controls button.is-minimize::before { background: #febc2e; }
+.detective-window__controls button.is-maximize::before { background: #28c840; }
+
+.detective-window:not(.is-active) .detective-window__controls button::before {
   background: #6d7775;
 }
 
@@ -634,7 +719,8 @@
 }
 
 .detective-window__controls button i {
-  inset: 0;
+  width: 13px;
+  height: 13px;
   opacity: 0;
   transition: opacity 100ms ease;
 }
@@ -729,7 +815,7 @@
   padding: 9px;
   overflow: visible;
   grid-template-rows: minmax(0, 1fr);
-  border: 1px solid rgba(222, 210, 180, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 38px;
   background: linear-gradient(145deg, #202725, #030707 45%, #151b1a);
   box-shadow:
@@ -776,10 +862,10 @@
 }
 
 .detective-window.is-docked-right.is-active {
-  border-color: rgba(225, 200, 139, 0.54);
+  border-color: rgba(255, 255, 255, 0.24);
   box-shadow:
     0 32px 78px rgba(0, 3, 5, 0.7),
-    0 0 0 1px rgba(198, 163, 87, 0.2),
+    0 0 0 1px rgba(0, 0, 0, 0.44),
     inset 0 1px rgba(255, 255, 255, 0.18);
 }
 
@@ -800,7 +886,7 @@
   width: 31px;
   height: 31px;
   padding: 0;
-  border: 1px solid rgba(231, 221, 197, 0.31);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 50%;
   background: linear-gradient(155deg, rgba(37, 48, 48, 0.96), rgba(8, 17, 19, 0.96));
   box-shadow:
@@ -826,7 +912,7 @@
   right: calc(100% + 8px);
   width: max-content;
   padding: 5px 8px;
-  border: 1px solid rgba(235, 224, 196, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 7px;
   background: rgba(7, 20, 23, 0.92);
   box-shadow: 0 7px 18px rgba(0, 0, 0, 0.36);
@@ -843,7 +929,7 @@
 
 .detective-window__docked-close:hover,
 .detective-window__docked-close:focus-visible {
-  border-color: rgba(230, 207, 151, 0.62);
+  border-color: rgba(255, 255, 255, 0.52);
   opacity: 1;
   transform: scale(1.06);
 }
@@ -858,7 +944,7 @@
 
 .detective-app-menu {
   position: absolute;
-  z-index: 10004;
+  z-index: 12004;
   top: calc(var(--desk-menu-height) + 8px);
   left: 10px;
   width: min(356px, calc(100vw - 20px));
@@ -1023,10 +1109,6 @@
   transform: translateX(-50%);
 }
 
-.detective-desktop.has-right-dock .detective-dock {
-  left: calc((100% - var(--desk-right-dock-width) - 24px) / 2);
-}
-
 .detective-dock__apps {
   display: flex;
   height: 70px;
@@ -1181,8 +1263,13 @@
 
   .detective-settings-panel {
     top: calc(var(--desk-menu-height) + 7px);
-    right: 7px;
-    width: calc(100vw - 14px);
+    left: 10px;
+    width: calc(100vw - 20px);
+    height: calc(100dvh - var(--desk-menu-height) - var(--desk-dock-clearance) - 18px);
+  }
+
+  .detective-settings-panel__header {
+    cursor: default;
   }
 
   .detective-desktop__shortcuts {
@@ -1323,10 +1410,10 @@
   .detective-settings-panel,
   .detective-dock__apps,
   .detective-window {
-    border-color: rgba(255, 245, 216, 0.62);
+    border-color: rgba(255, 255, 255, 0.72);
   }
 
   .detective-window__titlebar {
-    border-bottom-color: rgba(255, 245, 216, 0.45);
+    border-bottom-color: rgba(255, 255, 255, 0.46);
   }
 }

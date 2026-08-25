@@ -192,6 +192,14 @@ Only authored catalogs receive generated locale manifests. A requested
 `en-GB` locale can therefore select the authored `en` manifest, but the build
 does not invent an `en-GB` file.
 
+The local desktop requests the active player's preferred locale (`tr` or `en`)
+and applies the same fallback order. That preference also selects application
+interface copy, but interface labels do not belong in the case catalog. A case
+may support only one of those languages; in that situation its authored copy
+falls back to `case.locale` while the surrounding desktop stays in the player's
+chosen interface language. Profile and language behavior is documented in
+[Local player profiles and case library](player-profiles-and-case-library.md).
+
 ## Public and private boundaries
 
 The build writes:
@@ -205,8 +213,8 @@ Each file contains resolved strings only, including its player-safe `places`
 label map. It never contains a whole catalog,
 `messages` mapping, private outcome copy, or unresolved `$text` object.
 `cases.json` advertises the available locale URLs and their individual
-manifest digests. The detective desktop negotiates the browser locale and loads the
-matching manifest.
+manifest digests. The detective desktop negotiates the active profile's
+preferred locale and loads the matching manifest.
 
 Evidence presentation, affordance copy, deadline labels, and outcome copy stay
 outside authoritative state and saves. The kernel stores only stable `$text`

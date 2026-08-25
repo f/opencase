@@ -22,8 +22,8 @@ scenario:
           affordances:
             interview_selin_alibi: hidden
             request_livestream_archive: offered
-            conclude_baran: offered
-            conclude_leyla: offered
+            conclude_baran: hidden
+            conclude_leyla: hidden
 
     - detective.act: {action: interview, actor: selin, topic: alibi}
       expect:

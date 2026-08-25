@@ -1,5 +1,5 @@
 schema: case-test/v0.1
-case: {id: community.fka.yedi-dakika, version: 0.4.1}
+case: {id: community.fka.yedi-dakika, version: 0.4.2}
 
 scenario:
   id: opening_requires_actions
@@ -27,6 +27,7 @@ scenario:
             request_lobby_video: offered
             request_camera_sync: hidden
             request_printer_log: offered
+            accuse_mert: hidden
 
     - detective.observe: lobby_video
       expect:
@@ -52,7 +53,10 @@ scenario:
         result: {status: accepted}
         state:
           evidence: {lobby_video: observed}
-          affordances: {request_camera_sync: offered}
+          contacts: {mert: hidden}
+          affordances:
+            request_camera_sync: offered
+            accuse_mert: hidden
 
     - detective.act: {action: request, from: leyla, topic: camera-sync}
       expect:

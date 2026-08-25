@@ -6,8 +6,8 @@ export interface DemoCaseSessionRef {
   readonly caseId: string
   readonly caseVersion: string
   readonly locale: string
-  /** The local demo deliberately exposes one slot, never an arbitrary key. */
-  readonly saveId?: typeof PRIMARY_DEMO_SAVE_ID
+  /** Opaque application-owned player/profile save slot. */
+  readonly saveId?: string
 }
 
 /**
@@ -46,7 +46,7 @@ export interface DemoSessionStatus {
   readonly caseId: string
   readonly caseVersion: string
   readonly locale: string
-  readonly saveId: typeof PRIMARY_DEMO_SAVE_ID
+  readonly saveId: string
   readonly exists: boolean
   /** Present only while this exact host-owned run exists. */
   readonly assetSessionId?: string

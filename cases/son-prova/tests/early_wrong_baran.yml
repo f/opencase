@@ -5,8 +5,27 @@ case: {id: official.son-prova, version: 0.4.2}
 scenario:
   id: early_wrong_baran
   perspective: detective
-  description: Close the case on Baran immediately and receive a terminal wrong-conclusion report.
+  description: Reveal Baran, close the case on him immediately, and receive a terminal wrong-conclusion report.
   steps:
+    - detective.conclude: baran
+      expect:
+        result: {status: denied, code: affordance-unavailable}
+        state:
+          status: active
+          clocks: {case-time: 0s}
+          contacts: {baran: hidden}
+
+    - detective.act: {action: locate-contact, target: baran}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 0s}
+          contacts: {baran: listed, selin: hidden, leyla: hidden}
+          affordances:
+            conclude_baran: offered
+            conclude_selin: hidden
+            conclude_leyla: hidden
+
     - detective.conclude: baran
       expect:
         result: {status: accepted}

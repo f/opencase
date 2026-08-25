@@ -1,0 +1,32 @@
+schema: case-test/v0.1
+case: {id: community.fka.yedi-dakika, version: 0.4.2}
+
+scenario:
+  id: late_contact_after_exoneration
+  perspective: detective
+  description: Listing Mert after proving he had no opportunity must not restore a disproved accusation.
+  steps:
+    - detective.act: {action: interview, actor: leyla}
+    - detective.act: {action: request, from: leyla, topic: lobby-video}
+    - detective.observe: lobby_video
+    - detective.act: {action: request, from: leyla, topic: camera-sync}
+    - detective.observe: camera_sync_notice
+    - detective.deduce: camera_time_corrected
+    - detective.act: {action: request, from: leyla, topic: printer-log}
+    - detective.observe: printer_log
+    - detective.deduce: mert_no_opportunity
+      expect:
+        result: {status: accepted}
+        state:
+          contacts: {mert: hidden}
+          deductions: {mert_no_opportunity: supported}
+          affordances: {accuse_mert: hidden}
+
+    - detective.act: {action: locate-contact, target: mert}
+      expect:
+        result: {status: accepted}
+        state:
+          contacts: {mert: listed}
+          affordances:
+            interview_mert_location: offered
+            accuse_mert: hidden

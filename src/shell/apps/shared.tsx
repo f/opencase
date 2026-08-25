@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import arrowRightIcon from 'lucide-static/icons/arrow-right.svg'
 import listStartIcon from 'lucide-static/icons/list-start.svg'
 
+import { useUiCopy, type AppLocale } from '../../ui-locale'
 import './detective-apps.css'
 
 import type { AffordanceViewModel, AssetKind, AuthorizedAssetViewModel } from './types'
@@ -49,14 +50,35 @@ export function EmptyState({ title, body }: { readonly title: string; readonly b
 }
 
 export function AssetGlyph({ kind }: { readonly kind: AssetKind }) {
-  const glyph: Record<AssetKind, string> = {
-    image: 'GÖR',
-    audio: 'SES',
-    video: 'VİD',
-    document: 'BLG',
-    file: 'DOS',
-  }
+  const glyph = useUiCopy(ASSET_GLYPHS)
   return <span className={`detective-asset-glyph detective-asset-glyph--${kind}`}>{glyph[kind]}</span>
+}
+
+const ASSET_GLYPHS: Readonly<Record<AppLocale, Record<AssetKind, string>>> = {
+  tr: { image: 'GÖR', audio: 'SES', video: 'VİD', document: 'BLG', file: 'DOS' },
+  en: { image: 'IMG', audio: 'AUD', video: 'VID', document: 'DOC', file: 'FILE' },
+}
+
+interface SharedCopy {
+  readonly open: string
+  readonly noPreview: string
+  readonly nextMoves: string
+  readonly assetKinds: Readonly<Record<AssetKind, string>>
+}
+
+const SHARED_COPY: Readonly<Record<AppLocale, SharedCopy>> = {
+  tr: {
+    open: 'Aç',
+    noPreview: 'Önizleme yok',
+    nextMoves: 'Sıradaki hamleler',
+    assetKinds: { image: 'Görsel', audio: 'Ses kaydı', video: 'Video', document: 'Belge', file: 'Dosya' },
+  },
+  en: {
+    open: 'Open',
+    noPreview: 'No preview',
+    nextMoves: 'Next moves',
+    assetKinds: { image: 'Image', audio: 'Audio recording', video: 'Video', document: 'Document', file: 'File' },
+  },
 }
 
 interface AssetPreviewProps {
@@ -69,9 +91,10 @@ interface AssetPreviewProps {
 export function AssetPreview({
   asset,
   compact = false,
-  openLabel = 'Aç',
+  openLabel,
   onOpen,
 }: AssetPreviewProps) {
+  const copy = useUiCopy(SHARED_COPY)
   const previewUrl = asset.thumbnailUrl ?? (asset.kind === 'image' ? asset.deliveryUrl : undefined)
   const playableUrl = asset.deliveryUrl
 
@@ -91,20 +114,14 @@ export function AssetPreview({
       <figcaption>
         <span>
           <strong>{asset.label}</strong>
-          <small>{asset.durationLabel ?? {
-            image: 'Görsel',
-            audio: 'Ses kaydı',
-            video: 'Video',
-            document: 'Belge',
-            file: 'Dosya',
-          }[asset.kind]}</small>
+          <small>{asset.durationLabel ?? copy.assetKinds[asset.kind]}</small>
         </span>
         {onOpen ? (
           <button type="button" className="detective-button detective-button--quiet" onClick={() => onOpen(asset.id)}>
-            {openLabel}
+            {openLabel ?? copy.open}
           </button>
         ) : asset.kind === 'document' || asset.kind === 'file' ? (
-          <small>Önizleme yok</small>
+          <small>{copy.noPreview}</small>
         ) : null}
       </figcaption>
     </figure>
@@ -128,17 +145,19 @@ interface AffordanceTrayProps {
  */
 export function AffordanceTray({
   actions,
-  label = 'Sıradaki hamleler',
+  label,
   busy = false,
   onAction,
 }: AffordanceTrayProps) {
+  const copy = useUiCopy(SHARED_COPY)
+  const resolvedLabel = label ?? copy.nextMoves
   if (actions.length === 0) return null
 
   return (
-    <section className="affordance-tray" aria-label={label} aria-busy={busy || undefined}>
+    <section className="affordance-tray" aria-label={resolvedLabel} aria-busy={busy || undefined}>
       <header>
         <img className="affordance-tray__icon" src={listStartIcon} alt="" aria-hidden="true" />
-        <strong>{label}</strong>
+        <strong>{resolvedLabel}</strong>
       </header>
       <div>
         {actions.map((action) => (

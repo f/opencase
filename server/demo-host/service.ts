@@ -36,6 +36,7 @@ import {
 type UnknownRecord = Record<string, unknown>
 
 const WALL_CLOCK_OBSERVATION_INTERVAL_MS = 5_000
+const SAVE_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/i
 
 interface SessionSlot {
   controller?: CaseSessionController
@@ -126,11 +127,11 @@ export function parseDemoSessionRef(value: unknown): Required<DemoCaseSessionRef
     ['caseId', 'caseVersion', 'locale'],
     'session reference',
   )
-  const saveId = input.saveId ?? PRIMARY_DEMO_SAVE_ID
-  if (saveId !== PRIMARY_DEMO_SAVE_ID) {
+  const saveId = string(input.saveId ?? PRIMARY_DEMO_SAVE_ID, 'saveId', 64)
+  if (!SAVE_ID.test(saveId)) {
     throw new DemoHostRequestError(
-      'unsupported-save-slot',
-      'The local demo exposes only its primary save slot.',
+      'invalid-save-id',
+      'saveId must contain only letters, numbers, underscores, or hyphens.',
       400,
     )
   }
@@ -239,7 +240,7 @@ function status(
     caseId: ref.caseId,
     caseVersion: ref.caseVersion,
     locale: presentation.locale,
-    saveId: PRIMARY_DEMO_SAVE_ID,
+    saveId: ref.saveId,
     exists: controller !== undefined,
     ...(controller ? {
       assetSessionId: slot.assetSessionId,
@@ -296,13 +297,14 @@ export function createDemoSessionService(
 
   const load = async (
     trustedCase: TrustedDemoCase,
+    ref: Required<DemoCaseSessionRef>,
     slot: SessionSlot,
   ): Promise<CaseSessionController | undefined> => {
     if (slot.controller) return slot.controller
     const restored = await restoreCaseSessionControllerFromStorage(
       trustedCase.runtime,
       options.storage,
-      PRIMARY_DEMO_SAVE_ID,
+      ref.saveId,
     )
     slot.controller = restored
     if (restored && !slot.assetSessionId) slot.assetSessionId = nextAssetSessionId()
@@ -343,7 +345,7 @@ export function createDemoSessionService(
         500,
       )
     }
-    await controller.persist(options.storage, PRIMARY_DEMO_SAVE_ID)
+    await controller.persist(options.storage, ref.saveId)
   }
 
   const unavailableAsset = (): DemoHostRequestError => new DemoHostRequestError(
@@ -404,7 +406,7 @@ export function createDemoSessionService(
       return queue.run(slotKey(ref), async () => {
         const slot = slots.get(slotKey(ref)) ?? {}
         slots.set(slotKey(ref), slot)
-        await load(trustedCase, slot)
+        await load(trustedCase, ref, slot)
         await refreshWallClock(trustedCase, ref, slot)
         return status(trustedCase, ref, slot)
       })
@@ -416,15 +418,15 @@ export function createDemoSessionService(
       return queue.run(slotKey(ref), async () => {
         const slot = slots.get(slotKey(ref)) ?? {}
         slots.set(slotKey(ref), slot)
-        if (await load(trustedCase, slot)) {
+        if (await load(trustedCase, ref, slot)) {
           throw new DemoHostRequestError(
             'session-already-started',
-            'This case already has a primary save. Resume or restart it explicitly.',
+            'This profile already has a save for the case. Resume or restart it explicitly.',
             409,
           )
         }
         const candidate = createCaseSessionController(trustedCase.runtime)
-        await candidate.persist(options.storage, PRIMARY_DEMO_SAVE_ID)
+        await candidate.persist(options.storage, ref.saveId)
         slot.controller = candidate
         slot.assetSessionId = nextAssetSessionId()
         return status(trustedCase, ref, slot)
@@ -444,7 +446,7 @@ export function createDemoSessionService(
           const trustedCase = resolveCase(ref)
           const slot = slots.get(slotKey(ref)) ?? {}
           slots.set(slotKey(ref), slot)
-          const controller = await load(trustedCase, slot)
+          const controller = await load(trustedCase, ref, slot)
           await refreshWallClock(trustedCase, ref, slot)
           if (
             !controller ||
@@ -546,7 +548,7 @@ export function createDemoSessionService(
       return queue.run(slotKey(ref), async () => {
         const slot = slots.get(slotKey(ref)) ?? {}
         slots.set(slotKey(ref), slot)
-        const current = await load(trustedCase, slot)
+        const current = await load(trustedCase, ref, slot)
         if (!current) {
           throw new DemoHostRequestError(
             'session-not-started',
@@ -575,7 +577,7 @@ export function createDemoSessionService(
             error: result.error,
           }
         }
-        await candidate.persist(options.storage, PRIMARY_DEMO_SAVE_ID)
+        await candidate.persist(options.storage, ref.saveId)
         slot.controller = candidate
         return {
           schema: 'detective-demo-command/v1',
@@ -592,7 +594,7 @@ export function createDemoSessionService(
         await deleteCaseSessionFromStorage(
           trustedCase.runtime,
           options.storage,
-          PRIMARY_DEMO_SAVE_ID,
+          ref.saveId,
         )
         slots.delete(slotKey(ref))
         return status(trustedCase, ref, {})

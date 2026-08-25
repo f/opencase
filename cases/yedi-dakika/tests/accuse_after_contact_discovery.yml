@@ -1,0 +1,46 @@
+schema: case-test/v0.1
+case: {id: community.fka.yedi-dakika, version: 0.4.2}
+
+scenario:
+  id: accuse_after_contact_discovery
+  perspective: detective
+  description: A revealed person can be reported immediately without waiting for evidence to suggest the choice.
+  steps:
+    - detective.act: {action: interview, actor: leyla}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 2m}
+          contacts: {mert: hidden}
+          affordances:
+            locate_mert_contact: offered
+            accuse_mert: hidden
+
+    - detective.act: {action: report-suspect, target: mert}
+      expect:
+        result: {status: denied, code: affordance-unavailable}
+        state:
+          clocks: {case-time: 2m}
+          contacts: {mert: hidden}
+
+    - detective.act: {action: locate-contact, target: mert}
+      expect:
+        result: {status: accepted}
+        state:
+          clocks: {case-time: 2m}
+          contacts: {mert: listed}
+          affordances:
+            accuse_mert: offered
+            interview_mert_location: offered
+
+    - detective.act: {action: report-suspect, target: mert}
+      expect:
+        result: {status: accepted}
+        state:
+          status: active
+          clocks: {case-time: 8m}
+          contacts: {mert: listed}
+          affordances:
+            accuse_mert: hidden
+            interview_mert_location: hidden
+            apologize_mert: hidden

@@ -569,8 +569,10 @@ one-shot and its exact reaction must list the target unconditionally; do not
 put the listing behind `when`, `unless`, or a conditional effect.
 
 `cases:test` also requires a passing scenario that proves the context note is
-actually visible, the contact is hidden while the lookup is offered, the exact
-lookup is accepted, and the contact becomes listed immediately afterward. An
+actually visible, the contact is hidden while the lookup is offered, every
+person-targeted `report-suspect` or `submit-conclusion` affordance is hidden at
+that checkpoint, the exact lookup is accepted, and the contact becomes listed
+immediately afterward. An
 `evidence` context must be asserted as `available` or `observed` at that
 checkpoint. A `completed-affordance` context must reference an affordance the
 same scenario explicitly completed first. This prevents a structurally valid
@@ -1341,6 +1343,11 @@ on: {action: present, target: nihan, evidence: interview_draft, tone: empathetic
 `action` must be a selected verb. It accepts the same optional argument fields
 as unlock actions: `target`, `actor`, `from`, `topic`, `evidence`, `tone`,
 `query`, and `ref`.
+
+`report-suspect` and `submit-conclusion` are stricter: they require `target`
+and cannot use `actor` or `from`. A `report-suspect` affordance target must be a
+declared cast actor. This gives the runtime one generic route for hiding person
+decisions until that actor is publicly listed.
 
 A supported deduction trigger:
 

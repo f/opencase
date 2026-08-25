@@ -1,5 +1,5 @@
 schema: case-test/v0.1
-case: {id: community.fka.yedi-dakika, version: 0.4.1}
+case: {id: community.fka.yedi-dakika, version: 0.4.2}
 
 scenario:
   id: premature_story_actions_denied

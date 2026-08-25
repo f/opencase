@@ -12,7 +12,14 @@ scenario:
     - detective.act: {action: request, from: ekin, topic: automation-export}
     - detective.observe: automation_log
       expect:
-        state: {affordances: {accuse_baran: offered}}
+        state: {affordances: {accuse_baran: hidden}}
+
+    - detective.act: {action: locate-contact, target: baran}
+      expect:
+        result: {status: accepted}
+        state:
+          contacts: {baran: listed}
+          affordances: {accuse_baran: offered}
 
     - detective.act: {action: report-suspect, target: baran}
       expect:
@@ -29,7 +36,6 @@ scenario:
     - detective.observe: orhan_phone_export
     - detective.observe: positioning_message
 
-    - detective.act: {action: locate-contact, target: baran}
     - detective.act: {action: interview, actor: baran, topic: location}
     - detective.observe: cafe_video
     - detective.act: {action: locate-contact, target: selin}

@@ -21,6 +21,7 @@ import scanEyeIcon from 'lucide-static/icons/scan-eye.svg'
 import searchIcon from 'lucide-static/icons/search.svg'
 import tagIcon from 'lucide-static/icons/tag.svg'
 
+import { localeTag, useUiCopy, useUiLocale, type AppLocale } from '../../ui-locale'
 import { AffordanceTray, CountBadge, EmptyState } from './shared'
 import type { AuthorizedAssetViewModel, FileStatus, FilesViewModel } from './types'
 import './finder-realistic.css'
@@ -53,36 +54,40 @@ export interface FilesLabels {
   readonly information: string
   readonly quickActions: string
   readonly item: string
+  readonly itemCount: (count: number) => string
+  readonly detective: string
+  readonly listView: string
+  readonly recordActions: string
+  readonly finderSidebar: string
+  readonly noPreview: string
+  readonly assetKinds: Readonly<Record<AuthorizedAssetViewModel['kind'], string>>
 }
 
-const DEFAULT_LABELS: FilesLabels = {
-  title: 'Finder',
-  eyebrow: 'Vaka arşivi',
-  files: 'Kanıtlar',
-  noFiles: 'Bu klasörde henüz kanıt yok.',
-  noSearchResults: 'Aramanızla eşleşen bir dosya yok.',
-  selectFile: 'Önizlemek için bir dosya seçin.',
-  new: 'Yeni',
-  observed: 'İncelendi',
-  inspect: 'İnceleme iste',
-  openAsset: 'Aç',
-  details: 'Kanıt bilgileri',
-  favorites: 'Favoriler',
-  locations: 'Konumlar',
-  tags: 'Etiketler',
-  recents: 'Son Kullanılanlar',
-  caseArchive: 'Vaka Arşivi',
-  computer: 'Dedektif’in Mac’i',
-  search: 'Kanıtlarda ara',
-  nameColumn: 'Ad',
-  kindColumn: 'Tür',
-  receivedColumn: 'Eklenme',
-  statusColumn: 'Durum',
-  preview: 'Önizleme',
-  findings: 'İnceleme Bulguları',
-  information: 'Bilgi',
-  quickActions: 'Hızlı İşlemler',
-  item: 'öğe',
+const LABELS: Readonly<Record<AppLocale, FilesLabels>> = {
+  tr: {
+    title: 'Finder', eyebrow: 'Vaka arşivi', files: 'Kanıtlar', noFiles: 'Bu klasörde henüz kanıt yok.',
+    noSearchResults: 'Aramanızla eşleşen bir dosya yok.', selectFile: 'Önizlemek için bir dosya seçin.',
+    new: 'Yeni', observed: 'İncelendi', inspect: 'İnceleme iste', openAsset: 'Aç', details: 'Kanıt bilgileri',
+    favorites: 'Favoriler', locations: 'Konumlar', tags: 'Etiketler', recents: 'Son Kullanılanlar',
+    caseArchive: 'Vaka Arşivi', computer: 'Dedektif’in Mac’i', search: 'Kanıtlarda ara', nameColumn: 'Ad',
+    kindColumn: 'Tür', receivedColumn: 'Eklenme', statusColumn: 'Durum', preview: 'Önizleme',
+    findings: 'İnceleme Bulguları', information: 'Bilgi', quickActions: 'Hızlı İşlemler', item: 'öğe',
+    itemCount: (count) => `${count} öğe`, detective: 'Dedektif', listView: 'Liste görünümü',
+    recordActions: 'Kayıt işlemleri', finderSidebar: 'Finder kenar çubuğu', noPreview: 'Önizleme yok',
+    assetKinds: { image: 'Görsel', audio: 'Ses kaydı', video: 'Video', document: 'Belge', file: 'Dosya' },
+  },
+  en: {
+    title: 'Finder', eyebrow: 'Case archive', files: 'Evidence', noFiles: 'No evidence in this folder yet.',
+    noSearchResults: 'No files match your search.', selectFile: 'Select a file to preview it.',
+    new: 'New', observed: 'Reviewed', inspect: 'Request review', openAsset: 'Open', details: 'Evidence information',
+    favorites: 'Favorites', locations: 'Locations', tags: 'Tags', recents: 'Recents', caseArchive: 'Case Archive',
+    computer: "Detective's Mac", search: 'Search evidence', nameColumn: 'Name', kindColumn: 'Kind',
+    receivedColumn: 'Added', statusColumn: 'Status', preview: 'Preview', findings: 'Review Findings',
+    information: 'Information', quickActions: 'Quick Actions', item: 'item',
+    itemCount: (count) => `${count} ${count === 1 ? 'item' : 'items'}`, detective: 'Detective', listView: 'List view',
+    recordActions: 'Record actions', finderSidebar: 'Finder sidebar', noPreview: 'No preview',
+    assetKinds: { image: 'Image', audio: 'Audio recording', video: 'Video', document: 'Document', file: 'File' },
+  },
 }
 
 export interface FilesAppProps {
@@ -117,21 +122,15 @@ function FinderFileIcon({ asset }: { readonly asset?: AuthorizedAssetViewModel }
 
 function FinderAssetPreview({
   asset,
-  openLabel,
+  labels,
   onOpen,
 }: {
   readonly asset: AuthorizedAssetViewModel
-  readonly openLabel: string
+  readonly labels: FilesLabels
   readonly onOpen?: (assetId: string) => void
 }) {
   const previewUrl = asset.thumbnailUrl ?? (asset.kind === 'image' ? asset.deliveryUrl : undefined)
-  const kindLabel = {
-    image: 'Görsel',
-    audio: 'Ses kaydı',
-    video: 'Video',
-    document: 'Belge',
-    file: 'Dosya',
-  }[asset.kind]
+  const kindLabel = labels.assetKinds[asset.kind]
 
   return (
     <figure className="detective-asset">
@@ -153,10 +152,10 @@ function FinderAssetPreview({
         </span>
         {onOpen ? (
           <button type="button" className="detective-button detective-button--quiet" onClick={() => onOpen(asset.id)}>
-            {openLabel}
+            {labels.openAsset}
           </button>
         ) : asset.kind === 'document' || asset.kind === 'file' ? (
-          <small>Önizleme yok</small>
+          <small>{labels.noPreview}</small>
         ) : null}
       </figcaption>
     </figure>
@@ -184,16 +183,17 @@ export function FilesApp({
   const listTitleId = useId()
   const [filter, setFilter] = useState<FinderFilter>('all')
   const [query, setQuery] = useState('')
-  const labels = { ...DEFAULT_LABELS, ...labelOverrides }
+  const locale = useUiLocale()
+  const labels = { ...useUiCopy(LABELS), ...labelOverrides }
   const newCount = model.records.filter(({ status }) => status === 'new').length
   const observedCount = model.records.length - newCount
-  const normalizedQuery = query.trim().toLocaleLowerCase('tr')
+  const normalizedQuery = query.trim().toLocaleLowerCase(localeTag(locale))
   const visibleRecords = model.records.filter((record) => {
     if ((filter === 'new' || filter === 'observed') && record.status !== filter) return false
     if (!normalizedQuery) return true
     return [record.title, record.sourceLabel, record.receivedLabel, record.summary]
       .filter(Boolean)
-      .some((value) => value?.toLocaleLowerCase('tr').includes(normalizedQuery))
+      .some((value) => value?.toLocaleLowerCase(localeTag(locale)).includes(normalizedQuery))
   })
   const selected = visibleRecords.find(({ id }) => id === model.selectedRecordId)
     ?? visibleRecords[0]
@@ -211,11 +211,11 @@ export function FilesApp({
             <img className="finder-folder" src={folderOpenIcon} alt="" aria-hidden="true" />
             <span>
               <strong>{labels.files}</strong>
-              <small>Dedektif › {labels.caseArchive} › {labels.files}</small>
+              <small>{labels.detective} › {labels.caseArchive} › {labels.files}</small>
             </span>
           </div>
 
-          <div className="finder-view-switcher" aria-label="Liste görünümü">
+          <div className="finder-view-switcher" aria-label={labels.listView}>
             <span aria-hidden="true"><img src={layoutGridIcon} alt="" /></span>
             <span className="is-active" aria-hidden="true"><img src={listIcon} alt="" /></span>
             <span aria-hidden="true"><img src={columnsIcon} alt="" /></span>
@@ -235,14 +235,14 @@ export function FilesApp({
 
         <AffordanceTray
           actions={model.affordances}
-          label="Kayıt işlemleri"
+          label={labels.recordActions}
           busy={busy}
           onAction={onAffordance}
         />
       </div>
 
       <div className="finder-app__workspace">
-        <aside className="finder-sidebar" aria-label="Finder kenar çubuğu">
+        <aside className="finder-sidebar" aria-label={labels.finderSidebar}>
           <section>
             <h3>{labels.favorites}</h3>
             <button type="button" onClick={() => setFilter('recent')} aria-pressed={filter === 'recent'}>
@@ -288,7 +288,7 @@ export function FilesApp({
         <section className="finder-file-list" aria-labelledby={listTitleId}>
           <div className="finder-file-list__summary">
             <h3 id={listTitleId}>{labels.files}</h3>
-            <span>{visibleRecords.length} {labels.item}</span>
+            <span>{labels.itemCount(visibleRecords.length)}</span>
           </div>
 
           <div className="finder-file-list__columns" aria-hidden="true">
@@ -333,8 +333,8 @@ export function FilesApp({
           )}
 
           <footer>
-            <span>{visibleRecords.length} {labels.item}</span>
-            {newCount > 0 ? <span><CountBadge value={newCount} label={labels.new} /> {labels.new.toLocaleLowerCase('tr')}</span> : null}
+            <span>{labels.itemCount(visibleRecords.length)}</span>
+            {newCount > 0 ? <span><CountBadge value={newCount} label={labels.new} /> {labels.new.toLocaleLowerCase(localeTag(locale))}</span> : null}
           </footer>
         </section>
 
@@ -357,7 +357,7 @@ export function FilesApp({
                     <FinderAssetPreview
                       key={asset.id}
                       asset={asset}
-                      openLabel={labels.openAsset}
+                      labels={labels}
                       onOpen={onOpenAsset}
                     />
                   ))}
