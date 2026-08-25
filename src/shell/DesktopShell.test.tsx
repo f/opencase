@@ -613,6 +613,41 @@ describe('DesktopShell iPhone presentation', () => {
     }
   })
 
+  it('shows application feedback at the top and lets the player dismiss it', async () => {
+    const onDismissNotification = vi.fn()
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+
+    try {
+      await act(async () => {
+        root.render(
+          <DesktopShell
+            {...turkishShellProps}
+            apps={floatingDockApps.slice(0, 1)}
+            notificationSlot={(
+              <span className="workspace-status__notice" role="status">
+                İnceleme tamamlandı
+              </span>
+            )}
+            onDismissNotification={onDismissNotification}
+          />,
+        )
+      })
+
+      const banner = host.querySelector('.detective-mobile-shell__notification')
+      const close = host.querySelector<HTMLButtonElement>('[data-mobile-dismiss-notification]')
+      expect(banner?.textContent).toContain('İnceleme tamamlandı')
+      expect(close?.getAttribute('aria-label')).toBe('Bildirimi kapat')
+
+      await act(async () => close?.click())
+      expect(onDismissNotification).toHaveBeenCalledOnce()
+    } finally {
+      await act(async () => root.unmount())
+      host.remove()
+    }
+  })
+
   it('launches apps full-screen and returns Home without losing mounted app state', async () => {
     function StatefulNotes() {
       const [count, setCount] = useState(0)
@@ -657,6 +692,10 @@ describe('DesktopShell iPhone presentation', () => {
       expect(appLayer).not.toBeNull()
       expect(appLayer?.hidden).toBe(false)
       expect(host.querySelector('.detective-mobile-shell__home')).toBeNull()
+      expect(host.querySelector('.detective-mobile-shell__application-controls')).not.toBeNull()
+      expect(document.activeElement).toBe(host.querySelector(
+        '.detective-mobile-shell__application-controls button',
+      ))
 
       await act(async () => {
         appLayer?.querySelector<HTMLButtonElement>('button')?.click()
@@ -664,7 +703,9 @@ describe('DesktopShell iPhone presentation', () => {
       expect(appLayer?.textContent).toContain('Checked 1')
 
       await act(async () => {
-        host.querySelector<HTMLButtonElement>('.detective-mobile-shell__home-indicator')?.click()
+        host.querySelector<HTMLButtonElement>(
+          '.detective-mobile-shell__application-controls [aria-label="Ana Ekrana dön"]',
+        )?.click()
       })
       expect(host.querySelector('.detective-mobile-shell__home')).not.toBeNull()
       expect(appLayer?.hidden).toBe(true)
@@ -760,7 +801,9 @@ describe('DesktopShell iPhone presentation', () => {
       expect(host.querySelector('.detective-settings-panel')).toBeNull()
 
       await act(async () => {
-        host.querySelector<HTMLButtonElement>('.detective-mobile-shell__home-indicator')?.click()
+        host.querySelector<HTMLButtonElement>(
+          '.detective-mobile-shell__settings > header [aria-label="Ana Ekrana dön"]',
+        )?.click()
       })
       expect(host.querySelector('.detective-mobile-shell__settings')).toBeNull()
       expect(host.querySelector('.detective-mobile-shell__home')).not.toBeNull()
@@ -807,6 +850,142 @@ describe('DesktopShell iPhone presentation', () => {
       expect(layer?.textContent).toContain('Phone-owned chrome')
       expect(host.querySelector('.detective-mobile-shell__status')).toBeNull()
       expect(host.querySelectorAll('.phone-owned-status')).toHaveLength(1)
+    } finally {
+      await act(async () => root.unmount())
+      host.remove()
+    }
+  })
+
+  it('closes a closable full-screen app directly and returns to the Home Screen', async () => {
+    const phone: ShellAppDefinition = {
+      id: 'phone',
+      title: 'iPhone',
+      icon: { type: 'glyph', value: 'P' },
+      content: <p>Phone content</p>,
+      placement: 'right-dock',
+      closable: true,
+      defaultOpen: true,
+      defaultActive: true,
+      mobile: { placement: 'dock', chrome: 'self' },
+    }
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+
+    try {
+      await act(async () => {
+        root.render(
+          <DesktopShell
+            {...turkishShellProps}
+            apps={[phone]}
+            mobileInitialView="active-app"
+          />,
+        )
+      })
+
+      const close = host.querySelector<HTMLButtonElement>('[data-mobile-close-active-app="phone"]')
+      expect(close?.getAttribute('aria-label')).toBe('iPhone uygulamasını kapat')
+      expect(close?.textContent).toContain('Kapat')
+
+      await act(async () => close?.click())
+      expect(host.querySelector('.detective-mobile-shell__home')).not.toBeNull()
+      expect(host.querySelector('.detective-mobile-shell__app-layer[data-app-id="phone"]')).toBeNull()
+
+      await act(async () => {
+        host.querySelector<HTMLButtonElement>('[data-mobile-app-id="phone"]')?.click()
+      })
+      expect(host.querySelector('.detective-mobile-shell__app-layer[data-app-id="phone"]')).not.toBeNull()
+      expect(host.querySelector('[data-mobile-close-active-app="phone"]')).not.toBeNull()
+    } finally {
+      await act(async () => root.unmount())
+      host.remove()
+    }
+  })
+
+  it('uses an App Switcher to list and close running apps', async () => {
+    const apps: ShellAppDefinition[] = [
+      {
+        id: 'notes',
+        title: 'Case Notes',
+        icon: { type: 'glyph', value: 'N' },
+        content: <p>Notes content</p>,
+        defaultOpen: true,
+        defaultActive: true,
+      },
+      {
+        id: 'files',
+        title: 'Finder',
+        icon: { type: 'glyph', value: 'F' },
+        content: <p>Files content</p>,
+        defaultOpen: true,
+      },
+      {
+        id: 'web',
+        title: 'Safari',
+        icon: { type: 'glyph', value: 'S' },
+        content: <p>Web content</p>,
+      },
+    ]
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+
+    try {
+      await act(async () => {
+        root.render(<DesktopShell {...turkishShellProps} apps={apps} mobileInitialView="home" />)
+      })
+
+      await act(async () => {
+        host.querySelector<HTMLButtonElement>('.detective-mobile-shell__running-apps')?.click()
+      })
+      expect(host.querySelector('.detective-mobile-shell__switcher')).not.toBeNull()
+      expect(host.querySelectorAll('[data-mobile-running-app-id]')).toHaveLength(2)
+      expect(host.querySelector('[data-mobile-running-app-id="web"]')).toBeNull()
+
+      await act(async () => {
+        host.querySelector<HTMLButtonElement>('[data-mobile-close-app-id="notes"]')?.click()
+      })
+      expect(host.querySelector('[data-mobile-running-app-id="notes"]')).toBeNull()
+      expect(host.querySelector('[data-mobile-running-app-id="files"]')).not.toBeNull()
+    } finally {
+      await act(async () => root.unmount())
+      host.remove()
+    }
+  })
+
+  it('does not offer a close action for a mandatory mobile app', async () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+
+    try {
+      await act(async () => {
+        root.render(
+          <DesktopShell
+            {...turkishShellProps}
+            apps={[{
+              id: 'incoming-phone',
+              title: 'Incoming call',
+              icon: { type: 'glyph', value: 'P' },
+              content: <p>Answer this call</p>,
+              placement: 'right-dock',
+              defaultOpen: true,
+              defaultActive: true,
+              mobile: { chrome: 'self' },
+            }]}
+            mobileInitialView="active-app"
+          />,
+        )
+      })
+
+      expect(host.querySelector('[data-mobile-close-active-app]')).toBeNull()
+      await act(async () => {
+        host.querySelector<HTMLButtonElement>('.detective-mobile-shell__active-home')?.click()
+      })
+      await act(async () => {
+        host.querySelector<HTMLButtonElement>('.detective-mobile-shell__running-apps')?.click()
+      })
+      expect(host.querySelector('[data-mobile-close-app-id="incoming-phone"]')).toBeNull()
     } finally {
       await act(async () => root.unmount())
       host.remove()

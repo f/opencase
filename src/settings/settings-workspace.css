@@ -750,7 +750,7 @@
   .settings-workspace__content {
     grid-row: 1;
     padding:
-      max(22px, env(safe-area-inset-top))
+      20px
       max(16px, env(safe-area-inset-right))
       28px max(16px, env(safe-area-inset-left));
     background: var(--settings-content);
@@ -882,7 +882,7 @@
 
 @media (pointer: coarse) and (max-height: 500px) {
   .settings-workspace__content {
-    padding-top: max(12px, env(safe-area-inset-top));
+    padding-top: 12px;
   }
 
   .settings-workspace__heading h2 {

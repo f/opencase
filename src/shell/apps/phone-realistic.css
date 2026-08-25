@@ -32,6 +32,15 @@
   text-rendering: optimizeLegibility;
 }
 
+/* In the iPhone shell this app owns its system chrome, so it also consumes
+   the physical device's notch and Home-gesture safe areas. */
+.detective-mobile-shell .phone-realistic {
+  --iphone-shell-safe-top: var(--mobile-safe-top, env(safe-area-inset-top, 0px));
+  --iphone-shell-safe-right: var(--mobile-safe-right, env(safe-area-inset-right, 0px));
+  --iphone-shell-safe-bottom: var(--mobile-safe-bottom, env(safe-area-inset-bottom, 0px));
+  --iphone-shell-safe-left: var(--mobile-safe-left, env(safe-area-inset-left, 0px));
+}
+
 .phone-realistic button,
 .phone-realistic input {
   font: inherit;
@@ -131,6 +140,13 @@
 .iphone-status__icon--battery { width: 19px; }
 .iphone-status--light .iphone-status__icon { filter: brightness(0) invert(1); }
 
+.detective-mobile-shell .phone-realistic .iphone-status {
+  height: calc(47px + var(--iphone-shell-safe-top));
+  padding:
+    var(--iphone-shell-safe-top) calc(12px + var(--iphone-shell-safe-right))
+    0 calc(12px + var(--iphone-shell-safe-left));
+}
+
 .iphone-home {
   position: relative;
   display: grid;
@@ -145,6 +161,14 @@
     var(--iphone-wallpaper) center / cover no-repeat;
   color: #fff;
   scrollbar-width: none;
+}
+
+.detective-mobile-shell .phone-realistic .iphone-home {
+  padding:
+    calc(58px + var(--iphone-shell-safe-top))
+    calc(16px + var(--iphone-shell-safe-right))
+    calc(29px + var(--iphone-shell-safe-bottom))
+    calc(16px + var(--iphone-shell-safe-left));
 }
 
 .iphone-home::-webkit-scrollbar { display: none; }
@@ -462,6 +486,11 @@ button:hover > .iphone-app-glyph {
   overflow: auto;
   background: #f2f2f7;
   scrollbar-color: rgba(60, 60, 67, 0.2) transparent;
+}
+
+.detective-mobile-shell .phone-realistic .iphone-app-screen {
+  padding-top: calc(47px + var(--iphone-shell-safe-top));
+  padding-bottom: calc(73px + var(--iphone-shell-safe-bottom));
 }
 
 .iphone-navigation-title {
@@ -1065,6 +1094,14 @@ button:hover > .iphone-app-glyph {
   background: rgba(248, 248, 250, 0.9);
   backdrop-filter: blur(22px) saturate(1.45);
   -webkit-backdrop-filter: blur(22px) saturate(1.45);
+}
+
+.detective-mobile-shell .phone-realistic .iphone-tab-bar {
+  min-height: calc(67px + var(--iphone-shell-safe-bottom));
+  padding:
+    6px calc(18px + var(--iphone-shell-safe-right))
+    calc(14px + var(--iphone-shell-safe-bottom))
+    calc(18px + var(--iphone-shell-safe-left));
 }
 
 .iphone-tab-bar button {
@@ -1759,7 +1796,7 @@ button:hover > .iphone-app-glyph {
 
 @container (max-width: 340px) {
   .iphone-carrier { display: none; }
-  .iphone-status { grid-template-columns: 52px 98px 52px; padding-inline: 9px; }
+  .iphone-status { grid-template-columns: minmax(52px, 1fr) 98px minmax(52px, 1fr); padding-inline: 9px; }
   .iphone-dynamic-island { width: 84px; }
   .iphone-app-glyph { width: 50px; height: 50px; }
   .iphone-app-grid { gap-inline: 4px; }

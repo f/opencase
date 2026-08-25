@@ -2026,6 +2026,7 @@ function CaseDesktop({
           notificationSlot={commandNotice ? (
             <span className="workspace-status__notice" role="status">{commandNotice}</span>
           ) : null}
+          onDismissNotification={() => setCommandNotice(undefined)}
         />
       </ModalBackground>
       {openAsset && !appDialogOpen ? (
@@ -2158,6 +2159,7 @@ interface OpeningDesktopProps {
   readonly phase: 'ringing' | 'missed' | 'connected'
   readonly busy: boolean
   readonly error?: string
+  readonly onDismissError: () => void
   readonly onAnswer: () => void
   readonly onDecline: () => void
   readonly onAccept: () => void
@@ -2170,6 +2172,7 @@ function OpeningDesktop({
   phase,
   busy,
   error,
+  onDismissError,
   onAnswer,
   onDecline,
   onAccept,
@@ -2243,6 +2246,7 @@ function OpeningDesktop({
         })
       )}
       notificationSlot={error ? <span className="workspace-status__notice" role="status">{error}</span> : null}
+      onDismissNotification={onDismissError}
     />
   )
 }
@@ -2468,6 +2472,7 @@ function CaseExperience({
       phase={phase === 'connected' ? 'connected' : phase === 'missed' ? 'missed' : 'ringing'}
       busy={busy}
       error={error}
+      onDismissError={() => setError(undefined)}
       onAnswer={() => setPhase('connected')}
       onDecline={() => setPhase('missed')}
       onAccept={() => { void acceptCase() }}

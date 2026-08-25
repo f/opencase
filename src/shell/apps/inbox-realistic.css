@@ -1459,13 +1459,13 @@ button.workspace-image-attachment__preview:focus-visible {
   font-size: 16px;
 }
 
-@media (max-height: 520px) {
+@media (max-height: 620px) {
   .detective-mobile-shell .inbox-workspace {
     grid-template-rows: 38px minmax(0, 1fr);
   }
 
   .detective-mobile-shell .workspace-shell {
-    grid-template-rows: 76px minmax(0, 1fr);
+    grid-template-rows: 58px minmax(0, 1fr);
   }
 
   .detective-mobile-shell .workspace-sidebar {
@@ -1489,7 +1489,7 @@ button.workspace-image-attachment__preview:focus-visible {
   }
 
   .detective-mobile-shell .workspace-quick-prompts {
-    max-height: 88px;
+    max-height: 72px;
     grid-template-columns: minmax(0, 1fr);
     padding-block: 6px;
   }

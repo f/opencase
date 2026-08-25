@@ -123,6 +123,8 @@ export interface DesktopShellProps {
   settingsWindowActions?: DesktopSettingsWindowActions
   /** Transient application feedback that must stay visible while settings are closed. */
   notificationSlot?: ReactNode
+  /** Lets the mobile shell dismiss application-owned transient feedback. */
+  onDismissNotification?: () => void
   startLabel?: string
   /** Application-owned chrome locale. Case content stays in the case catalog. */
   locale?: 'tr' | 'en'
