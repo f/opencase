@@ -2,6 +2,7 @@
   "name": "opencase",
   "private": true,
   "version": "0.1.0",
+  "license": "GPL-2.0-or-later",
   "type": "module",
   "scripts": {
     "cases:compile": "tsx scripts/compile-cases.ts cases",
