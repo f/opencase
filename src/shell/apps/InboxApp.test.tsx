@@ -64,6 +64,9 @@ describe('InboxApp workspace', () => {
     expect(html).toContain('lucide-static%20v1.34.0')
     expect(html).toContain('lucide%20lucide-hash')
     expect(html).toContain('lucide%20lucide-lock')
+    expect(html).toContain('workspace-mark')
+    expect(html).toContain('opencase-mark.png')
+    expect(html).not.toContain('class="workspace-mark" aria-hidden="true">D</span>')
     expect(html).not.toContain('detective-app__header')
   })
 

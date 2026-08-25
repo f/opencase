@@ -123,9 +123,18 @@
 
 .workspace-mark {
   margin-bottom: 4px;
+  overflow: hidden;
   background: #f8f4f8;
   color: var(--workspace-aubergine);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+}
+
+.workspace-mark img {
+  display: block;
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  filter: none;
 }
 
 .workspace-rail__item {

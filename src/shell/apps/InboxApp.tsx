@@ -22,6 +22,7 @@ import sendIcon from 'lucide-static/icons/send-horizontal.svg'
 import smileIcon from 'lucide-static/icons/smile.svg'
 import usersIcon from 'lucide-static/icons/users.svg'
 
+import opencaseMark from '../../assets/shell/opencase-mark.png'
 import { localeTag, useUiCopy, useUiLocale, type AppLocale } from '../../ui-locale'
 import { AssetPreview } from './shared'
 import './inbox-realistic.css'
@@ -304,7 +305,9 @@ export function InboxApp({
 
       <div className="workspace-shell">
         <nav className="workspace-rail" aria-label={labels.mainMenu}>
-          <span className="workspace-mark" aria-hidden="true">D</span>
+          <span className="workspace-mark" aria-hidden="true">
+            <img src={opencaseMark} alt="" draggable={false} />
+          </span>
           <span className="workspace-rail__item is-active"><Icon src={homeIcon} /><small>{labels.home}</small></span>
           <span className="workspace-rail__item"><Icon src={bellIcon} /><small>{labels.activity}</small></span>
           <span className="workspace-rail__item"><Icon src={atSignIcon} /><small>{labels.mentions}</small></span>

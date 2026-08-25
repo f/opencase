@@ -468,10 +468,12 @@ describe('App case-channel activity', () => {
 
     expect(messages).toHaveLength(4)
     expect(inbox.textContent).toContain('Ada Yılmaz')
+    expect(inbox.textContent).toContain('OpenCase Bürosu')
     expect(inbox.textContent).toContain('Teslim kaydı ile kapı saati aynı dakikayı gösteriyor.')
     expect(inbox.textContent).toContain('Vardiya görevlisini ara')
     expect(colleagueNames.some((name) => inbox.textContent?.includes(name))).toBe(true)
     expect(inbox.querySelector('.workspace-avatar--detective')?.textContent).toBe('AY')
+    expect(inbox.querySelector('.workspace-mark img')).not.toBeNull()
     expect(inbox.querySelector('.workspace-channel-intro p')?.textContent)
       .toContain('Vardiya görevlisini ara')
     const storageKeys = Array.from(
