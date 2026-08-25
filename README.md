@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="docs/brand/opencase-logo.png" alt="opencase" width="680">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/opencase-logo-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/brand/opencase-logo-light.png">
+    <img src="docs/brand/opencase-logo-light.png" alt="opencase" width="680">
+  </picture>
 </p>
 
 <h1 align="center">opencase</h1>
@@ -36,7 +40,7 @@ progress.
 - Portable case folders with YAML, images, audio, translations, and tests
 - Deterministic command → event → reducer → rule execution
 - Case tests written from the detective's point of view
-- Turkish and English case catalogs
+- Multilingual case catalogs
 - Browser-local profiles, saves, imports, and desktop layouts
 - Static deployment with no gameplay server or database
 - A decoupling gate that rejects case IDs and story tokens in engine code
