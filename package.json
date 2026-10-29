@@ -40,7 +40,7 @@
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
     "fake-indexeddb": "^6.2.5",
-    "happy-dom": "^20.11.6",
+    "happy-dom": "^21.0.4",
     "tsx": "^4.23.12",
     "typescript": "^5.9.2",
     "vite": "^7.1.0",
